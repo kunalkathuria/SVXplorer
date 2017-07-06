@@ -1,0 +1,17 @@
+##fileformat=VCF4.2
+##source=SVCaller-0.0.1
+##INFO=<ID=END, Number=1, Type=Integer, Description="end point of SV">
+##INFO=<ID=SVTYPE, Number=1, Type=String, Description="SV Type">
+##INFO=<ID=CM, Number=1, Type=String, Description="Specific comment">
+##INFO=<ID=ISINV, Number=1, Type=Flag, Description="Whether on inverted or positive strand">
+##INFO=<ID=CHR2, Number=1, Type=Integer, Description="source location chromosome of copy-paste INS">
+##INFO=<ID=POS2, Number=1, Type=Integer, Description="source location start of copy-paste INS">
+##INFO=<ID=END2, Number=1, Type=Integer, Description="source location end of copy-paste INS">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr20	60196	1	.	<DEL>	.	PASS	SVTYPE=DEL;END=60370;SVLEN=-174;IMPRECISE
+chr20	60796	2	.	<DEL>	.	PASS	SVTYPE=DEL;END=60998;SVLEN=-202;IMPRECISE
+chr20	61080	3	.	<DEL>	.	PASS	SVTYPE=DEL;END=179883;SVLEN=-118803;IMPRECISE
+chr20	60480	4	.	<DEL>	.	PASS	SVTYPE=DEL;END=60721;SVLEN=-241;IMPRECISE
+chr20	60061	5	.	<DUP:TANDEM>	.	PASS	SVTYPE=DUP;END=179942;SVLEN=119881;IMPRECISE;INV=FALSE
+chr20	60075	6	.	<DUP:TANDEM>	.	PASS	SVTYPE=DUP;END=61065;SVLEN=990;IMPRECISE;INV=FALSE
+chr20	60181	7	.	<DUP:TANDEM>	.	PASS	SVTYPE=DUP;END=60900;SVLEN=719;IMPRECISE;INV=FALSE

@@ -1,0 +1,10 @@
+##fileformat=VCF4.2
+##source=SVCaller-0.0.1
+##INFO=<ID=END, Number=1, Type=Integer, Description="end point of SV">
+##INFO=<ID=SVTYPE, Number=1, Type=String, Description="SV Type">
+##INFO=<ID=CM, Number=1, Type=String, Description="Specific comment">
+##INFO=<ID=ISINV, Number=1, Type=Flag, Description="Whether on inverted or positive strand">
+##INFO=<ID=CHR2, Number=1, Type=Integer, Description="source location chromosome of copy-paste INS">
+##INFO=<ID=POS2, Number=1, Type=Integer, Description="source location start of copy-paste INS">
+##INFO=<ID=END2, Number=1, Type=Integer, Description="source location end of copy-paste INS">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
