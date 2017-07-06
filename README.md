@@ -25,7 +25,7 @@ Example call (from sv_caller/src):
 
 A good check to see if the tool is working properly is to give it as input the test BAM files in the sv_caller/data/bams/test folder and check if the resulting bedpe files found in the sv_caller/results/text folder are identical with those contained in the sv_caller/results/test folder. So, first run the code with all default parameter values thus from the sv_caller/src folder:
 
-./run_sv_caller.sh -a ../data/bams/test/test_target_pe.bam -b ../data/bams/test/test_target_pe.ns.bam -r ../data/bams/test/test_target_splitters.ns.bam -z ../data/bams/test/discordants.bam -A 1 E 0
+./run_sv_caller.sh -a ../data/bams/test/test_1k.bam -b ../data/bams/test/test_1k.ns.bam -r ../data/bams/test/test_1k_splitters.ns.bam -z ../data/bams/test/discordants.bam -A 1 -E 0
 
 Then, ascertain that the 4 bedpe files in sv_caller/results/test match the respective ones just created in sv_caller/results/text (there should be 2 non-empty ones: deletions.bedpe and tandemDuplications.bedpe). If this is not the case, please recheck all the paths and checkout the master branch from GitHub again if necessary.
 
@@ -45,7 +45,7 @@ All VARSECer command line options are accessed via (./run_sv_caller.sh or ./run_
 
 Six bedpe files are created in the standard 6-column format (chr1, start, stop, chr2, start, stop) except for insertions.bedpe which is in the standard (chr_source, start, stop, chr_insert, start, end) non-tandem duplication (NTD) format. The kind of NTD (cut,copy,inverted cut etc.) is identified in the last column as indicated above. 1 vcf file is also created containing all variants together.
 
-These files are stored in the sv_caller/results/text directory. Intermediate bedpe files using only PE mappings are stored in the above directory as well in a folder titled 'pe_results'. These results may give better results against "truth sets" if the truth set's breakpoint precision is questionable.
+These files are stored in the sv_caller/results/text directory. Intermediate bedpe files using only PE (PE and SR) mappings are stored in the above directory as well in a folder titled 'pe_results' (sr_results). These results may give better results against "truth sets" if the truth set's breakpoint precision is questionable.
 
 ### NOTES
 

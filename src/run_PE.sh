@@ -19,7 +19,7 @@ else
 	python DisjointSetCover.py
 fi
 
-python WriteBed.py ../results/text/DisjSetCover_S.txt $7 ${12} ${13}
+python WriteBed.o2.py ../results/text/DisjSetCover_S.txt
 cp ../results/text/VariantMap_O.txt ../results/text/VariantMap.txt
 cp ../results/text/All_Variants.txt ../results/text/All_Variants_O.txt
 
