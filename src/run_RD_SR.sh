@@ -17,7 +17,7 @@ then
 	cat ../results/text/All_Variants.txt | grep -v INV | grep -v known > ../results/text/inDels.txt # all INDELS
 	sort -k6,6 ../results/text/inDels.txt > ../results/text/inDels_S.txt
 	#./formatRD.sh #make first 2 vars in here user-input
-	python add_RD.o2.py $5 $8 ${15} ${16} ${17} ${19} ${20}
+	python add_RD.o2.py $5 $8 ${15} ${16} ${17} ${19} ${20} ${24}
 	cp ../results/text/VariantMap_RD.txt ../results/text/VariantMap.txt
 	cp ../results/text/All_Variants_RD.txt ../results/text/All_Variants.txt
 fi

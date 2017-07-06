@@ -11,6 +11,7 @@ CNV_FILE = sys.argv[2]
 RD_MARGIN = int(sys.argv[5])
 RD_SLOP = int(sys.argv[6])
 MAP_THRESH_RDU = int(sys.argv[7])
+DENOVO=int(sys.argv[8])
 
 class Variant(object):
 
@@ -376,8 +377,9 @@ if __name__ == "__main__":
     varHash = {}
     iobjects = []
     print "Forming RD hash..."
-	
-    for line in f:
+
+    if DENOVO:	
+      for line in f:
 
                 chr1 = line.split()[1]
                 chr2 = line.split()[3]
@@ -398,7 +400,7 @@ if __name__ == "__main__":
 			varHash[temp] = FR
 			#print "Added", temp
 
-    for k,entry in enumerate(newRDVars):
+      for k,entry in enumerate(newRDVars):
 
 	chrom = entry[0]
 	start = int(entry[1])
