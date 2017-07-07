@@ -11,7 +11,7 @@ NMATCHRATIO=0
 NMATCH_PCT=0
 CALC_THRESH=1000000
 SIG_THRESH=.9985
-RDS=0
+RDS=1
 VAR_RATE=450
 SLOP=0
 BP_MARGIN=30
@@ -74,18 +74,19 @@ Options (please use short options for now):
     -f|--n_pct_thresh 		(min ratio of matching bases in a given alignment to read length required for read to be used in analysis, default =  0)
     -g|--calc_thresh 		(max entries of bamfile used to ascertain stats like coverage, mean insert length etc., def = 1,000,000)
     -i|--sam_path 		(complete path to "samtools" command, including /samtools, if not on path)
-    -m|--rd_signal 		(SET to 1 if using -x; whether or not to use read depth signal, e.g. if CN file is not available set this to 0, def = 0)
+    -m|--rd_signal 		(SET to 1 if using -x; whether or not to use CNV calls from a third party tool to support variants called by VARSEC, e.g. if CN file is not available do not set this to 1, def = 0)
     -n|--rec_overlap		(min reciprocal overlap needed with CN region to boost/give more weight to intermediate PE-supported SV)
     -q|--disj_thresh		(number of unique fragment mappings required in variant set to pick set as claimed SV, def = 4)
     -r|--splitter_path		(*REQUIRED: path to split-reads bam file)
     -s|--splitter_slop		(margin used in differentiating split-read break points from one another; def = 10)
     -u|--min_cluster		(the minimum number of reads supporting a cluster required for it to be considered in the analysis, def = 3)
     -x				(SET -m to 1 if using this; path to file containing CNVs)
-    -y				(binary switch; set to 0 if wish to see only those variants whose supporting fragments do not map at all to other variants, def = 1)	
+    -y				(binary switch; set to 0 if wish to see only those variants whose supporting fragments do not map at all to other variants, def = 1)
+    -F				(set to 1 if wish to see DE NOVO read depth calls; dependent on -m; def = 0)	
 EOF
 }
 
-while getopts “ha:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:A:B:C:D:E:” OPTION
+while getopts “ha:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:A:B:C:D:E:F:” OPTION
 do
 
      case $OPTION in
@@ -182,6 +183,9 @@ do
 	    ;;
 	    E)
             CL_BRK="$OPTARG"
+            ;;
+	    F)
+            DENOVO_RD="$OPTARG"
             ;;
 	    ?)
 	    echo "Option not recognized."
