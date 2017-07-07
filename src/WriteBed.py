@@ -7,6 +7,8 @@ from collections import Counter
 BAM = sys.argv[2]
 DEL_THRESH = float(sys.argv[3])
 DUP_THRESH = float(sys.argv[4])
+DEL_THRESH2 = float(sys.argv[5])
+DUP_THRESH2 = float(sys.argv[6])
 
 def file_len(f):
     
@@ -58,6 +60,7 @@ if __name__ == "__main__":
 			#print num
 			#f11.write("%s\n" %line2)
 			write = 0
+			GT=""
 			if (line2_split[1] == "DEL_INS" or (line2_split[1]== "TD_I" and line2_split[11] == "SR")) and int(line2_split[4]) < int(line2_split[6]):
 				chr_n = line2_split[2]
 				start = int(line2_split[4])
@@ -75,11 +78,15 @@ if __name__ == "__main__":
 				
 					write = 1		
 					print "TD confirmed (pileup)"	
+					if covLoc/COVERAGE > DUP_THRESH2:
+						GT="GT:1/1"
 
 				elif covLoc != 0 and covLoc/COVERAGE < DEL_THRESH:
 				
 					write = 1
 					print "DEL confirmed (pileup)"
+					if covLoc/COVERAGE < DEL_THRESH2:
+                                                GT="GT:1/1"
 
 			#elif len(line2_split[1]) > 2 and line2_split[1][0:3] == "INS" and line2_split[1] != "INS_C" and line2_split[1] != "INS_C_I"):
 
@@ -100,14 +107,14 @@ if __name__ == "__main__":
 			# If not insertion as bp3 is not set
 			if line2_split[1] == "DEL" or (line2_split[1] == "DEL_INS" and (line2_split[11].find("RD") != -1 or write)):
                             
-                            f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL"))
+                            f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT))
                         #$Comment out second condition and next elif if leads to low precision due to SR TD_I's and INS_I's.    
                         elif line2_split[1] == "TD" or (line2_split[1] == "TD_I" and (line2_split[11][:2] == "PE" or write)):
 
 			    [bp1_s, bp1_e] = min(int(line2_split[3]),int(line2_split[6])), min(int(line2_split[4]), int(line2_split[7]))
 			    [bp2_s, bp2_e] = max(int(line2_split[3]),int(line2_split[6])), max(int(line2_split[4]), int(line2_split[7]))
  
-			    f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD"))
+			    f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD",GT))
 
 			#See whether this works better for PE only vs PE and SR both-- unlikely to have inv TD in chromosome...
 			elif line2_split[1] == "INS_I" and line2_split[2] == line2_split[5] and line2_split[8] == "-1" and line2_split[11][:2] == "PE":
@@ -115,15 +122,15 @@ if __name__ == "__main__":
 			    [bp1_s, bp1_e] = min(int(line2_split[3]),int(line2_split[6])), min(int(line2_split[4]), int(line2_split[7]))
                             [bp2_s, bp2_e] = max(int(line2_split[3]),int(line2_split[6])), max(int(line2_split[4]), int(line2_split[7]))
 
-                            f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD_INV"))
+                            f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD_INV",GT))
 
 			elif line2_split[1] == "INV":
-                            f15.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1]))
+                            f15.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],GT))
 
 			# this is read from cluster file, so has 2 bps only; INS_C w/ only 2 clusters supporting; INV w/ only 1
                         elif line2_split[1] == "Unknown" or line2_split[1] == "INS_POSS" or line2_split[1] == "TD_I" or line2_split[1] == "INV_POSS" or ( (line2_split[1] == "INS" or line2_split[1] == "INS_I" or line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I") and (line2_split[9] == "-1" or line2_split[6] == "-1")) or (line2_split[1] == "INS_C" and line2_split[12] == "2"):
 
-                            f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1]))
+                            f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],GT))
 
                         elif len(line2_split[1]) > 2 and line2_split[1][0:3] == "INS":
 
@@ -137,14 +144,14 @@ if __name__ == "__main__":
 				bp2_e = bp3_s
 				bp3_s = temp 
 						
-                            f16.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line2_split[5], bp2_e, bp3_s, line2_split[2], line2_split[3], line2_split[4], line2_split[1]))
+                            f16.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line2_split[5], bp2_e, bp3_s, line2_split[2], line2_split[3], line2_split[4], line2_split[1],GT))
 
                         else:
-				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1]))
+				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],GT))
  
 	    	if line2_split[1] == "DEL_uc":
 
-                            f13b.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1]))
+                            f13b.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],GT))
 	
 	f1.close()
 	f8.close()

@@ -51,7 +51,7 @@ else
 	python DisjointSetCover.py
 fi
 
-python WriteBed.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23}
+python WriteBed.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26}
 cat ../results/text/deletions.bedpe ../results/text/tandemDuplications.bedpe ../results/text/inversions.bedpe ../results/text/insertions.bedpe ../results/text/unknowns.bedpe > ../results/text/All_SVs
 python ../scripts/bed2vcf.py ../results/text/All_SVs
 cp ../results/text/VariantMap_O.txt ../results/text/VariantMap.txt
