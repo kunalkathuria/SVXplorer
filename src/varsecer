@@ -88,7 +88,7 @@ Options (please use short options for now):
 EOF
 }
 
-while getopts “ha:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:A:B:C:D:E:F:” OPTION
+while getopts “ha:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:A:B:C:D:E:F:G:H:” OPTION
 do
 
      case $OPTION in
@@ -189,6 +189,12 @@ do
 	    F)
             DENOVO_RD="$OPTARG"
             ;;
+	    G)
+            SIG_THRESH="$OPTARG"
+            ;;
+	    H)
+            DISC_ENHANCER3="$OPTARG"
+            ;;
 	    ?)
 	    echo "Option not recognized."
 	    exit
@@ -204,8 +210,8 @@ then
 fi
 
 #IF disc BAM not ready
-#time ($SAM view -@32 -F 3586 -b -o /m/cphg-RLscratch2/cphg_ratan/kk7t/target/NA12878/SRR505885/disc.all.bam $BAM_NS) #34m
-#DISCORDANTS=/m/cphg-RLscratch2/cphg_ratan/kk7t/target/NA12878/SRR3397076/disc.all.bam
+#time ($SAM view -@32 -F 3586 -b -o ../data/bams/disc.bam $BAM_NS) #34m
+#DISCORDANTS=../data/bams/disc.bam
 
 #Remove next 2 comments when done testing
 time ($SAM view -@32 -f 64 -b -o ../data/bams/aln1s_u.bam $DISCORDANTS) #4m
