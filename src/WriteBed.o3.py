@@ -9,6 +9,7 @@ DEL_THRESH = float(sys.argv[3])
 DUP_THRESH = float(sys.argv[4])
 DEL_THRESH2 = float(sys.argv[5])
 DUP_THRESH2 = float(sys.argv[6])
+PILEUP_THRESH = float(sys.argv[7])
 
 def file_len(f):
     
@@ -56,53 +57,143 @@ if __name__ == "__main__":
 		num = int(line2_split[0])
 
 		if x[num] > 0:
-                    
-			#print num
-			#f11.write("%s\n" %line2)
-			write = 0
-			GT=""
-			if (line2_split[1] == "DEL_INS" or line2_split[1]== "TD_I") and int(line2_split[4]) < int(line2_split[6]):
-				chr_n = line2_split[2]
-				start = int(line2_split[4])
-				stop = int(line2_split[6])
-				covLoc = 0
-				counter2 = 0
-				for pileupcolumn in samfile.pileup(chr_n, start, stop):
-					covLoc = covLoc + pileupcolumn.n
-					counter2+=1
+                   
+			if line2_split[11].find("RD") == -1: 
+				#print num
+				#f11.write("%s\n" %line2)
+				swap = 0
+				GT=""
+				if (line2_split[1] == "DEL_INS" or line2_split[1] == "DEL" or line2_split[1][0:2]== "TD") and int(line2_split[4]) < int(line2_split[6]):
+					chr_n = line2_split[2]
+					start = int(line2_split[4])
+					stop = int(line2_split[6])
+					covLoc = 0
+					counter2 = 0
+					for pileupcolumn in samfile.pileup(chr_n, start, stop):
+						covLoc = covLoc + pileupcolumn.n
+						counter2+=1
+						if counter2 > PILEUP_THRESH:
+							break
 
-				if counter2:	
-					covLoc = 1.0*(covLoc/counter2)
+					if counter2:	
+						covLoc = 1.0*(covLoc/counter2)
+				
+					if line2_split[1][0:2] == "TD" and covLoc != 0 and covLoc/COVERAGE > DUP_THRESH:
+					
+						print "TD confirmed (pileup)"	
+						line2_split[1] = "TD"
+						#if covLoc/COVERAGE > DUP_THRESH2:
+							#GT="GT:1/1"
+					
+					# if TD but CN =2 it is likely one cluster of a translocation
+					elif (line2_split[1][0:3] == "TD" or line2_split[1][0:3] == "DEL") and covLoc != 0 and DEL_THRESH < covLoc/COVERAGE < DUP_THRESH:
+				
+						line2_split[1] = "INS_C_P"
+
+						# SR TD/INS signature is for paste and 1 source location
+						if line2_split[1] != "TD_I" or line2_split[11].find("SR") != -1:
+							# bp1 -> bp2, bp2 -> bp3
+							line2_split6 = line2_split[6]
+							line2_split7 = line2_split[7]
+							line2_split[5] = line2_split[2]
+							line2_split[6] = line2_split[3]
+							line2_split[7] = line2_split[4]
+							line2_split[8] = line2_split[2]
+							line2_split[9] = line2_split6
+							line2_split[10] = line2_split7
+							line2_split[2] = -1
+							line2_split[3] = -1
+							line2_split[4] = -1
+
+					elif line2_split[1][0:2] == "TD" and covLoc != 0 and covLoc/COVERAGE < DEL_THRESH:
+				
+						line2_split[1] = "BND"
 			
-				if line2_split[1][0:2] == "TD" and covLoc != 0 and covLoc/COVERAGE > DUP_THRESH:
-				
-					write = 1		
-					print "TD confirmed (pileup)"	
-					#if covLoc/COVERAGE > DUP_THRESH2:
-						#GT="GT:1/1"
+					elif line2_split[1][0:3] == "DEL" and covLoc != 0 and covLoc/COVERAGE < DEL_THRESH:
+					
+						print "DEL confirmed (pileup)"
+						line2_split[1] = "DEL"
+						if covLoc/COVERAGE < DEL_THRESH2:
+							GT="GT:1/1"
+						elif covLoc/COVERAGE > 3*DEL_THRESH2:	
+							GT="GT:0/1"
 
-				elif covLoc != 0 and covLoc/COVERAGE < DEL_THRESH:
-				
-					write = 1
-					print "DEL confirmed (pileup)"
-					if covLoc/COVERAGE < DEL_THRESH2:
-                                                GT="GT:1/1"
-					elif covLoc/COVERAGE > 3*DEL_THRESH2:	
-						GT="GT:0/1"
+					elif line2_split[1][0:3] == "DEL" and covLoc != 0 and covLoc/COVERAGE > DUP_THRESH:
+
+						# since bp3 = -1, this will be written as a BND event
+						line2_split[1] = "INS"
+					
+				# can add this and regular TDs also
+				elif len(line2_split[1]) > 2 and (line2_split[1][0:3] == "INS" or line2_split[1] == "INS_I"):
+
+					chr_n = line2_split[5]
+					start = int(line2_split[7])
+					stop = int(line2_split[9])
+					samfile = pysam.AlignmentFile(BAM, "rb" )
+					covLoc = 0
+					counter2 = 0
+					for pileupcolumn in samfile.pileup(chr_n, start, stop):
+						covLoc = covLoc + pileupcolumn.n
+						counter2+=1
+						if counter2 > PILEUP_THRESH:
+							break
+					
+					covLoc = 1.0*(covLoc/counter2)
+
+					if DEL_THRESH < covLoc/COVERAGE < 1.1:
+						line2_split[1] = "INS_C"
+
+					elif covLoc/COVERAGE < DEL_THRESH:
+						line2_split[1] = "BND"
+
+				elif len(line2_split[1]) > 4 and line2_split[1][0:4] == "INS_C":
+
+					chr_n = line2_split[5]
+					start1 = int(line2_split[4])
+					stop1 = int(line2_split[6])
+					start2 = int(line2_split[7])
+					stop2 = int(line2_split[9])
+					samfile = pysam.AlignmentFile(BAM, "rb" )
+					covLoc = 0
+					counter2 = 0
+					for pileupcolumn in samfile.pileup(chr_n, start1, stop1):
+						covLoc = covLoc + pileupcolumn.n
+						counter2+=1
+					covLoc = 1.0*(covLoc/counter2)
+
+					covLoc2 = 0
+					counter2 = 0
+					for pileupcolumn in samfile.pileup(chr_n, start2, stop2):
+						covLoc2 = covLoc2 + pileupcolumn.n
+						counter2+=1
+					covLoc2 = 1.0*(covLoc2/counter2)
+
+					if covLoc/COVERAGE < DUP_THRESH and covLoc2/COVERAGE > 1.2*DUP_THRESH:
+						line2_split[1] = "INS"
+						#$ call another diploid deletion here
+
+					elif covLoc2/COVERAGE < DEL_THRESH or covLoc/COVERAGE < DEL_THRESH:
+						line2_split[1] = "BND_INS_C"
+
+					elif (line2_split[1] = "INS_C" or line2_split[1] = "INS_C_I") and covLoc/COVERAGE > DUP_THRESH and covLoc2/COVERAGE < DUP_THRESH:
+						swap = 1
+						if covLoc/COVERAGE > 1.2*DUP_THRESH:
+							line2_split[1] = "INS"
+						#$ call another diploid deletion here
 
 			# If not insertion as bp3 is not set
-			if line2_split[1] == "DEL" or (line2_split[1] == "DEL_INS" and (line2_split[11].find("RD") != -1 or write)):
+			if line2_split[1] == "DEL":
                             
                             f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT))
                         #$Comment out second condition and next elif if leads to low precision due to SR TD_I's and INS_I's.    
-                        elif line2_split[1] == "TD" or (line2_split[1] == "TD_I" and (line2_split[11].find("PE") != -1 or write)):
+                        elif line2_split[1] == "TD":
 
 			    [bp1_s, bp1_e] = min(int(line2_split[3]),int(line2_split[6])), min(int(line2_split[4]), int(line2_split[7]))
 			    [bp2_s, bp2_e] = max(int(line2_split[3]),int(line2_split[6])), max(int(line2_split[4]), int(line2_split[7]))
  
 			    f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD",GT))
 
-			#See whether this works better for PE only vs PE and SR both-- unlikely to have inv TD in chromosome...
+			#See whether this works better for PE only vs PE and SR both-- unlikely to have inv TD...
 			elif line2_split[1] == "INS_I" and line2_split[2] == line2_split[5] and line2_split[8] == "-1" and line2_split[11][:2] == "PE":
 			
 			    [bp1_s, bp1_e] = min(int(line2_split[3]),int(line2_split[6])), min(int(line2_split[4]), int(line2_split[7]))
@@ -121,16 +212,22 @@ if __name__ == "__main__":
                         elif len(line2_split[1]) > 2 and line2_split[1][0:3] == "INS":
 
 			    # two lines for insertion as in bedpe format; bp 1 and bp3 were flanks of bp2 by convention in INS_C classification unless confirmed further
-			    [bp2_s, bp2_e] = min(int(line2_split[6]),int(line2_split[9])), min(int(line2_split[7]), int(line2_split[10]))
-                            [bp3_s, bp3_e] = max(int(line2_split[6]),int(line2_split[9])), max(int(line2_split[7]), int(line2_split[10]))
+			    [bp1_s, bp1_e]= int(line2_split[3]), int(line2_split[4])
+			    [bp2_s, bp2_e] = int(line2_split[6]),int(line2_split[7])
+                            [bp3_s, bp3_e] = int(line2_split[9]),int(line2_split[10])
+			    
+			    if swap:
+				temp = bp1_s
+				bp1_s = bp3_s
+				bp3_s = temp
+				bp1_e = bp3_e
 				
-			    # in case of an artefact in insertion classfication
 			    if bp2_e > bp3_s:
 				temp = bp2_e
 				bp2_e = bp3_s
 				bp3_s = temp 
 						
-                            f16.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line2_split[5], bp2_e, bp3_s, line2_split[2], line2_split[3], line2_split[4], line2_split[1],GT))
+                            f16.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line2_split[5], bp2_e, bp3_s, line2_split[2], bp1_s, bp1_e, line2_split[1],GT))
 
                         else:
 				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],GT))

@@ -761,8 +761,15 @@ if __name__ == "__main__":
                                 #$can make this "INV" from "INV_POSS" if wish to be liberal, check FP increase
                                 SRVarHash[item].typeO == "INV_POSS"
 
+
 			if (SRVarHash[item].typeO == "INS_I" or SRVarHash[item].typeO == "INS") and item.tid_2 == SRVarHash[item].bp3tid and abs(SRVarHash[item].bp2 - SRVarHash[item].bp3) < SR_INS_THRESH:
 				SRVarHash[item].typeO = "INS_POSS"
+
+			elif (SRVarHash[item].typeO == "INS_I" or SRVarHash[item].typeO == "INS") and item.tid_2 == SRVarHash[item].bp3tid and SRVarHash[item].bp2 > SRVarHash[item].bp3:
+
+				swapper = SRVarHash[item].bp2
+				SRVarHash[item].bp2 = SRVarHash[item].bp3
+				SRVarHash[item].bp3 = swapper
 
 			if (SRVarHash[item].typeO == "DEL" or SRVarHash[item].typeO == "TD_I" or SRVarHash[item].typeO == "INV" or SRVarHash[item].typeO == "INV_POSS") and item.bp > SRVarHash[item].bp2:
 				fp3.write("%s %s %s %s %s %s %s %s %s %s %s %s %s\n" %(k+varNum+1,SRVarHash[item].typeO, item.tid_2, SRVarHash[item].bp2, SRVarHash[item].bp2+1, item.tid, item.bp, item.bp + 1, SRVarHash[item].bp3tid, SRVarHash[item].bp3, SRVarHash[item].bp3 + 1, "SR", SRVarHash[item].count))

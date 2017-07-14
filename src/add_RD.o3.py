@@ -18,13 +18,15 @@ class Variant(object):
     #$ add inv, ins also (bp 3)
     def __init__(self):
         self.bp1 = -1
+	self.bp2 = -1
+
         self.tid = -1
-	self.delsign = -1
+
     def __hash__(self):
-        return hash((self.bp1, self.tid, self.delsign))
+        return hash((self.bp1, self.bp2, self.tid))
 
     def __eq__(self, other):
-        return (self.bp1, self.tid, self.delsign) == (other.bp1, other.tid, self.delsign)
+        return (self.bp1, self.bp2, self.tid) == (other.bp1, other.bp2, other.tid)
 
     def __ne__(self, other):
         # Not strictly necessary, but to avoid having both x==y and x!=y
@@ -225,7 +227,7 @@ if __name__ == "__main__":
 		    elif RO > 0:
                         Anymatch = 0
                         
-                elif line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I" and CN > 1.2*DUP_THRESH:
+                elif line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I" and CN > 1:
 
                     # BP1 and BP3 may be switched because PE cannot tell. All 3 will be on same chromosome in that case and above label implies that.
 
@@ -339,10 +341,7 @@ if __name__ == "__main__":
                 
                 if line_split[1] == "INS_C" or line_split[1] == "INS_C_I":
                     
-		    if line_split[1] == "INS_C_I":
-			line_split[1]= "INS_I"
-		    else:
-			line_split[1]= "INS"
+                    line_split[1]+= "_P"
                     
                     if variantNum in bpSwap:
                         
@@ -352,13 +351,8 @@ if __name__ == "__main__":
                         line_split[4] = line_split[10]
                         line_split[9] = temp1
                         line_split[10] = temp2
-
-		elif line_split[1] == "DEL_INS":  
-			line_split[1] == "DEL"
-                elif line_split[1] == "TD_I":
-			line_split[1] == "TD"
-      
-                line_splitf[11] = line_split[11] + "_RD"
+                        
+                line_split[11] = line_split[11] + "_RD"
 
             varLine = " ".join(line_split)
             fp3.write("%s\n" %varLine)
@@ -395,78 +389,43 @@ if __name__ == "__main__":
                 temp = Variant()
 		temp.tid = chr1
 		temp.bp1 = start
-		temp.delsign = 0
+		temp.bp2 = stop
 
 		#immutable hash objects -- preserve so memory doesn't get overwritten
 		iobjects.append(temp)
 		if mq > MAP_THRESH_RDU and chr1 == chr2 and FR[0] != FR[1] and temp not in varHash:
-			varHash[temp] = stop
+			varHash[temp] = FR
 			#print "Added", temp
-			if FR == "01":
-				temp = Variant()
-		                temp.tid = chr1
-               			temp.bp1 = start
-               			temp.delsign = 1
-				varHash[temp] = stop
-
-		temp = Variant()
-                temp.tid = chr1
-                temp.bp1 = stop
-		temp.delsign = 0
-		#immutable hash objects -- preserve so memory doesn't get overwritten
-                iobjects.append(temp)
-
-		# supporting read for deletion or duplication is FR or RF
-                if mq > MAP_THRESH_RDU and chr1 == chr2 and FR[0] != FR[1] and temp not in varHash:
-                        varHash[temp] = start
-                        #print "Added", temp
 
       for k,entry in enumerate(newRDVars):
 
 	chrom = entry[0]
 	start = int(entry[1])
 	stop = int(entry[2])
-	CN = float (entry[3])
 	write = 0
 
 	for x in range(start - RD_SLOP, start + RD_SLOP):
 
+		for y in (stop - RD_SLOP, stop + RD_SLOP):
+
 			temp = Variant()
 			temp.tid = chrom
         	        temp.bp1 = x
-
-			if CN < 1:
-				temp.delsign = 1
-			else:
-				temp.delsign = 0
-
+               		temp.bp2 = y
 			iobjects.append(temp)
 
-			# deletion needs support from both ends of read
-			if temp in varHash and (CN > 1 or abs(stop-varHash[temp]) < RD_SLOP):
+			if temp in varHash:
 				print "Supporting read for CNV call found..."
 				write = 1
 				break
-	
-	if not write and CN > 1:
-		for y in (stop - RD_SLOP, stop + RD_SLOP):
+		if temp in varHash:
+			break
 
-                        temp = Variant()
-                        temp.tid = chrom
-                        temp.bp1 = y
-			temp.delsign = 0
-                        iobjects.append(temp)
-
-                        if temp in varHash:
-                                print "Supporting read for CNV call found..."
-                                write = 1
-                                break
-
-	if write and CN  > 1:
+	if write and float(entry[3]) > 1 and varHash[temp] == "10":
 		typeV = "INS"
 		fp3.write("%s %s %s %s %s %s %s %s %s %s %s %s %s\n" %(RDcounter+1+k, typeV, "-1", "-1", "-1", chrom, start-RD_MARGIN/2, start+RD_MARGIN/2, chrom, stop-RD_MARGIN/2, stop +RD_MARGIN/2, "RD", "1"))
 
-	elif write and CN < 1:
+	elif write and float(entry[3]) < 1 and varHash[temp] == "01":
 		typeV = "DEL"
 
 		fp3.write("%s %s %s %s %s %s %s %s %s %s %s %s %s\n" %(RDcounter+1+k, typeV, chrom, start-RD_MARGIN/2, start+RD_MARGIN/2, chrom, stop-RD_MARGIN/2, stop +RD_MARGIN/2, "-1", "-1", "-1", "RD", "1"))
