@@ -12,6 +12,7 @@ RD_MARGIN = int(sys.argv[5])
 RD_SLOP = int(sys.argv[6])
 MAP_THRESH_RDU = int(sys.argv[7])
 DENOVO=int(sys.argv[8])
+DUP_THRESH = float(sys.argv[9])
 
 class Variant(object):
 

@@ -39,7 +39,7 @@ then
 	cat ../results/text/All_Variants.txt | grep -v INV | grep -v known > ../results/text/inDels.txt # all INDELS
 	sort -k6,6 ../results/text/inDels.txt > ../results/text/inDels_S.txt
 	#./formatRD.sh #make first 2 vars in here user-input
-	python add_RD.o2.py $5 $8 ${15} ${16} ${17} ${19} $RD_SLOP ${24}
+	python add_RD.o2.py $5 $8 ${15} ${16} ${17} ${19} $RD_SLOP ${24} ${23}
 	cp ../results/text/VariantMap_RD.txt ../results/text/VariantMap.txt
 	cp ../results/text/All_Variants_RD.txt ../results/text/All_Variants.txt
 fi
@@ -51,8 +51,6 @@ else
 	python DisjointSetCover.py
 fi
 
-cp ../results/text/VariantMap_RD.txt ../results/text/VariantMap.txt
-cp ../results/text/All_Variants_RD.txt ../results/text/All_Variants.txt
 python WriteBed.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26} ${27}
 cat ../results/text/deletions.bedpe ../results/text/tandemDuplications.bedpe ../results/text/inversions.bedpe ../results/text/insertions.bedpe ../results/text/unknowns.bedpe > ../results/text/All_SVs
 python ../scripts/bed2vcf.py ../results/text/All_SVs
