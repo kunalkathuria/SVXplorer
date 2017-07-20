@@ -22,6 +22,7 @@ SIG_MULT = int(sys.argv[3])
 DISC_ENHANCER = float(sys.argv[9])# 1.67 default, wil multiply 3 sigma disc distance by a "safety" factor to not miss larger sampling IL clusters
 DISC_ENHANCER2 = 1.0 #DISC_ENHANCER*(5.0/5.0) # safety factor for cluster margin (e.g. if normal distr, 3 sig for disc marking, 4 sig for cluster margin, 5 sig for cluster inclusion)
 DISC_ENHANCER3 = float(sys.argv[11])
+DISC_D_O = DISC_D
 DISC_D = DISC_D*DISC_ENHANCER3
 CLUSTER_D = MEAN_D + DISC_ENHANCER*DISC_D - 2*RDL
 BP_MARGIN = int(sys.argv[4])
@@ -131,8 +132,11 @@ def calculateMargin(item):
 		l_orient = int(item.C_type[0])
 		r_orient = int(item.C_type[1])
 		
-		cl_margin_l = MEAN_D + DISC_ENHANCER2*DISC_D - 2*RDL - (item.lmax - item.lmin)
-		cl_margin_r = MEAN_D + DISC_ENHANCER2*DISC_D - 2*RDL - (item.rmax - item.rmin)
+		cl_margin_l = MEAN_D + DISC_ENHANCER2*DISC_D_O - 2*RDL - (item.lmax - item.lmin)
+		cl_margin_r = MEAN_D + DISC_ENHANCER2*DISC_D_O - 2*RDL - (item.rmax - item.rmin)
+
+		if item.C_type == "10":
+			print item.lmax, item.lmin, item.rmax, item.rmin, MEAN_D, DISC_D_O, RDL, cl_margin_l, cl_margin_r
 
 		cl_margin = min(cl_margin_l, cl_margin_r)
 		cl_margin = int(math.ceil(cl_margin))

@@ -561,7 +561,7 @@ if __name__ == "__main__":
 
     if ignoreR_FILE != "none":
         print "Forming hash table for bad regions..."
-        #formHash()
+        formHash()
 	print "Done."
 
     currentFrag = 1

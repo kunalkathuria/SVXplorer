@@ -312,9 +312,9 @@ if __name__ == "__main__":
 
 	if temp in varHash and (varHash[temp].bp2_1 < sr_bp2 < varHash[temp].bp2_2 or varHash[temp].bp3_1 < sr_bp2 < varHash[temp].bp3_2):
 
-		#print "Found"
 		varNum = varHash[temp].num
 		varType = varHash[temp].typeO
+		#print "Found", varNum, varType, varHash[temp].bp2_1, varHash[temp].bp2_2, sr_bp2, varHash[temp].bp3_1, varHash[temp].bp3_2
 
 		if varNum not in matchingFrags:
                         newbp = SRVar()
@@ -332,11 +332,11 @@ if __name__ == "__main__":
 
 			temp.tid_2 = sr_bp1_tid
 
-		if temp in varHash and (varHash[temp].bp2_1 < sr_bp2 < varHash[temp].bp2_2 or varHash[temp].bp3_1 < sr_bp2 < varHash[temp].bp3_2):
-
+		if temp in varHash and (varHash[temp].bp2_1 < sr_bp1 < varHash[temp].bp2_2 or varHash[temp].bp3_1 < sr_bp1 < varHash[temp].bp3_2):
 			varNum = varHash[temp].num
 			varType = varHash[temp].typeO
-			
+		        #print "Found", varNum, varType, varHash[temp].bp2_1, varHash[temp].bp2_2, sr_bp2, varHash[temp].bp3_1, varHash[temp].bp3_2
+	
 			if varNum not in matchingFrags:
 				newbp = SRVar()
 				newbp.bp1 = sr_bp2
@@ -363,6 +363,7 @@ if __name__ == "__main__":
 	elif (varType == 3 and minsr.is_reverse == maxsr.is_reverse) or (varType == 4 and minsr.is_reverse != maxsr.is_reverse):
 
 		match = 1
+		print "Match with INS", varNum
 		
 		# Set new bp3 of insertion if unset
 		if varNum in matchingFrags and matchingFrags[varNum][0].bp3 == -1:
@@ -644,6 +645,7 @@ if __name__ == "__main__":
 				line_split[9] = str(matchingFrags[varNum][0].bp2)
                                 line_split[10] = str(matchingFrags[varNum][0].bp2 + 1)
 
+		# insertion matches
 		elif len(matchingFrags[varNum]) > SR_support_thresh:
 			line_split[6] = str(matchingFrags[varNum][0].bp2)
                         line_split[7] = str(matchingFrags[varNum][0].bp2 + 1)

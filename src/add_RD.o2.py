@@ -115,6 +115,7 @@ if __name__ == "__main__":
     chr_tag = 1
     #"chr" prefix added by cnvnator, perhaps others
     line_AV = fp6.readline()
+    fp6.seek(0)
     if line_AV.split()[2].find("chr") == -1:
 	chr_tag = 0
     
@@ -359,7 +360,7 @@ if __name__ == "__main__":
                 elif line_split[1] == "TD_I":
 			line_split[1] == "TD"
       
-                line_splitf[11] = line_split[11] + "_RD"
+                line_split[11] = line_split[11] + "_RD"
 
             varLine = " ".join(line_split)
             fp3.write("%s\n" %varLine)
@@ -377,12 +378,12 @@ if __name__ == "__main__":
 
         fp4.write("\n")
     
-    f=open("../results/text/All_Discords_P_S.txt","r")
-    varHash = {}
-    iobjects = []
-    print "Forming RD hash..."
+    if DENOVO:
+      f=open("../results/text/All_Discords_P_S.txt","r")
+      varHash = {}
+      iobjects = []
+      print "Forming RD hash..."	
 
-    if DENOVO:	
       for line in f:
 
                 chr1 = line.split()[1]

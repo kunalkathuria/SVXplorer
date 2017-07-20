@@ -29,7 +29,7 @@ A good check to see if the tool is working properly is to give it as input the t
 
 Then, ascertain that the 4 bedpe files in VARSECER/results/test match the respective ones just created in VARSECER/results/text (there should be 2 non-empty ones: deletions.bedpe and tandemDuplications.bedpe). If this is not the case, please recheck all the paths and checkout the master branch from GitHub again if necessary.
 
-The input BAM file should be generated (and then indexed) with BWA using the following options:
+The input BAM file should be generated (and then indexed) with BWA (or potentially any aligner listing all alignments of each read together)  using the following options:
 
 ```bash
 $BWA mem -R '@RG\tID:foo\tSM:bar' -a -Y -t 1 $REFERENCE $READ1 $READ2 \
