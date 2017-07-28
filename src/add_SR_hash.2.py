@@ -645,7 +645,14 @@ if __name__ == "__main__":
 				line_split[9] = str(matchingFrags[varNum][0].bp2)
                                 line_split[10] = str(matchingFrags[varNum][0].bp2 + 1)
 
-		# insertion matches
+			if (line_split[1] == "DEL" or line_split[1] == "TD" or line_split[1] == "INV") and int(line_split[3]) > int(line_split[7]):
+				temp = line_split[3]
+				temp2 = line_split[4]
+				line_split[3] = line_split[6]
+				line_split[4] = line_split[7] 
+				line_split[6] = temp
+				line_split[7] = temp2
+		# full insertion matches
 		elif len(matchingFrags[varNum]) > SR_support_thresh:
 			line_split[6] = str(matchingFrags[varNum][0].bp2)
                         line_split[7] = str(matchingFrags[varNum][0].bp2 + 1)
@@ -762,7 +769,6 @@ if __name__ == "__main__":
 
                                 #$can make this "INV" from "INV_POSS" if wish to be liberal, check FP increase
                                 SRVarHash[item].typeO == "INV_POSS"
-
 
 			if (SRVarHash[item].typeO == "INS_I" or SRVarHash[item].typeO == "INS") and item.tid_2 == SRVarHash[item].bp3tid and abs(SRVarHash[item].bp2 - SRVarHash[item].bp3) < SR_INS_THRESH:
 				SRVarHash[item].typeO = "INS_POSS"

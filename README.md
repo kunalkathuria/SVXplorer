@@ -53,4 +53,4 @@ These files are stored in the VARSECer/results/text directory. Intermediate bedp
 
 ### NOTES
 
-1. To enhance sensitivity of variant calls, one can set MQ_THRESH to 0 in the main script. By default it is set to 1, which provides a faster run-time than most commonly used tools.
+1. To enhance sensitivity  and precision of variant calls, one can set MQ_THRESH to 0 in the main script. By default it is set to 1, which provides a faster run-time than most commonly used tools with  coverage > 50x. But for lower coverages especially, it will be faster and more beneficial.

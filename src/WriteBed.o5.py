@@ -12,7 +12,8 @@ DUP_THRESH2 = float(sys.argv[6])
 PILEUP_THRESH = float(sys.argv[7])
 MIN_PILEUP_THRESH = float(sys.argv[8])
 RPT_REGIONS_FILE =  sys.argv[9]
-GOOD_REG_THRESH=.5
+GOOD_REG_THRESH=.7
+SECOND_SWEEP_THRESH=.75
 chrHash = {}
 
 def formHash():
@@ -21,15 +22,21 @@ def formHash():
         prevTID = "*" # invalid value
         fo=open(RPT_REGIONS_FILE,"r")
 
-        for line in fo:
+        for k,line in enumerate(fo):
                 line_s = line.split()
                 currentTID = line_s[0]
                 if currentTID != prevTID:
-			#global var but okay here since adding to it, not redefining
-                        chrHash[currentTID] = {}
+			if currentTID not in chrHash:
+				#global var but okay here since adding to it, not redefining
+        	                chrHash[currentTID] = {}
 
                 for x in range(int(line_s[1]), int(line_s[2])+1):
-                        chrHash[currentTID][x] = 1
+			if x not in chrHash[currentTID]:
+	                        chrHash[currentTID][x] = 1
+
+		prevTID = currentTID
+
+	print "Done"
 
 def file_len(f):
     
@@ -86,24 +93,45 @@ if __name__ == "__main__":
 				if (line2_split[1] == "DEL_INS" or line2_split[1] == "DEL" or line2_split[1][0:2]== "TD") and int(line2_split[4]) < int(line2_split[6]):
 					chr_n = line2_split[2]
 					start = int(line2_split[4])
-					stop = int(line2_split[6])
+					stop = min(int(line2_split[6]),int(start +3*PILEUP_THRESH))
 					covLoc = 0
 					counter2 = 0
-					x = start
+					counter3 = 0
 					for pileupcolumn in samfile.pileup(chr_n, start, stop):
-
-						if chr_n in chrHash and x in chrHash[chr_n]:
+					
+						if chr_n in chrHash and pileupcolumn.pos in chrHash[chr_n]:
+							#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
 							covLoc = covLoc + pileupcolumn.n
 							counter2+=1
 							if counter2 > PILEUP_THRESH:
 								break
-						x+=1
-						if x-start > 5*PILEUP_THRESH:
-							break
 
-					if counter2 > MIN_PILEUP_THRESH and (counter2 > PILEUP_THRESH or counter2 > GOOD_REG_THRESH*(stop-start)):	
-						covLoc = 1.0*(covLoc/counter2)
-				
+					#print 1.0*covLoc/(.001+counter2), "is local coverage", counter2, counter3, covLoc
+					print counter2, start, stop, stop-start, "distance comparison"
+					print chr_n in chrHash
+					if chr_n in chrHash:
+						print start in chrHash[chr_n], stop in chrHash[chr_n]
+
+					# sample other end
+					if stop < SECOND_SWEEP_THRESH*(int(line2_split[6]) - int(line2_split[4])):
+
+					
+						start2 = max(stop,int(line2_split[6])-3*PILEUP_THRESH)
+						stop2 = int(line2_split[6])
+						counter3 = 0
+						for pileupcolumn in samfile.pileup(chr_n, start2, stop2):
+
+							if chr_n in chrHash and pileupcolumn.pos in chrHash[chr_n]:
+								covLoc = covLoc + pileupcolumn.n
+								counter3+=1
+								if counter3 > PILEUP_THRESH:
+                                                                	break
+
+					if (counter2 > MIN_PILEUP_THRESH or counter3 > MIN_PILEUP_THRESH) and ( (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH) or (counter3 > GOOD_REG_THRESH*(stop2-start2) or counter3 > PILEUP_THRESH) ):
+	
+						covLoc = (1.0*covLoc)/(1.0*counter2+counter3)
+						#print covLoc, "is local coverage", counter2, counter3
+	
 						if line2_split[1][0:2] == "TD" and covLoc/COVERAGE > DUP_THRESH:
 						
 							print "TD confirmed (pileup)"	
@@ -133,26 +161,37 @@ if __name__ == "__main__":
 				elif len(line2_split[1]) > 2 and (line2_split[1][0:3] == "INS" or line2_split[1] == "INS_I") and int(line2_split[7]) < int(line2_split[9]):
 
 					chr_n = line2_split[5]
-					start = int(line2_split[7])
-					stop = int(line2_split[9])
-					covLoc = 0
+                                        start = int(line2_split[7])
+                                        stop = min(int(line2_split[9]),int(start +3*PILEUP_THRESH))
+                                        covLoc = 0
                                         counter2 = 0
-					x = start
+					counter3 = 0
 
                                         for pileupcolumn in samfile.pileup(chr_n, start, stop):
 
-                                                if chr_n in chrHash and x in chrHash[chr_n]:
+                                                if chr_n in chrHash and pileupcolumn.pos in chrHash[chr_n]:
                                                         covLoc = covLoc + pileupcolumn.n
                                                         counter2+=1
                                                         if counter2 > PILEUP_THRESH:
                                                                 break
-                                                x+=1
-						if x-start > 5*PILEUP_THRESH:
-                                                        break
 
-                                        if counter2 > MIN_PILEUP_THRESH and (counter2 > PILEUP_THRESH or counter2 > GOOD_REG_THRESH*(stop-start)):
+					# sample other end
+                                        if stop < SECOND_SWEEP_THRESH*(int(line2_split[9])-int(line2_split[7])):
 
-						covLoc = 1.0*(covLoc/counter2)
+
+                                                start2 = max(stop,int(line2_split[9])-3*PILEUP_THRESH)
+                                                stop2 = int(line2_split[9])
+                                                for pileupcolumn in samfile.pileup(chr_n, start2, stop2):
+
+                                                        if chr_n in chrHash and pileupcolumn.pos in chrHash[chr_n]:
+                                                                covLoc = covLoc + pileupcolumn.n
+                                                                counter3+=1
+                                                                if counter3 > PILEUP_THRESH:
+                                                                        break
+
+                                        if (counter2 > MIN_PILEUP_THRESH or counter3 > MIN_PILEUP_THRESH) and ( (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH) or (counter3 > GOOD_REG_THRESH*(stop2-start2) or counter3 > PILEUP_THRESH) ):
+
+						covLoc = (1.0*covLoc)/(1.0*counter2+counter3)
 
 						if covLoc/COVERAGE < DEL_THRESH:
 							line2_split[1] = "INS_C_P"
@@ -223,7 +262,6 @@ if __name__ == "__main__":
 					else:
 						line2_split[1] = "BND_INS_C"	
 
-			# If not insertion as bp3 is not set
 			if line2_split[1] == "DEL":
                             
                             f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT))
