@@ -47,20 +47,24 @@ def CompareCluster(map_type, DiscordCluster, Cl2):
    rPos = Cl2.r_bound
 	
    val = 100000 # some large value
-   
+  
+   #print "Fxn 1"
+ 
    if Cl2.C_type == DiscordCluster.C_type and Cl2.ltid == DiscordCluster.ltid and Cl2.rtid == DiscordCluster.rtid and (not DiscordCluster.C_type == "01" or DiscordCluster.clsmall == Cl2.clsmall):# by itself last one this did not work well due to small TD clusters involving partial/split PE alignments
  
      if map_type == 0 and (lPos - DiscordCluster.l_bound_O < CLUSTER_D or (abs(lPos-DiscordCluster.l_bound) < RDL_FACTOR*RDL and lPos - DiscordCluster.l_bound_O < MEAN_D - 2*RDL + LIB_MULT*DISC_D)):
-        
+
+        #print "Fxn 2"
         if DiscordCluster.C_type=="01" or DiscordCluster.C_type=="10":
 	    val = abs(lPos - DiscordCluster.l_bound_O - (rPos - DiscordCluster.r_bound_O))	
           
         elif DiscordCluster.C_type =="00" or DiscordCluster.C_type == "11":
             val = abs(lPos - DiscordCluster.l_bound_O - (DiscordCluster.r_bound_O - rPos))
-        
+       
 	# if latter condition not satisfied, we will see a new cluster. Equal sign to be safe, e.g for small insertion location cluster.
 	#print rPos, lPos, DiscordCluster.l_bound, DiscordCluster.r_bound, rPos >= DiscordCluster.l_bound and lPos <= DiscordCluster.r_bound
-	if val < 2*DISC_D and (Cl2.ltid != Cl2.rtid or (rPos >= DiscordCluster.l_bound and lPos <= DiscordCluster.r_bound)):
+	if val < 2*DISC_D and (Cl2.ltid != Cl2.rtid or (rPos >= DiscordCluster.l_bound and lPos <= DiscordCluster.r_bound_O)):
+	    #print "Fxn 3"
             return 1
             
      if map_type == 1 and (iPos - DiscordCluster.l_bound_O) < CLUSTER_D:
@@ -270,6 +274,7 @@ def calcReadStats(CList):
 		bound1 = bound1 - 1
 	if len(cluster_d_list) == 0:
 		print "WARNING: No clusters formed. Check input BAM file to see if it contains discordant reads."
+		exit()
 
 	print bound1, len(cluster_d_list)
 	READ_BOUND1 = cluster_d_list[bound1]
@@ -284,6 +289,8 @@ def writeClusters(CList, fp, fp2, READ_BOUND1):
 	n_breaks = 0
 
 	for k,cluster in enumerate(CList):
+
+	     if CL_BREAK:
 	   	cluster2 = -1
 		broken = 0
 		cluster_copy = copy.deepcopy(cluster)
@@ -378,24 +385,30 @@ def writeClusters(CList, fp, fp2, READ_BOUND1):
                                 break
                         prev_r_read = item.r_read_bound
 		# if everything seems to have gone OK
-		if CL_BREAK and cluster2 != -1 and cluster.l_bound < cluster.r_bound and cluster2.l_bound < cluster2.r_bound:
+		if cluster2 != -1 and cluster.l_bound < cluster.r_bound and cluster2.l_bound < cluster2.r_bound:
 
 			n_breaks+=1
 			print "Writing broken clusters.", cluster.count, cluster2.count
-			if cluster.count > MIN_CLUSTER_SIZE:
+			if cluster.count >= MIN_CLUSTER_SIZE:
 				calculateMargin(cluster)
 				fp.write("%s %s\n" %(1+k+shift,cluster))
 				writeSupport(fp2,1+k+shift,cluster.support)
-			if cluster2 != -1 and cluster2.count > MIN_CLUSTER_SIZE:
+			if cluster2.count >= MIN_CLUSTER_SIZE:
 				calculateMargin(cluster2)
 				fp.write("%s %s\n" %(2+k+shift, cluster2))
 				writeSupport(fp2,2+k+shift,cluster2.support)
 				shift+=1
-		elif cluster_copy.count > MIN_CLUSTER_SIZE:
+		elif cluster_copy.count >= MIN_CLUSTER_SIZE:
 			
 			calculateMargin(cluster_copy)
 			fp.write("%s %s\n" %(1+k+shift,cluster_copy))
 			writeSupport(fp2,1+k+shift,cluster_copy.support)
+
+	     elif cluster.count >= MIN_CLUSTER_SIZE:
+		calculateMargin(cluster)
+		fp.write("%s %s\n" %(1+k+shift,cluster))
+		writeSupport(fp2,1+k+shift,cluster.support)
+
 	print n_breaks, "clusters were broken down and written.", CL_BREAK
 
 if __name__== "__main__":
@@ -467,7 +480,6 @@ if __name__== "__main__":
 		temp.C_type = "10"
 
         ld = len(DList)
-
         #start_for = time.clock()
 	print line_num
     	cl_read = Read()
@@ -481,8 +493,7 @@ if __name__== "__main__":
 	    
             if ClMatch: 
 		
-		#print "They match:", DList[ld-x-1].count
-		
+		#print "They match:", 1 + DList[ld-x-1].count, temp, DList[ld-x-1]
                 DList[ld-x-1].count+=1
                 DList[ld-x-1] = ChangeBound(DList[ld-x-1], temp, 1)
 		DList[ld-x-1].readList.append(cl_read)
@@ -497,6 +508,7 @@ if __name__== "__main__":
                     
         if not Claimed:
 
+	    #print temp, "not claimed."
             temp.l_bound_O = temp.l_bound
             temp.r_bound_O = temp.r_bound
             temp.count = 1
@@ -508,7 +520,7 @@ if __name__== "__main__":
 			#print "New TID: Processing ltid", temp.ltid, line, "Size of list:", len(DList)
 			newBlockS = 0
 			for x in range(len(DList)):
-                       		if(DList[x].count > MIN_CLUSTER_SIZE):
+                       		if(DList[x].count >= MIN_CLUSTER_SIZE):
   			        	clusterList.append(DList[x])
  	
                     	offset+= len(DList)
@@ -526,7 +538,7 @@ if __name__== "__main__":
 		    #start_ref = time.clock()
 
                     for x in range(newBlockS):
-                        if(DList[x].count > MIN_CLUSTER_SIZE):
+                        if(DList[x].count >= MIN_CLUSTER_SIZE):
 				print "Appending", DList[x].count
                    		clusterList.append(DList[x])
 				print clusterList[-1].count
@@ -551,7 +563,8 @@ if __name__== "__main__":
 		#print "Time taken for this fragment:", end_fl-start_fl
 
     for x in range(len(DList)):
-        if(DList[x].count > MIN_CLUSTER_SIZE):
+        if(DList[x].count >= MIN_CLUSTER_SIZE):
+		print "Writing cluster"
                 clusterList.append(DList[x]) 
     ld1 = offset + len(DList)          
     newBlockS = 0

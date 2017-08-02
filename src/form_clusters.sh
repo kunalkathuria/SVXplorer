@@ -6,8 +6,8 @@ echo Sorting
 sort -T ../results/text/ -k 2,2 -k 3,3n ../results/text/All_Discords_P.txt > ../results/text/All_Discords_P_S.txt
 echo DoneSorting
 
-#Line below is for de novo insertions only
-sort -n -k 1,1 ../results/text/All_Discords_I.txt > ../results/text/All_Discords_I_S.txt
+##Line below is for de novo insertions only
+#sort -n -k 1,1 ../results/text/All_Discords_I.txt > ../results/text/All_Discords_I_S.txt
 
 time (python FormClusters.py ../results/text/bam_stats.txt $8 $9 ${10} ${11} ${20} ${25} ${24} ${23} ${21} ${22}) #> ../results/text/fc_time.txt # 50m
 

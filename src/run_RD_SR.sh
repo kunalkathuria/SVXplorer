@@ -44,14 +44,14 @@ then
 	cp ../results/text/All_Variants_RD.txt ../results/text/All_Variants.txt
 fi
 
-#if [ $9 -eq 1 ]
-#then
-#	python SetCover_mq.py $6 ${11} ${15} ${16}
-#else
-#	python DisjointSetCover.py
-#fi
+if [ $9 -eq 1 ]
+then
+	python SetCover_mq.py $6 ${11} ${15} ${16}
+else
+	python DisjointSetCover.py
+fi
 
-python WriteBed.o5.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26} ${27} ${28} ${29}
+python WriteBed.o6.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26} ${27} ${28} ${29}
 cat ../results/text/deletions.bedpe ../results/text/tandemDuplications.bedpe ../results/text/inversions.bedpe ../results/text/insertions.bedpe ../results/text/unknowns.bedpe > ../results/text/All_SVs
 python ../scripts/bed2vcf.py ../results/text/All_SVs
 cp ../results/text/VariantMap_O.txt ../results/text/VariantMap.txt
