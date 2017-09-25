@@ -8,7 +8,7 @@ from collections import Counter
 
 FILE = "../results/text/VariantMap.txt"
 
-#disjThresh = int(sys.argv[1])
+disjThresh = int(sys.argv[1])
 MAP_THRESH = int(sys.argv[2])
 ignoreRD = 1
 RD_VAR_NUM = int(sys.argv[3]) #3000000
@@ -26,7 +26,7 @@ def formHash():
 		if temp not in MQ_HASH and temp2 >= MAP_THRESH:
 			MQ_HASH[temp] = 1
 	
-def DisjointAlg(fragmentList, nSetsR, disjThresh):
+def DisjointAlg(fragmentList, nSetsR):
 
     N_potSVs = 0
     counter = 0
@@ -47,8 +47,8 @@ def DisjointAlg(fragmentList, nSetsR, disjThresh):
     fp2=open("../results/text/DisjSetCover_S.txt","w")
     fp4=open("../results/text/mq0_variants.txt","w")
     fp5=open("../results/text/uniqueCount.txt","w")
-    fp6=open("../results/text/All_Variants_SR.txt","r")
 
+    print "In SC fxn."
     x = Counter(fragmentList)
     # Obtain disjointness count
     # Assume any given fragment only appears once in set list
@@ -80,30 +80,18 @@ def DisjointAlg(fragmentList, nSetsR, disjThresh):
 			break
 	counter+=1
 
-    n_sr_supp = 0
-    n_pe_supp = 0
     for g,item in enumerate(disjointness):
 
-	sr_supp = 0
-	pe_supp = 0
-	for line in fp6:
-		if line.split()[11].find("PE_SR") != -1:
-			sr_supp = 1
-		elif line.split()[11].find("PE") != -1:
-			pe_supp = 1
-		break
+
 	# RD CNVs do not use same support threshold
         if (item >= disjThresh and pickV[g] == 1) or (item >= 1 and pickV[g] == 2):
            fp2.write("%s\n" %varNum[g]) 
-	   if sr_supp:
-		n_sr_supp+=1
-	   elif pe_supp:
-	   	n_pe_supp+=1
+	   N_potSVs+=1
 	#make list of variants not picked
 	if varNum[g] < RD_VAR_NUM:
 	   fp5.write("%s %s\n" %(varNum[g], disjointness[g]))
 
-    return 1.0*n_sr_supp/n_pe_supp
+    return N_potSVs
 
     #potSVs = [item for item in disjointness if item > disjThresh]        
     
@@ -127,20 +115,13 @@ if __name__ == "__main__":
 
    [allFrags, nSetsR] = ReadFile(FILE)
    
-   #decide best unique support threshold based on data set
-   max_call_ratio = 0
-   print "Calculating best threshold for unique support to call final variants"
-
-   for x in range(3,7):
-	print x, "...?"
-   	srpe_call_ratio =  DisjointAlg(allFrags, nSetsR, x)
-   	if srpe_call_ratio > max_call_ratio:
-		max_call_ratio = srpe_call_ratio
-		max_call_dthresh = x
-   print "Best threshold determined to be", max_call_dthresh, "supporting fragments per variant."
-   #final best call
-   srpe_call_ratio =  DisjointAlg(allFrags, nSetsR, max_call_dthresh)
+   nSV =  DisjointAlg(allFrags, nSetsR)
    
+   f= open("../results/text/NSVs.txt","w")
+   
+   f.write("%s\n" %nSV)
+   f.close()
+
    #WriteMappings(DisjFM, "FragMapD.txt")
  
    

@@ -49,14 +49,6 @@ def calcMeanSig(file1, file2):
 	#last condition ensures split read will not be included in analysis because "next" may not be mate then
         if m1.is_proper_pair and not m1.is_secondary and not m1.is_supplementary and m1.get_tag("AS") > AS_CALC_THRESH*m1.infer_query_length() and m1.template_length > 0:
 
-             #if m1.reference_start < m1.next_reference_start:
-             #    minm = m1.reference_start
-             #    maxm = m1.next_reference_start
-             #else:
-             #    maxm = m1.reference_start
-             #    minm = m1.next_reference_start
-
-	     #IL = maxm - minm
 	     IL = m1.template_length
 	     IL_list.append(IL)	
 	     
@@ -71,17 +63,44 @@ def calcMeanSig(file1, file2):
 	return
    meanIL = summedIL/counter
    meanQL = summedQL/counter
-   #make outer IL distance	
-   #meanIL+=meanQL
-   #new_IL_list = [x+meanQL for x in IL_list]
    IL_list = sorted(IL_list)
-   
+   PENALTY_PERC = .90
    #"generalized" 3 sigma distance if not normal distribution, SIG_THRESH = 99.85
-   DISC_D = IL_list[int(SIG_THRESH*len(IL_list)) - 1]
-   print "DISC stats:", SIG_THRESH, DISC_D, len(IL_list), IL_list[-50:]
-   DISC_D = DISC_D - meanIL
+   DIST_END = IL_list[int(SIG_THRESH*len(IL_list)) - 1]
+   DIST_PEN = IL_list[int(PENALTY_PERC*len(IL_list)) - 1]
+   #print "DISC stats:", SIG_THRESH, DISC_D, len(IL_list), IL_list[-50:]
+   DISC_D = DIST_END - meanIL
    bamfile.close()
-   
+  
+   BIN_SIZE = 10
+   BIN_DIST = BIN_SIZE
+   DIST_HASH = {} 
+   minIL = IL_list[0]
+   print minIL, IL_list[-1]
+   for item in IL_list:
+	if item - minIL < BIN_SIZE:
+		if BIN_DIST not in DIST_HASH:
+			DIST_HASH[BIN_DIST]=0
+		DIST_HASH[BIN_DIST]+=1
+	else:
+		BIN_DIST+=BIN_SIZE
+		minIL = item
+
+   BINDIST_HASH = {}
+   for item in DIST_HASH:
+	for item2 in DIST_HASH:
+		#print item, item2
+		temp = item2 - item
+		if temp >= 0: 
+			if temp not in BINDIST_HASH:
+				BINDIST_HASH[temp] = 0
+			BINDIST_HASH[temp]+= DIST_HASH[item] + DIST_HASH[item2]
+
+   fh = open("../results/text/bindist.txt","w")
+   for item in BINDIST_HASH:
+	fh.write("%s\t%s\n" %(item,BINDIST_HASH[item]))		
+	
+
    bamfile = pysam.Samfile(file2,"rb")
    loopCount=0
    counter=0
@@ -96,16 +115,6 @@ def calcMeanSig(file1, file2):
 
 	if m1.is_proper_pair and not m1.is_secondary and not m1.is_supplementary and m1.get_tag("AS") > AS_CALC_THRESH*m1.infer_query_length() and m1.template_length > 0:
 
-	     #print str(m1)[str(m1).find("M")-3:str(m1).find("M")+1]	
-	     #if m1.reference_start < m1.next_reference_start:
-             #    minm = m1.reference_start
-             #    maxm = m1.next_reference_start
-             #else:
-             #    maxm = m1.reference_start
-             #    minm = m1.next_reference_start
-
-	     #query length of mate not available (using position-sorted file)		
-             #stdev+= (maxm - minm + meanQL - meanIL)**2
 	     stdev+= (m1.template_length - meanIL)**2
 	     counter+=1
 	loopCount+=1
@@ -132,7 +141,7 @@ def calcMeanSig(file1, file2):
         DISC_D = 3*stdev
    print meanQL, meanIL, stdev, cov, max_IL, DISC_D
    fp = open("../results/text/bam_stats.txt","w")
-   fp.write("%s\n%s\n%s\n%s\n%s\n%s\n" %(meanQL, meanIL, stdev,cov, max_IL, DISC_D))
+   fp.write("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n" %(meanQL, meanIL, stdev,cov, max_IL, DISC_D, DIST_PEN, DIST_END))
    fp.close()
    return meanQL, meanIL, stdev, DISC_D
 
@@ -346,17 +355,14 @@ def FormDiscordant(list1, list2, DList1, DList2):
 
                     # All right if TID different or orientation different. Won't make any difference in those situations.
                     if (al1.reference_start <= al2.reference_start):
-			# account for split alignments having different outer insert length
-                        #OUTER_D = abs(al1.reference_start - al2.reference_end) + 2*RDL - Al_S_1 - Al_S_2
-			OUTER_D = abs(al1.reference_end - al2.reference_start) + al1.infer_query_length() + al2.infer_query_length()
+                        OUTER_D = abs(al1.reference_end - al2.reference_start) + al1.infer_query_length() + al2.infer_query_length()
                         left_tid = al1.reference_name
                         right_tid = al2.reference_name
                         l_orient = al1.is_reverse
                         r_orient = al2.is_reverse
 
                     else:
-                        #OUTER_D = abs(al2.reference_start - al1.reference_end) + 2*RDL - Al_S_1 - Al_S_2
-			OUTER_D = abs(al2.reference_end - al1.reference_start) + al1.infer_query_length() + al2.infer_query_length()
+                        OUTER_D = abs(al2.reference_end - al1.reference_start) + al1.infer_query_length() + al2.infer_query_length()
                         left_tid = al2.reference_name
                         right_tid = al1.reference_name
                         l_orient = al2.is_reverse
@@ -423,7 +429,7 @@ def FormDiscordant(list1, list2, DList1, DList2):
 		else:
 			continue
 
-     		if (len(str(left_tid)) > 1 and str(left_tid)[0:2] == "GL") or (len(str(right_tid)) > 1 and str(right_tid)[0:2] == "GL") or left_tid in ignoreTIDList or right_tid in ignoreTIDList:
+		if (len(str(left_tid)) > 1 and str(left_tid)[0:2] == "GL") or (len(str(right_tid)) > 1 and str(right_tid)[0:2] == "GL") or left_tid in ignoreTIDList or right_tid in ignoreTIDList:
 			continue
  
 		CLType = str(int(l_orient)) + str(int(r_orient))

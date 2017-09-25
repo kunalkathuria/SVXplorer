@@ -75,16 +75,16 @@ class Cluster(object):
         data_split = data.split()
         self.l_start = int(data_split[4])
         self.l_end = int(data_split[5])
-        self.r_start = int(data_split[8])
-        self.r_end = int(data_split[9])
+        self.r_start = int(data_split[7])
+        self.r_end = int(data_split[8])
         self.l_orient = int(data_split[2][0])
         self.r_orient = int(data_split[2][1])
 
         self.typeC = data_split[2]
         self.ltid = data_split[3]
-        self.rtid = data_split[7]
+        self.rtid = data_split[6]
         self.mapNum = int(data_split[0])
-        self.clsmall = data_split[10]
+        self.clsmall = int(data_split[9])
 
     def __str__(self):
         return "%s %s %s %s %s %s %s %s %s %s" % (self.mapNum, self.l_start,self.l_end, self.r_start, self.r_end, self.typeC, self.ltid, self.rtid, self.l_orient, self.r_orient)
@@ -1363,7 +1363,7 @@ def compareVariant(cluster1, varList, Claimed, graph_c, graph_m, offset, LR):
             graph_m.add_edge(cl1,v1,1)
 
     if AnyMatch:
-        #print "Changing CLAIMED list"
+        #print "Changing CLAIMED list", cluster1.mapNum
         Claimed[cluster1.mapNum] = 1
 
     
@@ -1590,7 +1590,8 @@ if __name__ == "__main__":
     varCount = len(OCArray_C)
     OCArray_C = []
     store = 0
-    
+   
+    fr = open("../results/text/ClaimedCls.txt","w") 
     for line in fpL:
 
         counter+= 1
@@ -1599,10 +1600,9 @@ if __name__ == "__main__":
         if line != "\n" and len(line) > 0:
 
          cluster = Cluster(line)
-         #print "Unclaimed", counter
-            
+
          if not Claimed.has_key(cluster.mapNum):
-             
+            #print "Unclaimed", cluster.mapNum, counter
             store =1
             temp = OverlappingCluster()
             temp.bp1tid = cluster.ltid
@@ -1633,7 +1633,7 @@ if __name__ == "__main__":
  
             elif cluster.l_orient == 0 and cluster.r_orient ==1 and cluster.l_start < cluster.r_end and cluster.ltid == cluster.rtid:
                 temp.typeO = "DEL"
-                #print cluster
+                #print "Deletion!", cluster
                 
             # artefact TD cluster from overlapping reads for v small TDs, addressed later   
             elif cluster.l_start > cluster.r_end and cluster.l_orient == 0 and cluster.r_orient == 1 and cluster.ltid == cluster.rtid:
@@ -1659,6 +1659,8 @@ if __name__ == "__main__":
 
                 OCArray_C.append(temp)
 
+	 else:
+		fr.write("%s %s\n" %(cluster.mapNum,str(cluster.l_orient)+str(cluster.r_orient)))
     # May change results by a little but, but not much
     for elem in TDArtefacts:
 

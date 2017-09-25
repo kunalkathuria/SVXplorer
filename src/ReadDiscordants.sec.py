@@ -190,9 +190,11 @@ class Cluster(object):
        self.r_target = None
        self.mapqual = -1
        self.clsmall = -1
+       self.ascore1 = -1
+       self.ascore2 = -1
 
     def __str__(self):
-        return "%s %s %s %s %s %s %s %s %s" % (self.ltid, self.l_bound, self.rtid, self.r_bound, self.C_type, self.l_target, self.r_target, self.clsmall, self.mapqual)
+        return "%s %s %s %s %s %s %s %s %s %s %s" % (self.ltid, self.l_bound, self.rtid, self.r_bound, self.C_type, self.l_target, self.r_target, self.ascore1, self.ascore2, self.clsmall, self.mapqual)
 
 def findTotalNMatches(al):
 
@@ -200,10 +202,8 @@ def findTotalNMatches(al):
 	temp = str(al)[MDtag_pos:].find(")")
 	MDtag = str(al)[MDtag_pos:MDtag_pos +temp-1]
 	
-	#print "Length:", al.infer_query_length()
 	# MD tag is set for perfect matches, so if not set, dubious
 	if MDtag_pos == 5:
-		#print "Inferring", al.infer_query_length()
 		return 0,0
 
 	integers = "0123456789"
@@ -225,6 +225,57 @@ def findTotalNMatches(al):
 	else:
 		return 0,0
 
+def calcXAstats(tagXA):
+
+	tagP = tagXA.split(",")
+	ch = tagP[0]
+	fr = -1
+	if tagP[1][0] == "+":
+		fr = 0
+	elif tagP[1][0] == "-":
+		fr = 1
+	start = int(tagP[1][1:])
+	cigstr = tagP[2]
+
+	MISM_P = 1 #mismatch penalty
+        integers = "0123456789"
+        score = 0
+        prev = "0"
+	QL = 0
+	nm = 0
+	nmm = int(tagP[3])
+        for string in cigstr:
+                if string in integers:
+                        prev+= string
+                elif string == "M":
+                        score+= int(prev)
+			nm+= int(prev)
+			QL+= int(prev)
+                        prev = "0"
+		elif string == "I" or string == "D":
+			score= score - 6 - int(prev)
+			if string == "I":
+				QL+= int(prev)
+			else:
+				nm+= int(prev)
+			nmm = nmm-int(prev)
+			prev = "0"
+		else:
+			QL+= int(prev)
+			prev = "0"
+
+	#print "Score w/o penalty is:", score
+	end = start + nm
+	score-= MISM_P*nmm
+	#print "Score w/ penalty is:", score, "Nmm:", nmm
+
+	if score < 0:
+		score = 0
+	if QL < 0:
+		QL = 0
+
+	return ch, start, end, 0, -1, fr, score, QL
+
 def findNumberMatches(cigartups):
     nummatches = 0
     if cigartups == None:
@@ -235,18 +286,44 @@ def findNumberMatches(cigartups):
 
     return nummatches
 
-def FormDiscordant(list1, list2, DList1, DList2):
+def FormDiscordant(al1, al2, DList1, DList2):
 
     counter = 0
     OUTER_D = MEAN_D # non-discordant default value. safe.
+    Tag1_XA = [0]
+    Tag2_XA = [0]
+    try:
+    	Tag1_XA.extend(al1.get_tag("XA").split(";"))
+	Tag1_XA = Tag1_XA[:-1]
+    except:
+	pass
+    try:
+    	Tag2_XA.extend(al2.get_tag("XA").split(";"))
+	Tag2_XA = Tag2_XA[:-1]
+    except:
+	pass
 
-    first = 1
 
-    for al1 in list1:
+    for k1, XA_al1 in enumerate(Tag1_XA):
 
-            for al2 in list2:
+	# if secondary
+	if k1 > 0:
+ 		[al1_reference_name, al1_reference_start, al1_reference_end, al1_is_unmapped, al1_mapping_quality, al1_is_reverse, Al_S_1, al1_infer_query_length] = calcXAstats(XA_al1)
+		#print al1
+		#print al1_reference_name, al1_reference_start, al1_reference_end, al1_is_unmapped, al1_mapping_quality, al1_is_reverse, Al_S_1, al1_infer_query_length, "\n"
+	else:
+		[al1_reference_name, al1_reference_start, al1_reference_end, al1_is_unmapped, al1_mapping_quality, al1_is_reverse, Al_S_1, al1_infer_query_length] = [al1.reference_name, al1.reference_start, al1.reference_end, al1.is_unmapped, al1.mapping_quality, al1.is_reverse, float(al1.get_tag("AS")), al1.infer_query_length()]
+		
+	for k2, XA_al2 in enumerate(Tag2_XA):
+
+		if k2 > 0:
+			[al2_reference_name, al2_reference_start, al2_reference_end, al2_is_unmapped, al2_mapping_quality, al2_is_reverse, Al_S_2, al2_infer_query_length] = calcXAstats(XA_al2)
+			#print al2
+			#print al2_reference_name, al2_reference_start, al2_reference_end, al2_is_unmapped, al2_mapping_quality, al2_is_reverse, Al_S_2, al2_infer_query_length
+		else:
+			[al2_reference_name, al2_reference_start, al2_reference_end, al2_is_unmapped, al2_mapping_quality, al2_is_reverse, Al_S_2, al2_infer_query_length] = [al2.reference_name, al2.reference_start, al2.reference_end, al2.is_unmapped, al2.mapping_quality, al2.is_reverse, float(al2.get_tag("AS")), al2.infer_query_length()]
 	
-                counter = counter + 1
+                counter+= 1
                 al1_match = 0
 		al2_match = 0
 		map_type = 3 # improper value
@@ -270,160 +347,122 @@ def FormDiscordant(list1, list2, DList1, DList2):
 			DList2 = []
 			return
 
-		if MATCH_PCT != 0 or MATCH_THRESH != 0:
-	                [NMatch1, RMatch1] = findTotalNMatches(al1)
-			#print str(al1), NMatch1
-               		[NMatch2, RMatch2] = findTotalNMatches(al2)
-			#print str(al2), NMatch2
-		else:
-			NMatch1 = 1
-			RMatch1 = 1
-			NMatch2 = 1
-			RMatch2 = 1
-
-			
-		Al_S_1 = float(al1.get_tag("AS"))
-		Al_S_2 = float(al2.get_tag("AS"))
-	
-		if first == 1:
-		    RMatchF1 = RMatch1
-                    RMatchF2 = RMatch2
+		
+		if counter == 1:
                     ASF1 = Al_S_1
 		    ASF2 = Al_S_2
-		    RMatch1 = BIG_NUM
-	            RMatch2 = BIG_NUM
 		    Al_S_1 = BIG_NUM
 		    Al_S_2 = BIG_NUM
-		    first = 0
 		    
-		    # This led to calling many more variants than existed compared to not having it, even when thresh was .99
-		    # Sensitivity was high but precision way lower. If 2 parts of a read align v well, it may not be a bona fide read.
-		    #try:
-                        #if isinstance(al1.get_tag("XS"), int):
-                                #print al1.infer_query_length(), ASF1, al1.get_tag("XS")
-                                #ASF1 = ASF1 + float(al1.get_tag("XS"))
-                        #if isinstance(al2.get_tag("XS"), int):
-                                #print al2.infer_query_length(), ASF2, al1.get_tag("XS")
-                                #ASF2 = ASF2 + float(al2.get_tag("XS"))
-                    #except:
-                        #pass
 
-		if al1.reference_start == None and al1.reference_end == None and al2.reference_start == None and al2.reference_end == None:
+		if al1_reference_start == None and al1_reference_end == None and al2_reference_start == None and al2_reference_end == None:
 			print "No pos continue"
 			continue
 
-		MatchR_1 = 0
-		MatchR_2 = 0
-
-		if RMatchF1 > 0:
-			MatchR_1 = float(RMatch1)/float(RMatchF1)
-		if RMatchF2 > 0:
-			MatchR_2 = float(RMatch2)/float(RMatchF2)
-
 		
-                if ASF1 > AS_THRESH*al1.infer_query_length() and RMatch1 >= MATCH_PCT and MatchR_1 >= MATCH_THRESH and Al_S_1 >= PCT_THRESH*ASF1:
+                if ASF1 > AS_THRESH*al1_infer_query_length and Al_S_1 >= PCT_THRESH*ASF1:
 			al1_match = 1
 
-                if ASF2 > AS_THRESH*al2.infer_query_length() and RMatch2 >= MATCH_PCT and MatchR_2 >= MATCH_THRESH and Al_S_2 >= PCT_THRESH*ASF2:
+                if ASF2 > AS_THRESH*al2_infer_query_length and Al_S_2 >= PCT_THRESH*ASF2:
                     	al2_match = 1
 
 		if not al1_match and not al2_match:
 			continue
 
-                if not al1.is_unmapped and not al2.is_unmapped and al1.reference_start!= None and al1.reference_end != None and al1.reference_start > -1 and al2.reference_start!=None and al2.reference_end !=None and al2.reference_start > -1 and al1_match and al2_match:
+                if not al1_is_unmapped and not al2_is_unmapped and al1_reference_start!= None and al1_reference_end != None and al1_reference_start > -1 and al2_reference_start!=None and al2_reference_end !=None and al2_reference_start > -1 and al1_match and al2_match:
 
 		    # if primary alignment below mapping quality threshold, don't use fragment at all
-		    if (al1.mapping_quality < MAP_THRESH or al2.mapping_quality < MAP_THRESH) and counter == 1:
+		    if (al1_mapping_quality < MAP_THRESH or al2_mapping_quality < MAP_THRESH) and counter == 1:
 			DList1 = []
 			DList2 = []
 			return
 		
- 		    if counter == 1 and isinstance(al1.mapping_quality, int) and isinstance(al2.mapping_quality, int):
-			    map_qual = min(al1.mapping_quality, al2.mapping_quality)
+ 		    if counter == 1 and isinstance(al1_mapping_quality, int) and isinstance(al2_mapping_quality, int):
+			    map_qual = min(al1_mapping_quality, al2_mapping_quality)
 		    else:
 			    map_qual = -1
                     map_type = 0
 
                     # All right if TID different or orientation different. Won't make any difference in those situations.
-                    if (al1.reference_start <= al2.reference_start):
+                    if (al1_reference_start <= al2_reference_start):
 			# account for split alignments having different outer insert length
-                        #OUTER_D = abs(al1.reference_start - al2.reference_end) + 2*RDL - Al_S_1 - Al_S_2
-			OUTER_D = abs(al1.reference_end - al2.reference_start) + al1.infer_query_length() + al2.infer_query_length()
-                        left_tid = al1.reference_name
-                        right_tid = al2.reference_name
-                        l_orient = al1.is_reverse
-                        r_orient = al2.is_reverse
+                        #OUTER_D = abs(al1_reference_start - al2_reference_end) + 2*RDL - Al_S_1 - Al_S_2
+			OUTER_D = abs(al1.reference_end - al2.reference_start) + al1_infer_query_length + al2_infer_query_length
+                        left_tid = al1_reference_name
+                        right_tid = al2_reference_name
+                        l_orient = al1_is_reverse
+                        r_orient = al2_is_reverse
 
                     else:
-                        #OUTER_D = abs(al2.reference_start - al1.reference_end) + 2*RDL - Al_S_1 - Al_S_2
-			OUTER_D = abs(al2.reference_end - al1.reference_start) + al1.infer_query_length() + al2.infer_query_length()
-                        left_tid = al2.reference_name
-                        right_tid = al1.reference_name
-                        l_orient = al2.is_reverse
-                        r_orient = al1.is_reverse
+                        #OUTER_D = abs(al2_reference_start - al1_reference_end) + 2*RDL - Al_S_1 - Al_S_2
+			OUTER_D = abs(al2.reference_end - al1.reference_start) + al1_infer_query_length + al2_infer_query_length
+                        left_tid = al2_reference_name
+                        right_tid = al1_reference_name
+                        l_orient = al2_is_reverse
+                        r_orient = al1_is_reverse
 
-                elif ((al1.reference_start== None and al1.reference_end == None) or al1.reference_start <= -1 or al1.is_unmapped) and (al2.reference_start!=None and al2.reference_end!=None and al2.reference_start > -1 and al2.reference_end > -1 and al2_match and not al2.is_unmapped):
+                elif ((al1_reference_start== None and al1_reference_end == None) or al1_reference_start <= -1 or al1_is_unmapped) and (al2_reference_start!=None and al2_reference_end!=None and al2_reference_start > -1 and al2_reference_end > -1 and al2_match and not al2_is_unmapped):
 
-		    if al2.mapping_quality < MAP_THRESH and counter == 1:
+		    if al2_mapping_quality < MAP_THRESH and counter == 1:
 			DList1 = []
 			DList2 = []
 			return
 
-		    if counter == 1 and isinstance(al2.mapping_quality, int):
-			map_qual = al2.mapping_quality
+		    if counter == 1 and isinstance(al2_mapping_quality, int):
+			map_qual = al2_mapping_quality
 		    else:
                             map_qual = -1
 
                     map_type = 1
                     
                     # left tid set by convention for one mate mappings
-	            left_tid = al2.reference_name
+	            left_tid = al2_reference_name
 
-                    if al2.is_reverse:
+                    if al2_is_reverse:
  
-                        indivPos = al2.reference_start
+                        indivPos = al2_reference_start
                         indivOrient = 1
                         OUTER_D = -1
 
                     else:
 
-                        indivPos = al2.reference_end
+                        indivPos = al2_reference_end
                         indivOrient = 0
                         OUTER_D = -1
 
 
-                elif ((al2.reference_start== None and al2.reference_end == None) or al2.reference_start <= -1 or al2.is_unmapped) and (al1.reference_start!=None and al1.reference_end != None and al1.reference_start > -1 and al1_match and not al1.is_unmapped):
+                elif ((al2_reference_start== None and al2_reference_end == None) or al2_reference_start <= -1 or al2_is_unmapped) and (al1_reference_start!=None and al1_reference_end != None and al1_reference_start > -1 and al1_match and not al1_is_unmapped):
 
-		    #print "Al 2 unmapped:", al2.is_unmapped
-		    if al1.mapping_quality < MAP_THRESH and counter == 1:
+		    #print "Al 2 unmapped:", al2_is_unmapped
+		    if al1_mapping_quality < MAP_THRESH and counter == 1:
 			DList1 = []
 			DList2 = []
 			return
 		   
-   		    if counter == 1 and isinstance(al1.mapping_quality, int):
-                        map_qual = al1.mapping_quality
+   		    if counter == 1 and isinstance(al1_mapping_quality, int):
+                        map_qual = al1_mapping_quality
 		    else:
                             map_qual = -1
                     map_type = 1
 
-		    left_tid = al1.reference_name	
+		    left_tid = al1_reference_name	
 	
-                    if al1.is_reverse:
+                    if al1_is_reverse:
  
-                        indivPos = al1.reference_start
+                        indivPos = al1_reference_start
                         indivOrient = 1
                         OUTER_D = -1
 
                     else:
 
-                        indivPos = al1.reference_end
+                        indivPos = al1_reference_end
                         indivOrient = 0
                         OUTER_D = -1
 
 		else:
 			continue
 
-     		if (len(str(left_tid)) > 1 and str(left_tid)[0:2] == "GL") or (len(str(right_tid)) > 1 and str(right_tid)[0:2] == "GL") or left_tid in ignoreTIDList or right_tid in ignoreTIDList:
+     		if (len(str(left_tid)) > 1 and str(left_tid)[0:2] == "GL") or ((len(str(right_tid)) > 1 and str(right_tid)[0:2] == "GL")) or left_tid in ignoreTIDList or right_tid in ignoreTIDList:
 			continue
  
 		CLType = str(int(l_orient)) + str(int(r_orient))
@@ -435,7 +474,8 @@ def FormDiscordant(list1, list2, DList1, DList2):
 			#print "Marked disc", al1, al2
                         temp=Cluster()
                 	temp.mapqual = map_qual
-	
+			temp.ascore1 = Al_S_1
+			temp.ascore2 = Al_S_2
 			# "small" means discordant due to IL being smaller than threshold	
 			if left_tid == right_tid and OUTER_D - MEAN_D < -1*DISC_dist:
 				Cl_small = 1
@@ -443,45 +483,45 @@ def FormDiscordant(list1, list2, DList1, DList2):
                         if map_type == 0:
                            
 			    # "Left" TID by convention is the one with the lower mapped coordinate if TIDs are different
-                            if (al1.reference_start <= al2.reference_start) and (not al1.is_reverse) and (not al2.is_reverse):
+                            if (al1_reference_start <= al2_reference_start) and (not al1_is_reverse) and (not al2_is_reverse):
                         
-                                lf_bound = al1.reference_end                
-                                rt_bound = al2.reference_end
+                                lf_bound = al1_reference_end                
+                                rt_bound = al2_reference_end
       
-                            elif (al1.reference_start <= al2.reference_start) and (not al1.is_reverse) and (al2.is_reverse):
+                            elif (al1_reference_start <= al2_reference_start) and (not al1_is_reverse) and (al2_is_reverse):
 
-                                lf_bound = al1.reference_end                
-                                rt_bound = al2.reference_start
+                                lf_bound = al1_reference_end                
+                                rt_bound = al2_reference_start
               			
-                            elif (al1.reference_start <= al2.reference_start) and (al1.is_reverse) and (not al2.is_reverse):
+                            elif (al1_reference_start <= al2_reference_start) and (al1_is_reverse) and (not al2_is_reverse):
 
-                                lf_bound = al1.reference_start               
-                                rt_bound = al2.reference_end
+                                lf_bound = al1_reference_start               
+                                rt_bound = al2_reference_end
      
-                            elif (al1.reference_start <= al2.reference_start) and (al1.is_reverse) and (al2.is_reverse):
+                            elif (al1_reference_start <= al2_reference_start) and (al1_is_reverse) and (al2_is_reverse):
 
-                                lf_bound = al1.reference_start                
-                                rt_bound = al2.reference_start
+                                lf_bound = al1_reference_start                
+                                rt_bound = al2_reference_start
              			
-                            elif (al1.reference_start > al2.reference_start) and (not al1.is_reverse) and (not al2.is_reverse):
+                            elif (al1_reference_start > al2_reference_start) and (not al1_is_reverse) and (not al2_is_reverse):
                                 
-                                lf_bound = al2.reference_end              
-                                rt_bound = al1.reference_end
+                                lf_bound = al2_reference_end              
+                                rt_bound = al1_reference_end
 
-                            elif (al1.reference_start > al2.reference_start) and (not al1.is_reverse) and (al2.is_reverse):
+                            elif (al1_reference_start > al2_reference_start) and (not al1_is_reverse) and (al2_is_reverse):
 
-                                lf_bound = al2.reference_start               
-                                rt_bound = al1.reference_end
+                                lf_bound = al2_reference_start               
+                                rt_bound = al1_reference_end
          			
-                            elif (al1.reference_start > al2.reference_start) and (al1.is_reverse) and (not al2.is_reverse):
+                            elif (al1_reference_start > al2_reference_start) and (al1_is_reverse) and (not al2_is_reverse):
 
-                                lf_bound = al2.reference_end                
-                                rt_bound = al1.reference_start
+                                lf_bound = al2_reference_end                
+                                rt_bound = al1_reference_start
                                 
-                            elif (al1.reference_start > al2.reference_start) and (al1.is_reverse) and (al2.is_reverse):
+                            elif (al1_reference_start > al2_reference_start) and (al1_is_reverse) and (al2_is_reverse):
 
-                                lf_bound = al2.reference_start                
-                                rt_bound = al1.reference_start
+                                lf_bound = al2_reference_start                
+                                rt_bound = al1_reference_start
             				
                             temp.l_bound = lf_bound
                             temp.r_bound = rt_bound
@@ -532,23 +572,9 @@ def ReadNextReadAlignments(bamname):
 
     bamfile = pysam.AlignmentFile(bamname)
 
-    alignments = []
-    qname = None
-
     for alignment in bamfile:
-        if qname == None:
-            qname = alignment.qname
-            alignments.append(alignment)
-        elif qname == alignment.qname:
-            alignments.append(alignment)
-        else:
-            yield qname,alignments
-            alignments = [alignment]
-            qname = alignment.qname
-
-    if qname != None:
-        yield qname,alignments
-                        
+	if not alignment.is_secondary:
+            yield alignment.qname, alignment                        
     
 if __name__ == "__main__":
 
@@ -576,28 +602,18 @@ if __name__ == "__main__":
 
     start_for = time.clock()
     
-    for (q1,aln1s),(q2,aln2s) in izip(ReadNextReadAlignments(FILE1),ReadNextReadAlignments(FILE2)):
+    for (q1,aln1),(q2,aln2) in izip(ReadNextReadAlignments(FILE1),ReadNextReadAlignments(FILE2)):
 
-	#print aln1s[0], aln2s[0]
 	if (currentFrag % 100000) == 0:
 		print "Fragment", currentFrag, "analyzed."
 
-	#print q1, "and", q2
         assert q1[:-2] == q2[:-2]
 
         DList1 = []
         DList2 = []
         
         start_fd = time.clock()
-	
-        FormDiscordant(aln1s, aln2s, DList1, DList2)
-
-	#unique support for any cluster should be above mapping quality threshold -- done in SetCover.py
-	#if len(DList1) == 1 and DList1[0].mapqual < MAP_THRESH_U:
-		#print DList1[0].mapqual, DList1[0]
-		#DList1 = []
-	#if len(DList2) == 1 and DList2[0].mapqual < MAP_THRESH_U:
-                #DList2 = []
+        FormDiscordant(aln1, aln2, DList1, DList2)
 
         for item in DList1:
              f1.write("%s %s\n" %(currentFrag, item))

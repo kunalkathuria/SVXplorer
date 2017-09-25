@@ -3,8 +3,9 @@ import time
 import sys
 import pysam
 import numpy as np
-import matplotlib as plt
+import matplotlib as mp
 import copy
+import networkx as nx
 
 def READ_BAM_STATS(file1):
 	
@@ -13,11 +14,11 @@ def READ_BAM_STATS(file1):
 	for line in fp:
 		stats.append(line)
 	fp.close()
-	return float(stats[0]), float(stats[1]), float(stats[2]), float(stats[5])
+	return float(stats[0]), float(stats[1]), float(stats[2]), float(stats[5]), float(stats[6])
 
 STAT_FILE = sys.argv[1]
 MIN_CLUSTER_SIZE = int(sys.argv[2])
-[RDL, MEAN_D, SIG_D, DISC_D] = READ_BAM_STATS(STAT_FILE)
+[RDL, MEAN_D, SIG_D, DISC_D, DIST_PEN] = READ_BAM_STATS(STAT_FILE)
 SIG_MULT = int(sys.argv[3])
 DISC_ENHANCER = float(sys.argv[9])# 1.67 default, wil multiply 3 sigma disc distance by a "safety" factor to not miss larger sampling IL clusters
 DISC_ENHANCER2 = 1.0 #DISC_ENHANCER*(5.0/5.0) # safety factor for cluster margin (e.g. if normal distr, 3 sig for disc marking, 4 sig for cluster margin, 5 sig for cluster inclusion)
@@ -31,8 +32,33 @@ CLD_THRESH = float(sys.argv[6])
 RDL_FACTOR = float(sys.argv[7])
 CL_BREAK = int(sys.argv[8])
 LIB_MULT = float(sys.argv[10]) #liberal distance multiplier to include reads in given cluster even if far from beginning of cluster; used if reads piling up close; cluster will be broken later based on density
-
+BINDIST_HASH = {}
 print RDL, MEAN_D, SIG_D, DISC_D, CLUSTER_D   
+Weights = []
+
+def readDistHash():
+	TOTAL_ENTRIES = 0
+	f=open("../results/text/bindist.txt","r")
+	for line in f:
+		ls1 = int(line.split()[1])
+		BINDIST_HASH[int(line.split()[0])]=ls1
+		TOTAL_ENTRIES+= ls1
+	print TOTAL_ENTRIES
+	return TOTAL_ENTRIES
+
+def calcEdgeWeight(f1lpos, f1rpos, f2lpos, f2rpos, totalent):
+
+	BIN_SIZE = 10
+	pen_atmargin = .75
+	#FR
+	ildist = abs(BIN_SIZE*int((f2lpos - f1lpos + f1rpos - f2rpos)/(1.0*BIN_SIZE)))
+	distpen = 1 + (pen_atmargin - 1)*(abs(f2lpos-f1lpos)-DIST_PEN)*1.0/(DISC_D - DIST_PEN)
+	if ildist in BINDIST_HASH and distpen > 0:
+		weight = distpen*BINDIST_HASH[abs(ildist)]/(1.0*totalent)
+	else:
+		weight = 0
+	#print "Weight:", weight
+	return weight
 
 def swap(a, b):
 	
@@ -220,6 +246,7 @@ class Cluster(object):
             self.r_start = -1
             self.r_end = -1
 	    self.clsmall = -1
+	    self.fragNum = -1
 
 	    # locations of reads supporting cluster, and list of fragments supporting it, respectively	
 	    self.readList = []	
@@ -423,11 +450,16 @@ if __name__== "__main__":
     print "Function start"
     
     clusterList = []
-    DList = []
+    FList = []
     counter = 0
     newBlockS = 0
     offset = 0
     start_ref = 0
+
+    totalent = readDistHash()
+    fragHash = {}
+    FG = nx.Graph()
+    print "Cluster D:", CLUSTER_D
 	
     for line_num,line in enumerate(f1):
 
@@ -447,6 +479,7 @@ if __name__== "__main__":
         temp.rtid = parsed[3]
 	temp.clsmall = parsed[-2]
         currentFrag = parsed[0]
+	temp.fragNum = currentFrag
         Claimed = 0
 
         l_orient = int(temp.C_type[0])
@@ -479,106 +512,77 @@ if __name__== "__main__":
                 r_orient = temp2
 		temp.C_type = "10"
 
-        ld = len(DList)
+        ld = len(FList)
         #start_for = time.clock()
-	print line_num
-    	cl_read = Read()
-        cl_read.l_read_bound = temp.l_bound
-        cl_read.r_read_bound = temp.r_bound
-	temp.readList.append(cl_read)
-
+	#print line_num
+	EW_THRESH = 0
+	FG.add_node(temp.fragNum)
+	fragHash[temp.fragNum] = temp
+	FList.append(temp)
+		
+        print temp
         for x in range(ld):
-	    
-	    ClMatch = CompareCluster(0, DList[ld-x-1], temp)
-	    
-            if ClMatch: 
-		
-		#print "They match:", 1 + DList[ld-x-1].count, temp, DList[ld-x-1]
-                DList[ld-x-1].count+=1
-                DList[ld-x-1] = ChangeBound(DList[ld-x-1], temp, 1)
-		DList[ld-x-1].readList.append(cl_read)
-		DList[ld-x-1].support.append(currentFrag)
-                Claimed = 1
-                break
-                # same fragment can be part of different clusters, but same alignment cannot be
-                
-        #end_for = time.clock()
+	    print "Member:", FList[x]
+ 	    if FList[x].ltid == temp.ltid and FList[x].rtid == temp.rtid and FList[x].C_type == temp.C_type:
 
-        #f5.write("Time taken for %s for loops: %f\n" %(ld, end_for-start_for))
-                    
-        if not Claimed:
+		    #compare 2 frags
+		    f1lpos = FList[x].l_bound
+		    f1rpos = FList[x].r_bound	    
+		    f2lpos = temp.l_bound
+		    f2rpos = temp.r_bound
+		    #print x, f1lpos, f1rpos, f2lpos, f2rpos
+		    EW = calcEdgeWeight(f1lpos, f1rpos, f2lpos, f2rpos, totalent)
+		    #print "Weight is:", EW
+		    Weights.append(EW)
 
-	    #print temp, "not claimed."
-            temp.l_bound_O = temp.l_bound
-            temp.r_bound_O = temp.r_bound
-            temp.count = 1
-	    # refresh list	
-            if len(DList) > 0:
+
+		    if EW > EW_THRESH:
+			print "Adding connection"
+			FG.add_edge(FList[x].fragNum, temp.fragNum)
 		
-	 	if temp.ltid != DList[-1].ltid:
+	# refresh list	
+        if len(FList) > 1:
+		
+	 	if temp.ltid != FList[-2].ltid:
 			
 			#print "New TID: Processing ltid", temp.ltid, line, "Size of list:", len(DList)
 			newBlockS = 0
-			for x in range(len(DList)):
-                       		if(DList[x].count >= MIN_CLUSTER_SIZE):
-  			        	clusterList.append(DList[x])
- 	
-                    	offset+= len(DList)
-                        DList = []
-                        DList.append(temp)	
+                        FList = [FList[-1]]
 
-		elif temp.ltid == DList[newBlockS].ltid and (temp.l_bound - DList[newBlockS].l_bound_O) > CLUSTER_D:
+		elif temp.ltid == FList[newBlockS].ltid and (temp.l_bound - FList[newBlockS].l_bound) > 2*CLUSTER_D:
 
-		    #end_ref = time.clock()
-                    #print "\n\nRefreshing read list.", line,"Size of list:", len(DList), "\n\n"
-		    
-		    #if end_ref - start_ref > 1:
-		    	#print "Time taken:", end_ref - start_ref
-
-		    #start_ref = time.clock()
-
-                    for x in range(newBlockS):
-                        if(DList[x].count >= MIN_CLUSTER_SIZE):
-				print "Appending", DList[x].count
-                   		clusterList.append(DList[x])
-				print clusterList[-1].count
-
-                    DList = DList[newBlockS:]
-		    offset+= newBlockS
-                    newBlockS = len(DList)
-                    DList.append(temp)
+                    FList = FList[newBlockS:]
+                    newBlockS = len(FList)-1
 	
-		else:
-		    DList.append(temp)	
-            else:
-                    DList.append(temp)
             
-            
-            Claimed = 1
-	    DList[-1].support.append(currentFrag)
-        #end_fl = time.clock()
-        #f6.write("Time taken for one line processing %f\n" %(end_fl-start_fl))
-	
-	#if end_fl-start_fl > 0.02:
-		#print "Time taken for this fragment:", end_fl-start_fl
+    fc = open("../results/text/cluster_cliques.txt","w")
+    #print "Graph is:", FG.nodes(),"\n", FG.edges()
+    #nx.draw_networkx(FG)
+    max_clique_lists = list(nx.find_cliques(FG))
+    #max_clique_lists = list(nx.k_clique_communities(FG, MIN_CLUSTER_SIZE))
+    #print "Max cliques:", max_clique_lists
+    for k,elem in enumerate(max_clique_lists):
+	elem0 = list(elem)[0]
+	fc.write("%s\n" %("@Cluster"+str(k)))
+	ltid = fragHash[elem0].ltid
+	rtid = fragHash[elem0].rtid
+	lbp = fragHash[elem0].l_bound
+	rbp = fragHash[elem0].r_bound
 
-    for x in range(len(DList)):
-        if(DList[x].count >= MIN_CLUSTER_SIZE):
-		print "Writing cluster"
-                clusterList.append(DList[x]) 
-    ld1 = offset + len(DList)          
-    newBlockS = 0
-    offset=0
-                    
-    f1.close()
+	for item in list(elem):
+		fc.write("%s\n" %str(fragHash[item]))
+		if fragHash[item].l_bound > lbp:
+			lbp = fragHash[item].l_bound
+		if fragHash[item].r_bound < rbp:
+                        rbp = fragHash[item].r_bound
+		#Compute and write sum of total edge weights for this node to all other nodes in cliquw
+		#fc.write
+	fc.write("%s\t%s\t%s\t%s\n" %(ltid,lbp, rtid, rbp))
+
     #f2.close()
 
-    print ld1, " total clusters."
-    print "clusters in total (but not all necessarily significant/listed)."
-
-    print len(clusterList)
-    [RB1, RB2] = calcReadStats(clusterList)
-    writeClusters(clusterList, f3, f4, RB1)
+    #[RB1, RB2] = calcReadStats(clusterList)
+    #writeClusters(clusterList, f3, f4, RB1)
  
     f3.close()
     f4.close()            

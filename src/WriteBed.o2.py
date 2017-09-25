@@ -24,7 +24,8 @@ if __name__ == "__main__":
         f17 = open("../results/text/unknowns.bedpe","w")
 		
 	DisjSC = []
-
+	SR_DEL_THRESH = 100
+	PE_DEL_THRESH = 200
         for line in f8:
 				
                 DisjSC.append(int(line))
@@ -44,8 +45,13 @@ if __name__ == "__main__":
 			f11.write("%s\n" %line2)
 			
 			# If not insertion as bp3 is not set
-			if line2_split[1] == "DEL" or (line2_split[1] == "DEL_INS" and line2_split[11].find("RD") != -1):
-                            
+			if line2_split[1] == "DEL" or line2_split[1] == "DEL_INS": #and line2_split[11].find("RD") != -1):
+                           
+			    if line2_split[11].find("SR") != -1 and int(line2_split[7]) - int(line2_split[3]) < SR_DEL_THRESH:
+				continue
+			    elif line2_split[11].find("SR") == -1 and int(line2_split[7]) - int(line2_split[3]) < PE_DEL_THRESH:
+				continue
+	 
                             f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL"))
                         #$Comment out second condition and next elif if leads to low precision due to SR TD_I's and INS_I's.    
                         elif line2_split[1] == "TD" or (line2_split[1] == "TD_I" and line2_split[11][:2] == "PE"):

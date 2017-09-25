@@ -12,7 +12,8 @@ DUP_THRESH2 = float(sys.argv[6])
 PILEUP_THRESH = float(sys.argv[7])
 MIN_PILEUP_THRESH = float(sys.argv[8])
 RPT_REGIONS_FILE =  sys.argv[9]
-GOOD_REG_THRESH=.8
+GOOD_REG_THRESH=.55 # to trust pile-up depth in given region, this percentage should return data
+GOOD_REG_THRESH2=.8 #to decide if SR DEL calls are true or not
 SECOND_SWEEP_THRESH=.75
 MINPU_MULT=2
 chrHash = {}
@@ -44,18 +45,28 @@ def formHash():
 
 	print "Forming pile-up hash table..."
         fo=open(RPT_REGIONS_FILE,"r")
+	prev_start = -1
+	prev_stop = -1
 
         for k,line in enumerate(fo):
                 line_s = line.split()
                 currentTID = line_s[0]
+		start = int(line_s[1])
+		stop = int(line_s[2])+1
 
-                for x in range(int(line_s[1]), int(line_s[2])+1):
-			temp = Variant()
-			temp.tid = currentTID
-			temp.bp = x
-			if temp not in chrHash:
-	                        chrHash[temp] = 1
+		# make hash table of unreliable regions if greater than RDL (almt would be doubtful there)
+		if prev_stop != -1 and currentTID == prevTID and start - prev_stop > RDL:
+	
+	                for x in range(prev_stop, start):
+				temp = Variant()
+				temp.tid = currentTID
+				temp.bp = x
+				if temp not in chrHash:
+	                	        chrHash[temp] = 1
 
+		prev_start = start
+		prev_stop = stop
+		prevTID = currentTID
 
 	print "Done"
 
@@ -79,11 +90,24 @@ if __name__ == "__main__":
         f17 = open("../results/text/unknowns.bedpe","w")
 
 	fo = open("../results/text/bam_stats.txt","r")		
+	RDL = -1
+	SD = -1
 	for i,line in enumerate(fo):
-		if i==3:
+		if i == 0:
+			RDL=float(line[:-1])
+		elif i==2:
+			SD=float(line[:-1])
+		elif i==3:
 			break
 	COVERAGE = float(line[:-1])
 	print "Coverage is:", COVERAGE
+	SR_DEL_THRESH=100
+	PE_DEL_THRESH_S=250
+	PE_DEL_THRESH_L=100
+	SD_S = 15
+	SD_L = 50
+	# calculate min PE size based on insert length standard deviation under simple empirical linear model, and nature of small calls that fits generally well
+	PE_DEL_THRESH=PE_DEL_THRESH_S + int((SD-SD_S)*(PE_DEL_THRESH_L-PE_DEL_THRESH_S)/(SD_L-SD_S))
 
 	DisjSC = []
 
@@ -94,8 +118,8 @@ if __name__ == "__main__":
         y = Counter(DisjSC)
 	counter = -1
 	samfile = pysam.AlignmentFile(BAM, "rb" )
-	#if RPT_REGIONS_FILE != "none":
-		#formHash()
+	if RPT_REGIONS_FILE != "none":
+		formHash()
 
 	for line2 in f1:
 		counter+=1
@@ -118,7 +142,12 @@ if __name__ == "__main__":
 					stop = min(start+.5*gap,start +3*PILEUP_THRESH)
 					covLoc = 0
 					counter2 = 0
+					
 					for pileupcolumn in samfile.pileup(chr_n, start, stop):
+						temp = Variant()
+						temp.tid, temp.bp = chr_n, pileupcolumn.pos
+						
+						if temp not in chrHash:
 							#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
 							covLoc = covLoc + pileupcolumn.n
 							counter2+=1
@@ -143,7 +172,7 @@ if __name__ == "__main__":
 					
 							line2_split[1] = "BND"
 				
-						elif line2_split[1][0:3] == "DEL" and covLoc/COVERAGE < DEL_THRESH:
+						elif line2_split[1][0:3] == "DEL" and covLoc/COVERAGE < DEL_THRESH and counter2 > GOOD_REG_THRESH2*(stop-start):
 						
 							print "DEL confirmed (pileup)"
 							line2_split[1] = "DEL"
@@ -243,7 +272,12 @@ if __name__ == "__main__":
 						line2_split[1] = "BND_INS_C"	
 
 			if line2_split[1] == "DEL":
-                            
+                           
+			    if line2_split[11].find("SR") != -1 and int(line2_split[7]) - int(line2_split[3]) < SR_DEL_THRESH:
+                                continue
+                            elif line2_split[11].find("SR") == -1 and int(line2_split[7]) - int(line2_split[3]) < PE_DEL_THRESH:
+                                continue
+ 
                             f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT))
                         #$Comment out second condition and next elif if leads to low precision due to SR TD_I's and INS_I's.    
                         elif line2_split[1] == "TD":

@@ -12,7 +12,7 @@ DUP_THRESH2 = float(sys.argv[6])
 PILEUP_THRESH = float(sys.argv[7])
 MIN_PILEUP_THRESH = float(sys.argv[8])
 RPT_REGIONS_FILE =  sys.argv[9]
-GOOD_REG_THRESH=.9
+GOOD_REG_THRESH=.55
 SECOND_SWEEP_THRESH=.5
 chrHash = {}
 

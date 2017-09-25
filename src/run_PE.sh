@@ -2,9 +2,9 @@ MINCS=$1
 
 echo "Classification Start"
 cp ../results/text/VariantMap_O.txt ../results/text/VariantMap.txt # uncomment this and following 3 lines when test done
-cat ../results/text/All_Clusters.txt | awk '$2 > '$MINCS'' > ../results/text/All_Clusters_minT.txt
+cat ../results/text/All_Clusters.txt | awk '$2 >= '$MINCS'' > ../results/text/All_Clusters_minT.txt
 sort -k4,4 -k5,5n ../results/text/All_Clusters_minT.txt > ../results/text/All_Clusters_LS.txt
-sort -k8,8 -k9,9n ../results/text/All_Clusters_minT.txt > ../results/text/All_Clusters_RS.txt
+sort -k7,7 -k8,8n ../results/text/All_Clusters_minT.txt > ../results/text/All_Clusters_RS.txt
 time (python classifySVs_v28.py $2 $3 $4)
 
 #time python qualifyDeletions.py $7

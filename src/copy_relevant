@@ -1,0 +1,3 @@
+cp ../results/text/All_Discords_P_S.err.prim.txt ../results/text/All_Discords_P_S.txt
+cp ../results/text/bindist.err.txt ../results/text/bindist.txt
+cp ../results/text/bam_stats.err.txt ../results/text/bam_stats.txt
