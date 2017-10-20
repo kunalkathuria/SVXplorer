@@ -18,8 +18,6 @@ MAP_THRESH = int(sys.argv[6])
 ignoreChr = sys.argv[7]
 SR_INS_THRESH = int(sys.argv[8])
 SR_support_thresh = int(sys.argv[9])
-varHash = {}
-SRVarHash = {}
 
 class newSRVar(object):
 	def __init__(self):
@@ -119,7 +117,7 @@ def mapSVtoNum(SV_type):
 	else:
 		return -1
 
-def formHash(fp1, iobjects):
+def formHash(fp1, iobjects, varHash):
 
 	print "Forming PE variant hash table..."
 
@@ -167,10 +165,11 @@ if __name__ == "__main__":
     fp3 = open("../results/text/All_Variants_SR.txt","w")
     fp4 = open("../results/text/VariantMap_SR.txt","w")
     fp5 = open("../results/text/updatedBPs_v5.txt","w")
-
+    varHash = {}
+    SRVarHash = {}
     # ensure hash objects immutable
     immutable_objects = []
-    formHash(fp1, immutable_objects)
+    formHash(fp1, immutable_objects, varHash)
 
     #for item in varHash:
 	#print "In hash:", item
@@ -471,7 +470,7 @@ if __name__ == "__main__":
         	                        SRVarHash[temp].support.append(SRFrag)
 					#print "TD 1", SRVarHash[temp].count
 
-				elif l_orient == r_orient and swap==0 and not (SRVarHash[temp].bp2-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp2+SR_SLOP/2) and not ( (l_orient != SRVarHash[temp].l_orient and SRVarHash[temp].r_orient == r_orient) or (l_orient == SRVarHash[temp].l_orient and SRVarHash[temp].r_orient != r_orient) ):
+				elif l_orient == r_orient and swap==0 and not (SRVarHash[temp].bp2-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp2+SR_SLOP/2 or SRVarHash[temp].bp2 < temp.bp < other_bp or other_bp < temp.bp < SRVarHash[temp].bp2) and not ( (l_orient != SRVarHash[temp].l_orient and SRVarHash[temp].r_orient == r_orient) or (l_orient == SRVarHash[temp].l_orient and SRVarHash[temp].r_orient != r_orient) ):
 
 					print "TD 2"
 					SRVarHash[temp].count+=1
@@ -496,7 +495,7 @@ if __name__ == "__main__":
                                 	SRVarHash[temp].count+=1
                                 	SRVarHash[temp].support.append(SRFrag)
 
-				elif not (SRVarHash[temp].bp2-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp2+SR_SLOP/2) and not ((l_orient != SRVarHash[temp].l_orient and SRVarHash[temp].r_orient == r_orient) or (l_orient == SRVarHash[temp].l_orient and SRVarHash[temp].r_orient != r_orient)):
+				elif not (SRVarHash[temp].bp2-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp2+SR_SLOP/2 or SRVarHash[temp].bp2 < temp.bp < other_bp or other_bp < temp.bp < SRVarHash[temp].bp2) and not ((l_orient != SRVarHash[temp].l_orient and SRVarHash[temp].r_orient == r_orient) or (l_orient == SRVarHash[temp].l_orient and SRVarHash[temp].r_orient != r_orient)):
 					SRVarHash[temp].typeO = "INS_I"
                                         SRVarHash[temp].count+=1
                                         SRVarHash[temp].support.append(SRFrag)
@@ -510,7 +509,7 @@ if __name__ == "__main__":
 				if l_orient == r_orient and (SRVarHash[temp].bp3 == -1 or SRVarHash[temp].bp2-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp2+SR_SLOP/2 or SRVarHash[temp].bp3-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp3+SR_SLOP/2):
                                         SRVarHash[temp].count+=1
                                         SRVarHash[temp].support.append(SRFrag)
-					if SRVarHash[temp].bp3 == -1 and not (SRVarHash[temp].bp2-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp2+SR_SLOP/2):
+					if SRVarHash[temp].bp3 == -1 and not (SRVarHash[temp].bp2-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp2+SR_SLOP/2 or SRVarHash[temp].bp2 < temp.bp < other_bp or other_bp < temp.bp < SRVarHash[temp].bp2):
                                                 SRVarHash[temp].bp3 = other_bp
 						SRVarHash[temp].bp3tid = other_bp_tid
 						SRVarHash[temp].n_changes+=1
@@ -524,7 +523,7 @@ if __name__ == "__main__":
                                         SRVarHash[temp].count+=1
                                         SRVarHash[temp].support.append(SRFrag)
 
-					if SRVarHash[temp].bp3 == -1 and not (SRVarHash[temp].bp2-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp2+SR_SLOP/2):
+					if SRVarHash[temp].bp3 == -1 and not (SRVarHash[temp].bp2-SR_SLOP/2 <= other_bp <= SRVarHash[temp].bp2+SR_SLOP/2 or SRVarHash[temp].bp2 < temp.bp < other_bp or other_bp < temp.bp < SRVarHash[temp].bp2):
 						SRVarHash[temp].bp3 = other_bp
 						SRVarHash[temp].bp3tid = other_bp_tid
 						SRVarHash[temp].n_changes+=1

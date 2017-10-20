@@ -15,8 +15,6 @@ RPT_REGIONS_FILE =  sys.argv[9]
 GOOD_REG_THRESH=.8 # to trust pile-up depth in given region, this percentage should return data
 SECOND_SWEEP_THRESH=.75
 MINPU_MULT=1
-VER_BUFFER=100
-PE_THRESH_H=6
 chrHash = {}
 
 class Variant(object):
@@ -42,7 +40,7 @@ class Variant(object):
         # True at the same time
         return not(self == other)
 
-def formHash(RDL):
+def formHash():
 
 	print "Forming pile-up hash table..."
         fo=open(RPT_REGIONS_FILE,"r")
@@ -80,7 +78,6 @@ def file_len(f):
 if __name__ == "__main__":
 
 	f1 = open("../results/text/All_Variants.txt","r")
-	f2=open("../results/text/VariantMap.txt","r")
         f8 = open(sys.argv[1],"r")
 	f11 = open("../results/text/allPositives.txt","w")
 	f12 = open("../results/text/allPositives.bedpe","w")
@@ -120,23 +117,16 @@ if __name__ == "__main__":
         y = Counter(DisjSC)
 	counter = -1
 	samfile = pysam.AlignmentFile(BAM, "rb" )
-	if RPT_REGIONS_FILE != "none":
-		formHash(RDL)
+	#if RPT_REGIONS_FILE != "none":
+		#formHash()
 
 	nv_PEposs = 0
 	nv_PEconf = 0
 	nv_SRposs = 0
 	nv_SRconf = 0
 
-	support = 0
-	for entry in f2:
-		support = len(entry.split()) - 1
-		break
-
-	temp = Variant()
 	for line2 in f1:
 		counter+=1
-		print counter, int(line2.split()[0])
 		if counter % 100 == 0:
 			print "Writing Variant", counter
 		line2_split = line2.split()
@@ -154,88 +144,50 @@ if __name__ == "__main__":
 					start = .25*gap + int(line2_split[4])
 					stop = min(start+.5*gap,start +3*PILEUP_THRESH)
 					covLoc = 0
-					counter2,counter_v1,counter_v2,confType = 0,0,0,-1
+					counter2 = 0
 					#print "In DEL condition"
-					
-					for pileupcolumn in samfile.pileup(chr_n, start, stop):
-                                                        #temp = Variant()
-                                                        temp.tid, temp.bp = chr_n, pileupcolumn.pos
-
-                                                        if temp not in chrHash:
-                                                                #print "DEL hash", pileupcolumn.pos, pileupcolumn.n
-                                                                covLoc = covLoc + pileupcolumn.n
-                                                                counter2+=1
-                                                                if counter2 > PILEUP_THRESH:
-                                                                        break
-
-					if (counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH)):
-                                                        confType = 0
-							covLoc = (1.0*covLoc)/(1.0*counter2)
-
-					if line2_split[1][0:2] != "TD":	
-
-						ver_stop1 = int(line2_split[3])	
-						ver_start1 = ver_stop1 - VER_BUFFER 
-						ver_start2 = int(line2_split[7])
-						ver_stop2 = ver_start2 + VER_BUFFER
-						covLoc_v1, covLoc_v2 = 0, 0
-
-						for pileupcolumn in samfile.pileup(chr_n, ver_start1, ver_stop1):
-							#temp = Variant()
-							temp.tid, temp.bp = chr_n, pileupcolumn.pos
-
-							if temp not in chrHash:
-								#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
-								covLoc_v1 = covLoc_v1 + pileupcolumn.n
-								counter_v1+=1
-								if counter_v1 > PILEUP_THRESH:
-									break
-
-						for pileupcolumn in samfile.pileup(chr_n, ver_start2, ver_stop2):
-							#temp = Variant()
-							temp.tid, temp.bp = chr_n, pileupcolumn.pos
-
-							if temp not in chrHash:
-								#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
-								covLoc_v2 = covLoc_v2 + pileupcolumn.n
-								counter_v2+=1
-								if counter_v2 > PILEUP_THRESH:
-									break
-						#print 1.0*covLoc/(.001+counter2), "is local coverage", counter2, counter3, covLoc
-
-						if (counter_v1 > MIN_PILEUP_THRESH and (counter_v1 > GOOD_REG_THRESH*(ver_stop1-ver_start1) or counter_v1 > PILEUP_THRESH)):
-							confType = 1
-							covLoc_v1 = (1.0*covLoc_v1)/(1.0*counter_v1) 
-
-						elif (counter_v2 > MIN_PILEUP_THRESH and (counter_v2 > GOOD_REG_THRESH*(ver_stop2-ver_start2) or counter_v2 > PILEUP_THRESH)):
-							confType = 2
-							covLoc_v2 = (1.0*covLoc_v2)/(1.0*counter_v2)
-
-					if confType == 0: #or confType == 1 or confType == 2:
 	
-						if line2_split[1][0:2] == "TD" and confType == 0 and covLoc/COVERAGE > DUP_THRESH:
+					for pileupcolumn in samfile.pileup(chr_n, start, stop):
+						temp = Variant()
+						temp.tid, temp.bp = chr_n, pileupcolumn.pos
+						
+						if temp not in chrHash:
+							#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
+							covLoc = covLoc + pileupcolumn.n
+							counter2+=1
+							if counter2 > PILEUP_THRESH:
+								break
+
+					#print 1.0*covLoc/(.001+counter2), "is local coverage", counter2, counter3, covLoc
+
+					if counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH):
+	
+						covLoc = (1.0*covLoc)/(1.0*counter2)
+						#print covLoc, "is local coverage", counter2
+	
+						if line2_split[1][0:2] == "TD" and covLoc/COVERAGE > DUP_THRESH:
 						
 							print "TD confirmed (pileup)"	
 							line2_split[1] = "TD"
 							#if covLoc/COVERAGE > DUP_THRESH2:
 								#GT="GT:1/1"
 							if line2_split[11].find("PE") == -1 and line2_split[11].find("SR") == 1:
-								nv_SRconf+=1
-							elif line2_split[11].find("PE") == 1:
-								nv_PEconf+=1
+                                                                nv_SRconf+=1
+                                                        elif line2_split[11].find("PE") == 1:
+                                                                nv_PEconf+=1
 
-						elif line2_split[1][0:2] == "TD" and confType == 0:
+						elif line2_split[1][0:2] == "TD":
 							
 							if line2_split[11].find("PE") == -1 and line2_split[11].find("SR") == 1:
-								nv_SRposs+=1
-							elif line2_split[11].find("PE") == 1:
-								nv_PEposs+=1
+                                                                nv_SRposs+=1
+                                                        elif line2_split[11].find("PE") == 1:
+                                                                nv_PEposs+=1
 
 							if covLoc/COVERAGE < 1.0:
 								line2_split[1] = "BND"
-
+	
 				
-						elif line2_split[1][0:3] == "DEL" and ((confType == 0 and covLoc/COVERAGE < DEL_THRESH) or (confType == 1 and covLoc_v1/COVERAGE < DEL_THRESH) or (confType == 2 and covLoc_v2/COVERAGE < DEL_THRESH)):
+						elif line2_split[1][0:3] == "DEL" and covLoc/COVERAGE < DEL_THRESH:
 						
 							print "DEL confirmed (pileup)"
 							line2_split[1] = "DEL"
@@ -244,21 +196,20 @@ if __name__ == "__main__":
 							elif covLoc/COVERAGE > 3*DEL_THRESH2:	
 								GT="GT:0/1"
 						
-							#if line2_split[11].find("PE") == -1 and line2_split[11].find("SR") != -1:
-								#nv_SRconf+=1
-								#nv_SRposs+=1
-							#elif line2_split[11].find("PE") != -1:
-								#nv_PEconf+=1
-								#nv_PEposs+=1
+							print line2	
+							if line2_split[11].find("PE") == -1 and line2_split[11].find("SR") != -1:
+								nv_SRconf+=1
+								nv_SRposs+=1
+							elif line2_split[11].find("PE") != -1:
+								nv_PEconf+=1
+								nv_PEposs+=1
 
 						elif line2_split[1][0:3] == "DEL":
 
-							if line2_split[11].find("PE") != -1 and line2_split[11].find("SR") == -1:
-								if support < PE_THRESH_H:
-									line2_split[1] = "DEL_POSS"
-								#nv_SRposs+=1
-							#elif line2_split[11].find("PE") != -1:
-								#nv_PEposs+=1
+							if line2_split[11].find("PE") == -1 and line2_split[11].find("SR") != -1:
+                                                                nv_SRposs+=1
+                                                        elif line2_split[11].find("PE") != -1:
+                                                                nv_PEposs+=1
 
 							if covLoc/COVERAGE > DUP_THRESH:
 								# since bp3 = -1, this will be written as a BND event
@@ -351,9 +302,9 @@ if __name__ == "__main__":
 
 			if line2_split[1] == "DEL":
                            
-			    if line2_split[11].find("PE") == -1 and line2_split[11].find("SR") != -1 and int(line2_split[7]) - int(line2_split[3]) < SR_DEL_THRESH:
+			    if line2_split[11].find("SR") != -1 and int(line2_split[7]) - int(line2_split[3]) < SR_DEL_THRESH:
                                 continue
-                            elif line2_split[11].find("SR") == -1 and line2_split[11].find("PE") != -1 and int(line2_split[7]) - int(line2_split[3]) < PE_DEL_THRESH:
+                            elif line2_split[11].find("SR") == -1 and int(line2_split[7]) - int(line2_split[3]) < PE_DEL_THRESH:
                                 continue
  
                             f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT))
@@ -389,15 +340,15 @@ if __name__ == "__main__":
                             [bp3_s, bp3_e] = int(line2_split[9]),int(line2_split[10])
 			    
 			    if swap:
-				temp2 = bp1_e
+				temp = bp1_e
 				bp1_e = bp3_e
-				bp3_e = temp2
+				bp3_e = temp
 				bp1_s = bp3_s
 				
 			    if not (line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I") and bp2_s > bp3_e and not swap:
-				temp2 = bp2_s
+				temp = bp2_s
 				bp2_s = bp3_e
-				bp3_e = temp2 
+				bp3_e = temp 
 
 			    # it was INS_C
 			    elif bp2_s > bp3_e:
@@ -414,10 +365,9 @@ if __name__ == "__main__":
 
                             f13b.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],GT))
 	
-	#print "PE good call ratio:", 1.0*nv_PEconf/nv_PEposs
-        #print "SR good call ratio:", 1.0*nv_SRconf/nv_SRposs	
-	
-	chrHash.clear()
+	print "PE good call ratio:", 1.0*nv_PEconf/nv_PEposs
+        print "SR good call ratio:", 1.0*nv_SRconf/nv_SRposs	
+
 	f1.close()
 	f8.close()
         f11.close()

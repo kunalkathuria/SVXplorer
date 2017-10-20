@@ -487,6 +487,8 @@ if __name__== "__main__":
         cl_read.r_read_bound = temp.r_bound
 	temp.readList.append(cl_read)
 
+	print len(DList), "DList length", CLUSTER_D
+
         for x in range(ld):
 	    
 	    ClMatch = CompareCluster(0, DList[ld-x-1], temp)
