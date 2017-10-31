@@ -4,8 +4,6 @@
 import sys
 import pysam
 from collections import Counter
-from bitarray import bitarray
-
 BAM = sys.argv[2]
 DEL_THRESH = float(sys.argv[3])
 DUP_THRESH = float(sys.argv[4])
@@ -45,48 +43,32 @@ class Variant(object):
 
 def formHash(RDL, chrHash):
 
-        print "Forming pile-up hash table..."
+	print "Forming pile-up hash table..."
         fo=open(RPT_REGIONS_FILE,"r")
-        prev_start = -1
-        prev_stop = -1
+	prev_start = -1
+	prev_stop = -1
 
         for k,line in enumerate(fo):
-
                 line_s = line.split()
                 currentTID = line_s[0]
-                start = int(line_s[1])
-                stop = int(line_s[2])+1
-                #print currentTID, start
+		start = int(line_s[1])
+		stop = int(line_s[2])+1
 
-                if currentTID not in chrHash:
-                                prev_stop = -1
-                                chrHash[currentTID] = bitarray()
-                                #bed file is 1-based
-                                for y in range(1,start):
-                                        chrHash[currentTID].append(0)
+		# make hash table of unreliable regions if greater than RDL (almt would be doubtful there)
+		if prev_stop != -1 and currentTID == prevTID and start - prev_stop > RDL:
+	
+	                for x in range(prev_stop, start):
+				temp = Variant()
+				temp.tid = currentTID
+				temp.bp = x
+				if temp not in chrHash:
+	                	        chrHash[temp] = 1
 
-                for x in range(start, stop):
+		prev_start = start
+		prev_stop = stop
+		prevTID = currentTID
 
-                        chrHash[currentTID].append(1)
-
-                # make hash table of unreliable regions if greater than RDL (almt would be doubtful there)
-                if prev_stop != -1 and currentTID == prevTID:
-
-                        addBit = 1
-                        if start - prev_stop > RDL:
-                                addBit = 0
-                        for x in range(prev_stop, start):
-                                if currentTID not in chrHash:
-                                        chrHash[currentTID] = bitarray()
-
-                                chrHash[currentTID].append(addBit)
-
-
-                prev_start = start
-                prev_stop = stop
-                prevTID = currentTID
-
-        print "Done"
+	print "Done"
 
 def file_len(f):
     
@@ -176,7 +158,10 @@ if __name__ == "__main__":
 					#print "In DEL condition"
 					
 					for pileupcolumn in samfile.pileup(chr_n, start, stop):
-						if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
+                                                        #temp = Variant()
+                                                        temp.tid, temp.bp = chr_n, pileupcolumn.pos
+
+                                                        if temp not in chrHash:
                                                                 #print "DEL hash", pileupcolumn.pos, pileupcolumn.n
                                                                 covLoc = covLoc + pileupcolumn.n
                                                                 counter2+=1
@@ -196,7 +181,10 @@ if __name__ == "__main__":
 						covLoc_v1, covLoc_v2 = 0, 0
 
 						for pileupcolumn in samfile.pileup(chr_n, ver_start1, ver_stop1):
-							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
+							#temp = Variant()
+							temp.tid, temp.bp = chr_n, pileupcolumn.pos
+
+							if temp not in chrHash:
 								#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
 								covLoc_v1 = covLoc_v1 + pileupcolumn.n
 								counter_v1+=1
@@ -204,7 +192,10 @@ if __name__ == "__main__":
 									break
 
 						for pileupcolumn in samfile.pileup(chr_n, ver_start2, ver_stop2):
-							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
+							#temp = Variant()
+							temp.tid, temp.bp = chr_n, pileupcolumn.pos
+
+							if temp not in chrHash:
 								#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
 								covLoc_v2 = covLoc_v2 + pileupcolumn.n
 								counter_v2+=1
@@ -276,7 +267,7 @@ if __name__ == "__main__":
 								line2_split[1] = "INS"
 					
 				# can add this and regular TDs also
-				elif False and len(line2_split[1]) > 2 and (line2_split[1] == "INS" or line2_split[1] == "INS_I") and int(line2_split[7]) + MINPU_MULT*MIN_PILEUP_THRESH < int(line2_split[9]) and line2_split[8] != "-1":
+				elif len(line2_split[1]) > 2 and (line2_split[1] == "INS" or line2_split[1] == "INS_I") and int(line2_split[7]) + MINPU_MULT*MIN_PILEUP_THRESH < int(line2_split[9]) and line2_split[8] != "-1":
 
 					chr_n = line2_split[5]
 					gap = int(line2_split[9])-int(line2_split[7])
@@ -286,7 +277,6 @@ if __name__ == "__main__":
                                         counter2 = 0
 
                                         for pileupcolumn in samfile.pileup(chr_n, start, stop):
-						if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
                                                         covLoc = covLoc + pileupcolumn.n
                                                         counter2+=1
                                                         if counter2 > PILEUP_THRESH:
@@ -355,7 +345,7 @@ if __name__ == "__main__":
 									line2_split[1] = "TD_B"
 									#write TD
 
-				elif False and len(line2_split[1]) > 4 and line2_split[1][0:4] == "INS_C":
+				elif len(line2_split[1]) > 4 and line2_split[1][0:4] == "INS_C":
 
 					chr_n = line2_split[5]
 					start1 = int(line2_split[4])

@@ -5,7 +5,6 @@ import sys
 import pysam
 from collections import Counter
 from bitarray import bitarray
-
 BAM = sys.argv[2]
 DEL_THRESH = float(sys.argv[3])
 DUP_THRESH = float(sys.argv[4])
@@ -32,61 +31,50 @@ class Variant(object):
 
         return "%s %s" %(self.bp, self.tid)
 
-    def __hash__(self):
-        return hash((self.bp, self.tid))
-
-    def __eq__(self, other):
-        return (self.bp, self.tid) == (other.bp, other.tid)
-
-    def __ne__(self, other):
-        # Not strictly necessary, but to avoid having both x==y and x!=y
-        # True at the same time
-        return not(self == other)
-
 def formHash(RDL, chrHash):
 
-        print "Forming pile-up hash table..."
+	print "Forming pile-up hash table..."
         fo=open(RPT_REGIONS_FILE,"r")
-        prev_start = -1
-        prev_stop = -1
+	prev_start = -1
+	prev_stop = -1
 
         for k,line in enumerate(fo):
-
+		
                 line_s = line.split()
                 currentTID = line_s[0]
-                start = int(line_s[1])
-                stop = int(line_s[2])+1
-                #print currentTID, start
+		start = int(line_s[1])
+		stop = int(line_s[2])+1
+		#print currentTID, start
 
-                if currentTID not in chrHash:
-                                prev_stop = -1
+		if currentTID not in chrHash:
+				prev_stop = -1
                                 chrHash[currentTID] = bitarray()
                                 #bed file is 1-based
                                 for y in range(1,start):
                                         chrHash[currentTID].append(0)
 
-                for x in range(start, stop):
+		for x in range(start, stop):
 
-                        chrHash[currentTID].append(1)
+			chrHash[currentTID].append(1)
 
-                # make hash table of unreliable regions if greater than RDL (almt would be doubtful there)
-                if prev_stop != -1 and currentTID == prevTID:
+		# make hash table of unreliable regions if greater than RDL (almt would be doubtful there)
+		if prev_stop != -1 and currentTID == prevTID:
 
-                        addBit = 1
-                        if start - prev_stop > RDL:
-                                addBit = 0
-                        for x in range(prev_stop, start):
-                                if currentTID not in chrHash:
-                                        chrHash[currentTID] = bitarray()
+			addBit = 1
+			if start - prev_stop > RDL:
+				addBit = 0
+	                for x in range(prev_stop, start):
+				if currentTID not in chrHash:
+					chrHash[currentTID] = bitarray()
+				
+				chrHash[currentTID].append(addBit)
 
-                                chrHash[currentTID].append(addBit)
 
+		prev_start = start
+		prev_stop = stop
+		prevTID = currentTID
 
-                prev_start = start
-                prev_stop = stop
-                prevTID = currentTID
-
-        print "Done"
+	print "Done"
 
 def file_len(f):
     
@@ -121,13 +109,19 @@ if __name__ == "__main__":
 			break
 	COVERAGE = float(line[:-1])
 	print "Coverage is:", COVERAGE
-	SR_DEL_THRESH=100
+	UNIV_VAR_THRESH=100
+	INS_VAR_THRESH=50
+	SR_DEL_THRESH=250
 	PE_DEL_THRESH_S=250
-	PE_DEL_THRESH_L=100
+	PE_DEL_THRESH_L=200
 	SD_S = 15
-	SD_L = 50
-	# calculate min PE size based on insert length standard deviation under simple empirical linear model, and nature of small calls that fits generally well
+	SD_L = 20
+	# calculate min PE size based on insert length standard deviation under simple empirical linear model, and nature of small calls that fits generally well. Aligner tends to mark concordants as discordants when SD is small unless distr v good, seemingly sharp effects around sig_IL of 20 and lower for Poisson and other related distributions.
 	PE_DEL_THRESH=PE_DEL_THRESH_S + int((SD-SD_S)*(PE_DEL_THRESH_L-PE_DEL_THRESH_S)/(SD_L-SD_S))
+	if PE_DEL_THRESH > PE_DEL_THRESH_S:
+		PE_DEL_THRESH = PE_DEL_THRESH_S
+	elif PE_DEL_THRESH < PE_DEL_THRESH_L:
+		PE_DEL_THRESH = UNIV_VAR_THRESH
 
 	DisjSC = []
 	chrHash = {}
@@ -152,7 +146,6 @@ if __name__ == "__main__":
 		support = len(entry.split()) - 1
 		break
 
-	temp = Variant()
 	for line2 in f1:
 		counter+=1
 		if counter % 100 == 0:
@@ -161,7 +154,20 @@ if __name__ == "__main__":
 		num = int(line2_split[0])
 
 		if y[num] > 0:
-                  
+               
+			if line2_split[1][0:3] == "TD" or (len(line2_split) > 2 and (line2_split[1][0:3] == "DEL" or line2_split[1][0:3] == "INV")):
+				if int(line2_split[6])-int(line2_split[3]) < UNIV_VAR_THRESH:
+					continue
+			elif len(line2_split[1]) > 2 and line2_split[1][0:3] == "INS" and not (line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I"):
+
+				if (0 < int(line2_split[10])-int(line2_split[6]) < INS_VAR_THRESH) or (line2_split[2] == line2_split[5] and ((0 < int(line2_split[7])-int(line2_split[3]) < UNIV_VAR_THRESH) or (0 < int(line2_split[4])-int(line2_split[9]) < UNIV_VAR_THRESH))):
+                                        continue
+
+  			elif line2_split == "INS_C" or line2_split == "INS_C_I":
+	
+				if (0 < int(line2_split[10])-int(line2_split[6]) < INS_VAR_THRESH):
+                                        continue
+ 
 			if line2_split[11].find("RD") == -1: 
 				#f11.write("%s\n" %line2)
 				swap = 0
@@ -174,9 +180,10 @@ if __name__ == "__main__":
 					covLoc = 0
 					counter2,counter_v1,counter_v2,confM, confL, confR = 0,0,0,0,0,0
 					#print "In DEL condition"
-					
-					for pileupcolumn in samfile.pileup(chr_n, start, stop):
-						if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
+					if stop > start:					
+						for pileupcolumn in samfile.pileup(chr_n, start, stop):
+
+                                                        if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
                                                                 #print "DEL hash", pileupcolumn.pos, pileupcolumn.n
                                                                 covLoc = covLoc + pileupcolumn.n
                                                                 counter2+=1
@@ -195,15 +202,18 @@ if __name__ == "__main__":
 						ver_stop2 = ver_start2 + VER_BUFFER
 						covLoc_v1, covLoc_v2 = 0, 0
 
-						for pileupcolumn in samfile.pileup(chr_n, ver_start1, ver_stop1):
+						if stop > start:
+						 for pileupcolumn in samfile.pileup(chr_n, ver_start1, ver_stop1):
+
 							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
 								#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
 								covLoc_v1 = covLoc_v1 + pileupcolumn.n
 								counter_v1+=1
 								if counter_v1 > PILEUP_THRESH:
 									break
+						if stop > start:
+						 for pileupcolumn in samfile.pileup(chr_n, ver_start2, ver_stop2):
 
-						for pileupcolumn in samfile.pileup(chr_n, ver_start2, ver_stop2):
 							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
 								#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
 								covLoc_v2 = covLoc_v2 + pileupcolumn.n
@@ -254,7 +264,12 @@ if __name__ == "__main__":
 								GT="GT:1/1"
 							elif covLoc/COVERAGE > 3*DEL_THRESH2:	
 								GT="GT:0/1"
-						
+					
+							#if confM and covLoc/COVERAGE > 1.0:
+                                                                # since bp3 = -1, this will be written as a BND event
+                                                                #line2_split[1] = "INS"
+								#print "Oops, not confirmed. Barely missed..."
+	
 							#if line2_split[11].find("PE") == -1 and line2_split[11].find("SR") != -1:
 								#nv_SRconf+=1
 								#nv_SRposs+=1
@@ -271,40 +286,38 @@ if __name__ == "__main__":
 							#elif line2_split[11].find("PE") != -1:
 								#nv_PEposs+=1
 
-							if confM and covLoc/COVERAGE > DUP_THRESH:
+							if confM and covLoc/COVERAGE > 1.0:
 								# since bp3 = -1, this will be written as a BND event
 								line2_split[1] = "INS"
 					
 				# can add this and regular TDs also
-				elif False and len(line2_split[1]) > 2 and (line2_split[1] == "INS" or line2_split[1] == "INS_I") and int(line2_split[7]) + MINPU_MULT*MIN_PILEUP_THRESH < int(line2_split[9]) and line2_split[8] != "-1":
+				elif False and len(line2_split[1]) > 2 and line2_split[11].find("PE") != -1 and (line2_split[1] == "INS" or line2_split[1] == "INS_I") and int(line2_split[7]) + MINPU_MULT*MIN_PILEUP_THRESH < int(line2_split[9]) and line2_split[8] != "-1":
 
+					#bp2-3
 					chr_n = line2_split[5]
 					gap = int(line2_split[9])-int(line2_split[7])
                                         start = .25*gap + int(line2_split[7])
                                         stop = min(start+.5*gap,start +3*PILEUP_THRESH)
                                         covLoc = 0
                                         counter2 = 0
-
-                                        for pileupcolumn in samfile.pileup(chr_n, start, stop):
+					if stop > start:
+                                         for pileupcolumn in samfile.pileup(chr_n, start, stop):
 						if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
                                                         covLoc = covLoc + pileupcolumn.n
                                                         counter2+=1
                                                         if counter2 > PILEUP_THRESH:
                                                                 break
+					 if counter2 > 0:
+					 	covLoc = 1.0*covLoc/counter2
 					
-					if counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH):
+					if counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH) and covLoc/COVERAGE < 1.15:
 
-						covLoc = (1.0*covLoc)/(1.0*counter2)
-
-						if covLoc/COVERAGE < 1.1: #DEL_THRESH:
-							line2_split[1] = "INS_C_P"
-						#elif covLoc/COVERAGE < 1.1:
-							#line2_split[1] = "INS_C"
+						line2_split[1] = "INS_C_P"
 
 					#if on same chromosome
-					elif line2_split[2] == line2_split[5] and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])): #and covLoc/COVERAGE > DUP_THRESH:
-
-						#if inserted downstream
+					elif line2_split[2] == line2_split[5] and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
+						#$put all this in a function
+						#bp 1-2 and 1-3 or 3-1 and 2-1 (dep on upstream vs downstream INS)
 						if int(line2_split[6])-int(line2_split[4]) > 0:
 							gap = int(line2_split[6])-int(line2_split[4])
 							start = .25*gap + int(line2_split[4])
@@ -319,21 +332,23 @@ if __name__ == "__main__":
 						stop = min(start+.5*gap,start +3*PILEUP_THRESH)
 						covLoc = 0
 						counter2 = 0
+						stop2 = min(start2+.5*gap2,start2 +3*PILEUP_THRESH)
+                                                covLoc_l = 0
+                                                counter_l = 0
 						#print start, stop, gap
 						#print line2
-	
-						for pileupcolumn in samfile.pileup(chr_n, start, stop):
+						if stop > start and stop2 > start2:
+						 for pileupcolumn in samfile.pileup(chr_n, start, stop):
+							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
 								covLoc = covLoc + pileupcolumn.n
 								counter2+=1
 								if counter2 > PILEUP_THRESH:
 									break
 
 
-                                                stop2 = min(start2+.5*gap2,start2 +3*PILEUP_THRESH)
-                                                covLoc_l = 0
-                                                counter_l = 0
-
-                                                for pileupcolumn in samfile.pileup(chr_n, start2, stop2):
+						if stop > start and stop2 > start2:
+                                                 for pileupcolumn in samfile.pileup(chr_n, start2, stop2):
+							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
                                                                 covLoc_l = covLoc_l + pileupcolumn.n
                                                                 counter_l+=1
                                                                 if counter_l > PILEUP_THRESH:
@@ -342,78 +357,162 @@ if __name__ == "__main__":
 						if counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH):
 
 							covLoc = (1.0*covLoc)/(1.0*counter2)
-
 							if covLoc/COVERAGE < DEL_THRESH:
-								line2_split[1] = "DEL_B"
+								line2_split[1] = "DEL"
 								#write deletion
+								f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], int(start -.25*gap) - (int(line2_split[4]) - int(line2_split[3])), int(start-.25*gap), line2_split[2], int(start+.75*gap), int(start+.75*gap) + int(line2_split[4]) - int(line2_split[3]),"DEL",GT))
+							
+								if counter_l > MIN_PILEUP_THRESH and (counter_l > GOOD_REG_THRESH*(stop-start) or counter_l > PILEUP_THRESH):
 
-							if counter_l > MIN_PILEUP_THRESH and (counter_l > GOOD_REG_THRESH*(stop-start) or counter_l > PILEUP_THRESH):
+									covLoc_l = (1.0*covLoc_l)/(1.0*counter_l)
 
+									if covLoc_l/COVERAGE >= 1.0:
+										line2_split[1] = "TD"
+										#write TD
+										f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], int(start2 -.25*gap2) - (int(line2_split[4]) - int(line2_split[3])), int(start2-.25*gap2), line2_split[2], int(start2+.75*gap2), int(start2+.75*gap2) + int(line2_split[4]) - int(line2_split[3]),"TD"))
+								continue
+
+						elif counter_l > MIN_PILEUP_THRESH and (counter_l > GOOD_REG_THRESH*(stop-start) or counter_l > PILEUP_THRESH):
 								covLoc_l = (1.0*covLoc_l)/(1.0*counter_l)
 
-								if covLoc_l/COVERAGE > DUP_THRESH:
-									line2_split[1] = "TD_B"
+								if covLoc_l/COVERAGE >= DUP_THRESH:
+									line2_split[1] = "TD"
 									#write TD
+									f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], int(start2 -.25*gap2) - (int(line2_split[4]) - int(line2_split[3])), int(start2-.25*gap2), line2_split[2], int(start2+.75*gap2), int(start2+.75*gap2) + int(line2_split[4]) - int(line2_split[3]),"TD"))
+									
+									continue	
 
-				elif False and len(line2_split[1]) > 4 and line2_split[1][0:4] == "INS_C":
+
+				elif False and len(line2_split[1]) > 4 and line2_split[11].find("PE") != -1 and line2_split[1][0:4] == "INS_C" and line_split[8] != "-1":
+
+				      	del_23 = 0
+                                      	del_21 = 0
+                                      	dup_23 = 0
+                                      	dup_21 = 0
 
 					chr_n = line2_split[5]
-					start1 = int(line2_split[4])
-					stop1 = int(line2_split[6])
-					start2 = int(line2_split[7])
-					stop2 = int(line2_split[9])
-					if start1 > stop2:
+                                        gap = int(line2_split[9])-int(line2_split[7])
+                                        start = .25*gap + int(line2_split[7])
+                                        stop = min(start+.5*gap,start +3*PILEUP_THRESH)
+                                        covLoc = 0
+                                        counter2 = 0
+                                        if stop > start:
+						start, stop = stop, start
+                                        for pileupcolumn in samfile.pileup(chr_n, start, stop):
+                                                if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
+                                                        covLoc = covLoc + pileupcolumn.n
+                                                        counter2+=1
+                                                        if counter2 > PILEUP_THRESH:
+                                                                break
+                                        if counter2 > 0:
+                                               covLoc = 1.0*covLoc/counter2
 
-						start1 = int(line2_split[10])
-						stop2 = int(line2_split[3])
+					#bp 1-2
+					gap = int(line2_split[6])-int(line2_split[4])
+					start = .25*gap + int(line2_split[4])
+					stop = min(start+.5*gap,start +3*PILEUP_THRESH)
+					covLoc3 = 0
+					counter3 = 0
 
-					if start1 < start2 < stop2:
-
-						covLoc = 0
-                                                counter2 = 0
-						x = start1
-                                        	for pileupcolumn in samfile.pileup(chr_n, start1, stop1):
-							covLoc = covLoc + pileupcolumn.n
-							counter2+=1
-							if counter2 > PILEUP_THRESH:
-								break
-                                                	x+=1
-							if x-start > 5*PILEUP_THRESH:
-                                                        	break
-						covLoc = 1.0*(covLoc/counter2)
-
-						covLoc2 = 0
-						counter3 = 0
-						x = start2
-                                                for pileupcolumn in samfile.pileup(chr_n, start2, stop2):
-							covLoc2 = covLoc2 + pileupcolumn.n
+					if stop > start:
+						start, stop = stop, start
+					if line2_split[2] == line2_split[5]:
+					 for pileupcolumn in samfile.pileup(chr_n, start, stop):
+						if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
+							covLoc3 = covLoc3 + pileupcolumn.n
 							counter3+=1
 							if counter3 > PILEUP_THRESH:
 								break
-                                                        x+=1
-							if x-start > 5*PILEUP_THRESH:
-                                                        	break
-						covLoc2 = 1.0*(covLoc2/counter3)
+					if counter3 > 0:
+                                                covLoc3 = 1.0*covLoc3/counter3
 
-						# don't use pile up to sort v small variants
-						if counter2 > MIN_PILEUP_THRESH and (counter2 > PILEUP_THRESH or counter2 > GOOD_REG_THRESH*(stop-start)):
+					if counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH):
 
-						   if counter3 > MIN_PILEUP_THRESH and (counter3 > PILEUP_THRESH or counter3 > GOOD_REG_THRESH*(stop-start)):
+						if covLoc/COVERAGE > DUP_THRESH:
+							dup_23 = 1
+						elif covLoc/COVERAGE < DEL_THRESH:
+							del_23 =1
 
-							if covLoc/COVERAGE < DUP_THRESH and covLoc2/COVERAGE > 1.2*DUP_THRESH:
-								line2_split[1] = "INS"
-								#$ call another diploid deletion here
+					if counter3 > MIN_PILEUP_THRESH and (counter3 > GOOD_REG_THRESH*(stop-start) or counter3 > PILEUP_THRESH):
 
-							elif covLoc2/COVERAGE < DEL_THRESH or covLoc/COVERAGE < DEL_THRESH:
-								line2_split[1] = "BND_INS_C"
+						if covLoc3/COVERAGE > DUP_THRESH:
+                                                        dup_21 = 1
+                                                elif covLoc3/COVERAGE < DEL_THRESH:
+                                                        del_21 =1
 
-							elif (line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I") and covLoc/COVERAGE > DUP_THRESH and covLoc2/COVERAGE < DUP_THRESH:
-								swap = 1
-								if covLoc/COVERAGE > 1.2*DUP_THRESH:
-									line2_split[1] = "INS"
-								#$ call another diploid deletion here
-					else:
-						line2_split[1] = "BND_INS_C"	
+
+					confIC = 0
+					if (line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I"): 
+
+						if dup_23:
+							line2_split[1]+="_P"
+							confIC = 1
+
+						elif dup_21:
+							line2_split[1]+="_P"
+							confIC = 1	
+							swap = 1
+				
+					#if both bp intervals contain deletion read depth	
+					if not confIC and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
+						#calc1-3 pu
+#						gap = int(line2_split[3])-int(line2_split[10])
+#                                                start = .25*gap + int(line2_split[10])
+#						if stop > start:
+#	                                                start, stop = stop, start
+#        	                                 for pileupcolumn in samfile.pileup(chr_n, start, stop):
+#                	                                if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
+#                        	                                covLoc = covLoc + pileupcolumn.n
+#                                	                        counter2+=1
+#                                        	                if counter2 > PILEUP_THRESH:
+#                                                	                break
+#                                        	 if counter2 > 0:
+#                                                	covLoc = 1.0*covLoc/counter2
+#
+#						dup_13 = 0
+#						if counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH) and covLoc/COVERAGE > DUP_THRESH:
+#							dup_13 =1						
+#						
+#						if dup_13:
+#							#write TD
+#							f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT))
+
+						if line2_split[2] == line2_split[5] and del_23 and del_21:
+
+							if int(line2_split[3]) < int(line2_split[6]):
+						
+								if int(line2_split[9]) - int(line2_split[6]) > PE_DEL_THRESH:
+									f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[6], line2_split[7], line2_split[2], line2_split[8], line2_split[9],"DEL",GT))
+
+								if int(line2_split[7]) - int(line2_split[3]) > PE_DEL_THRESH:
+									f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[2], line2_split[6], line2_split[7],"DEL",GT))
+
+							else:
+
+								if int(line2_split[9]) - int(line2_split[6]) > PE_DEL_THRESH:
+								f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[8], line2_split[9], line2_split[2], line2_split[6], line2_split[7],"DEL",GT))
+                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[6], line2_split[7], line2_split[5], line2_split[3], line2_split[4],"DEL",GT))
+
+                                                  	continue
+
+						elif del_23:
+							#write 1 DEL
+							if int(line2_split[6]) < int(line2_split[9]):
+
+                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[5], line2_split[6], line2_split[7], line2_split[5], line2_split[8], line2_split[9],"DEL",GT))
+
+                                                        else:
+                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[5], line2_split[8], line2_split[9], line2_split[5], line2_split[6], line2_split[7],"DEL",GT))
+							continue
+						elif line2_split[2] == line2_split[5] and del_21:
+							#write 1 DEL
+							if int(line2_split[3]) < int(line2_split[6]):
+
+                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[2], line2_split[6], line2_split[7],"DEL",GT))
+
+                                                        else:
+                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[6], line2_split[7], line2_split[5], line2_split[3], line2_split[4],"DEL",GT))
+							continue
 
 			if line2_split[1] == "DEL":
                            
@@ -447,7 +546,7 @@ if __name__ == "__main__":
 
                             f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],GT))
 
-                        elif len(line2_split[1]) > 2 and line2_split[1][0:3] == "INS":
+                        elif len(line2_split[1]) > 2 and line2_split[1][0:3] == "INS" and not (line2_split[1]== "INS_C" or line2_split[1] == "INS_C_I"):
 
 			    # two lines for insertion as in bedpe format; bp 1 and bp3 were flanks of bp2 by convention in INS_C classification unless confirmed further
 			    [bp1_s, bp1_e]= int(line2_split[3]), int(line2_split[4])
@@ -455,21 +554,14 @@ if __name__ == "__main__":
                             [bp3_s, bp3_e] = int(line2_split[9]),int(line2_split[10])
 			    
 			    if swap:
-				temp2 = bp1_e
+				temp2 = bp1_s
 				bp1_e = bp3_e
-				bp3_e = temp2
 				bp1_s = bp3_s
-				
-			    if not (line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I") and bp2_s > bp3_e and not swap:
-				temp2 = bp2_s
-				bp2_s = bp3_e
-				bp3_e = temp2 
+				bp3_s = temp2
 
-			    # it was INS_C
-			    elif bp2_s > bp3_e:
-
-				bp2_s = bp3_s
-				bp3_e = bp2_e
+				if bp3_s < bp2_s:
+					bp2_s = bp3_s
+					bp3_e = bp2_e
 						
                             f16.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line2_split[5], bp2_s, bp3_e, line2_split[2], bp1_s, bp1_e, line2_split[1],GT))
 

@@ -76,9 +76,6 @@ def swap(a, b):
 	
 def calculateMargin(item):
 
-		MIN_PE_SIZE = 2
-		SMALL_CL_MARGIN = 50
-		
 		l_orient = int(item.C_type[0])
 		r_orient = int(item.C_type[1])
 		
@@ -87,10 +84,6 @@ def calculateMargin(item):
 
 		cl_margin = min(cl_margin_l, cl_margin_r)
 		cl_margin = int(math.ceil(cl_margin))
-
-		#SR support for low support PE clusters may be significant primarily if lying close
-		if item.count <= MIN_PE_SIZE:
-			cl_margin = min(SMALL_CL_MARGIN,cl_margin)
 
 		if cl_margin <= BP_MARGIN:
 			# use small margin
@@ -140,8 +133,6 @@ def calculateMargin(item):
 
 				item.l_end = min(item.rmin-1, item.l_end)
 
-			
-		
 # Class definitions may be local for small classes even though used in different modules
 # See ReadDiscordant for variable details
 class Cluster(object):
@@ -307,13 +298,6 @@ class Read(object):
 	def __str__(self):
 		return "%s %s" %(self.l_read_bound, self.r_read_bound)
 
-def doSubsample(fp):
-	subsample = 0
-	#subsample routine
-	
-
-	return subsample
-
 if __name__== "__main__":
     
     f1=open("../results/text/All_Discords_P_S.txt","r")
@@ -338,27 +322,9 @@ if __name__== "__main__":
     Weights = []
     nocalcW = 1
     wtCalcT = 30000
-    WP_LOW = 0
-    WP_HIGH = .05
-    SD_IL_HIGH = 70
-    SD_IL_LOW = 15
-    #if sigma_IL is high, chances of alignments starying into neighboring cluster/clique is higher
-    WEIGHT_THRESHP = WP_LOW + (SIG_D-SD_IL_LOW)*1.0*(WP_HIGH-WP_LOW)/(SD_IL_HIGH-SD_IL_LOW) #.05
-    if WEIGHT_THRESHP > WP_HIGH:
-	WEIGHT_THRESHP = WP_HIGH
-    elif WEIGHT_THRESHP < WP_LOW:
-	WEIGHT_THRESHP = WP_LOW
-
+    WEIGHT_THRESHP = .05
     edgeStore = []
     EW_THRESH = -1
-
-    BLOCK_GAP_THRESH = 25
-    BLOCK_THRESH = 3*MIN_CLUSTER_SIZE
-    block_lbound =-1000
-    block_rbound = -1000
-    N_READS_BLOCK = 0
-    BLOCK_HASH = {}
-    subsample = doSubsample(f1)
 	
     for line_num,line in enumerate(f1):
 
@@ -416,32 +382,6 @@ if __name__== "__main__":
         #start_for = time.clock()
 	#print line_num
 
-	#subsample if alignments v close, for speed	
-	if subsample:
-		process = 0
-		found = 0
-		for z in range(temp.l_bound - BLOCK_GAP_THRESH, temp.l_bound + BLOCK_GAP_THRESH):
-			for q in range(temp.r_bound - BLOCK_GAP_THRESH, temp.r_bound + BLOCK_GAP_THRESH):
-				if (z,q) in BLOCK_HASH and BLOCK_HASH[(z,q)] > BLOCK_THRESH:
-					found = 1
-					BLOCK_HASH[(z,q)]+=1
-					break
-				elif (z,q) in BLOCK_HASH:
-					found = 1
-					process = 1
-					BLOCK_HASH[(z,q)]+=1
-					break
-
-			if found:
-				break
-
-		if found and not process:
-			#print "skipping", temp.fragNum, temp.l_bound, temp.r_bound
-			continue
-		elif not found:
-			BLOCK_HASH[(temp.l_bound, temp.r_bound)] = 1
-			
-
 	FG.add_node(temp.fragNum)
 
 	if temp.fragNum not in fragHash:
@@ -453,18 +393,11 @@ if __name__== "__main__":
 		fragHash[temp.fragNum] = temp
 
 	FList.append(temp)
-	#print temp.ltid, temp.l_bound, temp.rtid, temp.r_bound, len(FList)
-	#print "Appending" temp
-	#for y in FList:
-		#print y.fragNum, y.l_bound, y.r_bound
-	if line_num == 0:
-		t1 = time.time()
-
+		
         for x in range(ld):
 	    #print "Member:", FList[x]
  	    if FList[x].ltid == temp.ltid and FList[x].rtid == temp.rtid and FList[x].C_type == temp.C_type and FList[x].clsmall == temp.clsmall:
-		    #print temp.l_bound, temp.r_bound, temp.fragNum, FList[x].l_bound, FList[x].r_bound, FList[x].fragNum
-		    #print "Comparing 2 frags", temp, FList[x], line
+
 		    #compare 2 frags
 		    f1lpos = FList[x].l_bound
 		    f1rpos = FList[x].r_bound	    
@@ -496,15 +429,13 @@ if __name__== "__main__":
 			#print "Adding connection", EW, EW_THRESH, FList[x].fragNum, temp.fragNum
 			if FList[x].fragNum != temp.fragNum:
 				FG.add_edge(FList[x].fragNum, temp.fragNum)
-
-	if line_num == 1000:
-		print "Loop end time (10000 runs):", -t1 +time.time(), len(FList)	
+			
 	# refresh list
         if len(FList) > 1:
 		
-	 	if temp.ltid != FList[-2].ltid or temp.rtid != FList[-2].rtid:
+	 	if temp.ltid != FList[-2].ltid:
 			
-			print "New TID. Processing ltid: rtid: Size of list:", temp.ltid, temp.rtid, len(FList)
+			#print "New TID: Processing ltid", temp.ltid, line, "Size of list:", len(DList)
 			newBlockS = 0
                         FList = [FList[-1]]
 			if not nocalcW:
@@ -517,7 +448,6 @@ if __name__== "__main__":
 		elif temp.ltid == FList[newBlockS].ltid and (temp.l_bound - FList[newBlockS].l_bound) > 2*CLUSTER_D:
 
                     #FList = FList[newBlockS:]
-		    #print "Refresh 2"	
 		    if not nocalcW:
 		    	nodeList = {}
                     	for frag in FList[newBlockS:]:

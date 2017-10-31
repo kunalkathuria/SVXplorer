@@ -1631,7 +1631,7 @@ if __name__ == "__main__":
 	    #elif cluster.l_orient == cluster.r_orient and cluster.ltid == cluster.rtid:
 		#temp.typeO = "INV"
  
-            elif cluster.l_orient == 0 and cluster.r_orient ==1 and cluster.l_start < cluster.r_end and cluster.ltid == cluster.rtid:
+            elif cluster.l_orient == 0 and cluster.r_orient ==1 and cluster.l_start < cluster.r_end and cluster.ltid == cluster.rtid and cluster.clsmall != 1:
                 temp.typeO = "DEL"
                 #print "Deletion!", cluster
                 

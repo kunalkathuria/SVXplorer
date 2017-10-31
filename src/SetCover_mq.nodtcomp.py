@@ -1,56 +1,16 @@
 # 12/16/16
-#Filter variants having minimum unique support for each support category (SR, PE, MIXED)
+# Set Cover Algorithms to Minimize number of SVs that account for all PEMs pointing to them
 
-import sys
 import math
+import os
+import sys
 from collections import Counter
 
 FILE = "../results/text/VariantMap.txt"
 
-def readStats():
-	f=open("../results/text/bam_stats.txt","r")
-	for i,line in enumerate(f):
-		if i==3:	
-			break
-		elif i==2:
-			sigIL = float(line.split()[0])
-	return float(line.split()[0]), sigIL
-
-#disjThresh = int(sys.argv[1])
-PE_THRESH_MAX = 6
-SR_THRESH_MAX = 6
-PE_THRESH_MIN = 3
-SR_THRESH_MIN = 3
-MIX_THRESH = 4
-PE_LOW = 3
-PE_HIGH = 6
-COVG_LOW = 5
-COVG_HIGH = 50
-SR_LOW = 4
-SR_HIGH = 6
-IL_LOW1 = 20
-IL_LOW2 = 30
-IL_BOOST = 0
-
-[COVG,SIG_IL] = readStats()
-
-#LINEAR MODEL TO CALCULATE SUPPORT THRESHOLDS
-if IL_LOW1 < SIG_IL < IL_LOW2:
-	IL_BOOST = -.5
-
-SR_THRESH = math.floor(SR_LOW + (COVG-COVG_LOW)*1.0*(SR_HIGH - SR_LOW)/(COVG_HIGH - COVG_LOW))
-PE_THRESH = round(IL_BOOST + PE_LOW + (COVG-COVG_LOW)*1.0*(PE_HIGH - PE_LOW)/(COVG_HIGH - COVG_LOW))
-if PE_THRESH > PE_THRESH_MAX:
-	PE_THRESH = PE_THRESH_MAX
-if SR_THRESH > SR_THRESH_MAX:
-        SR_THRESH = SR_THRESH_MAX
-if PE_THRESH < PE_THRESH_MIN:
-        PE_THRESH = PE_THRESH_MIN
-if SR_THRESH < SR_THRESH_MIN:
-        SR_THRESH = SR_THRESH_MIN
-print "SR, PE threshes, covg are:", SR_THRESH, PE_THRESH, COVG
-
+disjThresh = int(sys.argv[1])
 MAP_THRESH = int(sys.argv[2])
+ignoreRD = 1
 RD_VAR_NUM = int(sys.argv[3]) #3000000
 RD_Frag = int(sys.argv[4])
 MQ_HASH = {}
@@ -85,7 +45,6 @@ def DisjointAlg(fragmentList, nSetsR):
     formHash()
     fp=open(FILE,"r")
     fp2=open("../results/text/DisjSetCover_S.txt","w")
-    fp3=open("../results/text/All_Variants.txt","r")
     fp4=open("../results/text/mq0_variants.txt","w")
     fp5=open("../results/text/uniqueCount.txt","w")
 
@@ -97,29 +56,8 @@ def DisjointAlg(fragmentList, nSetsR):
 
         currentSet = map(int, line.split())
         varNum.append(currentSet[0])
-	currentSet = currentSet[1:] 
-	
-	#3 variables for variant type for clarity	
-	SRvar = 0
-	PEvar = 0
-	mixedVar = 0
-	disjThresh = -1
+	currentSet = currentSet[1:] 	
 
-	for line in fp3:
-		if line.split()[11].find("PE") == -1 and line.split()[11].find("SR") != -1:
-			SRvar = 1
-			disjThresh = SR_THRESH
-		elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") == -1:
-			PEvar = 1
-			disjThresh = PE_THRESH
-		elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") != -1:
-			mixedVar = 1
-			disjThresh = MIX_THRESH
-
-		#print line, disjThresh
-		break
-
-	
         for elem in currentSet:
 		
 		#pick those supported by RD automatically		
@@ -142,27 +80,14 @@ def DisjointAlg(fragmentList, nSetsR):
 			break
 	counter+=1
 
-    fp3.seek(0)
     for g,item in enumerate(disjointness):
 
-	for line in fp3:
-                if line.split()[11].find("PE") == -1 and line.split()[11].find("SR") != -1:
-                        SRvar = 1
-			disjThresh = SR_THRESH
-                elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") == -1:
-                        PEvar = 1
-			disjThresh = PE_THRESH
-                elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") != -1:
-                        mixedVar = 1
-			disjThresh = MIX_THRESH
-
-                break
 
 	# RD CNVs do not use same support threshold
         if (item >= disjThresh and pickV[g] == 1) or (item >= 1 and pickV[g] == 2):
            fp2.write("%s\n" %varNum[g]) 
 	   N_potSVs+=1
-	#make list of variants with unique support till thresh
+	#make list of variants not picked
 	if varNum[g] < RD_VAR_NUM:
 	   fp5.write("%s %s\n" %(varNum[g], disjointness[g]))
 

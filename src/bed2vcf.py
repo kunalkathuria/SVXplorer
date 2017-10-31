@@ -42,7 +42,7 @@ if __name__=="__main__":
 			isinv="INV=FALSE"
 			if line_split[6]=="INS_I":
 				isinv="ISINV"
-			fw.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line_split[0], int(float(line_split[1])),counter,".", "<DUP>",".","PASS", "SVTYPE=DUP;;END="+str(int(float(line_split[2]))) +";SVLEN="+str(int(float(line_split[2])-float(line_split[1]))) +";CIPOS=-50,50;CIEND=-50,50;IMPRECISE;"+isinv))
+			fw.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line_split[0], int(float(line_split[1])),counter,".", "<DUP>",".","PASS", "SVTYPE=DUP;;END="+str(int(float(line_split[4]))) +";SVLEN="+str(int(abs(float(line_split[4])-float(line_split[1])))) +";CIPOS=-50,50;CIEND=-50,50;IMPRECISE;"+isinv))
 
 		#$for INS_C write separately with comment of bp may be switched, provide alternate	
 		elif line_split[6] == "INS_C_P" or line_split[6] == "INS_C_I_P":
@@ -50,9 +50,9 @@ if __name__=="__main__":
 			isinv="INV=FALSE"
                         if line_split[6] == "INS_C_I_P":
                                 isinv="ISINV"
-			len_tr = int(float(line_split[2]) - float(line_split[1]))
+			len_tr = abs(int(float(line_split[4]) - float(line_split[1])))
                         fw.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line_split[0], int(float(line_split[1])),counter,".", "<DEL>",".","PASS", "SVTYPE=DEL;TRAID="+str(counter)+";SVLEN=-" + str(len_tr) +"END="+str(int(float(line_split[2])))+ ";CIPOS=-50,50;CIEND=-50,50;IMPRECISE;"+ isinv))
-                        fw.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line_split[0], int(float(line_split[1])),counter+1,".", "<DUP>",".","PASS", "SVTYPE=DUP;TRAID="+str(counter) + ";SVLEN=" + str(len_tr) + ";END=" + str(int(float(line_split[2]))) + ";CIPOS=-50,50;CIEND=-50,50;IMPRECISE;"+isinv))
+                        fw.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line_split[0], int(float(line_split[1])),counter+1,".", "<DUP>",".","PASS", "SVTYPE=DUP;TRAID="+str(counter) + ";SVLEN=" + str(len_tr) + ";END=" + str(int(float(line_split[4]))) + ";CIPOS=-50,50;CIEND=-50,50;IMPRECISE;"+isinv))
 			counter+=1
 
 

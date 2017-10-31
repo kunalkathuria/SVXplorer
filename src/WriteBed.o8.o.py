@@ -109,21 +109,21 @@ if __name__ == "__main__":
 			break
 	COVERAGE = float(line[:-1])
 	print "Coverage is:", COVERAGE
-	#DEL_CONF_THRESH = .7
+	DEL_CONF_THRESH = .7
 	UNIV_VAR_THRESH=100
 	INS_VAR_THRESH=50
-	SR_DEL_THRESH=100
-	MIX_DEL_THRESH=40
+	SR_DEL_THRESH=50
+	MIX_DEL_THRESH=0
 	PE_DEL_THRESH_S=250
-	PE_DEL_THRESH_L=100
+	PE_DEL_THRESH_L=200
 	SD_S = 15
-	SD_L = 30
-	# calculate min PE size based on insert length standard deviation under simple empirical linear model, and nature of small calls that fits generally well. Aligner tends to mark concordants as discordants when SD is small unless distr v good.
+	SD_L = 20
+	# calculate min PE size based on insert length standard deviation under simple empirical linear model, and nature of small calls that fits generally well. Aligner tends to mark concordants as discordants when SD is small unless distr v good, seemingly sharp effects around sig_IL of 20 and lower for Poisson and other related distributions.
 	PE_DEL_THRESH=PE_DEL_THRESH_S + int((SD-SD_S)*(PE_DEL_THRESH_L-PE_DEL_THRESH_S)/(SD_L-SD_S))
 	if PE_DEL_THRESH > PE_DEL_THRESH_S:
 		PE_DEL_THRESH = PE_DEL_THRESH_S
 	elif PE_DEL_THRESH < PE_DEL_THRESH_L:
-		PE_DEL_THRESH = PE_DEL_THRESH_L
+		PE_DEL_THRESH = UNIV_VAR_THRESH
 
 	DisjSC = []
 	chrHash = {}
@@ -182,7 +182,8 @@ if __name__ == "__main__":
 					gap = int(line2_split[6])-int(line2_split[4])
 					start = .25*gap + int(line2_split[4])
 					stop = min(start+.5*gap,start +3*PILEUP_THRESH)
-					counter2, confM, covLoc = 0,0,0
+					covLoc = 0
+					counter2,counter_v1,counter_v2,confM, confL, confR = 0,0,0,0,0,0
 					#print "In DEL condition"
 					if stop > start:					
 						for pileupcolumn in samfile.pileup(chr_n, start, stop):
@@ -198,9 +199,43 @@ if __name__ == "__main__":
                                                         confM = 1
 							covLoc = (1.0*covLoc)/(1.0*counter2)
 
+					if line2_split[1][0:2] != "TD":	
 
+						ver_stop1 = int(line2_split[3])	
+						ver_start1 = ver_stop1 - VER_BUFFER 
+						ver_start2 = int(line2_split[7])
+						ver_stop2 = ver_start2 + VER_BUFFER
+						covLoc_v1, covLoc_v2 = 0, 0
 
-					if confM == 1:
+						if ver_stop1 > ver_start1:
+						 for pileupcolumn in samfile.pileup(chr_n, ver_start1, ver_stop1):
+
+							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
+								#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
+								covLoc_v1 = covLoc_v1 + pileupcolumn.n
+								counter_v1+=1
+								if counter_v1 > PILEUP_THRESH:
+									break
+						if ver_stop2 > ver_start2:
+						 for pileupcolumn in samfile.pileup(chr_n, ver_start2, ver_stop2):
+
+							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
+								#print "DEL hash", pileupcolumn.pos, pileupcolumn.n
+								covLoc_v2 = covLoc_v2 + pileupcolumn.n
+								counter_v2+=1
+								if counter_v2 > PILEUP_THRESH:
+									break
+						#print 1.0*covLoc/(.001+counter2), "is local coverage", counter2, counter3, covLoc
+
+						if (counter_v1 > MIN_PILEUP_THRESH and (counter_v1 > GOOD_REG_THRESH*(ver_stop1-ver_start1) or counter_v1 > PILEUP_THRESH)):
+							confL = 1
+							covLoc_v1 = (1.0*covLoc_v1)/(1.0*counter_v1) 
+
+						if (counter_v2 > MIN_PILEUP_THRESH and (counter_v2 > GOOD_REG_THRESH*(ver_stop2-ver_start2) or counter_v2 > PILEUP_THRESH)):
+							confR = 1
+							covLoc_v2 = (1.0*covLoc_v2)/(1.0*counter_v2)
+
+					if confM == 1 or (confL == 1 and confR == 1):
 
 						#print confM, confL, confR	
 						if line2_split[1][0:2] == "TD" and confM == 1 and covLoc/COVERAGE > DUP_THRESH:
@@ -225,19 +260,38 @@ if __name__ == "__main__":
 								line2_split[1] = "BND"
 
 				
-						elif line2_split[1][0:3] == "DEL" and confM == 1:
+						elif line2_split[1][0:3] == "DEL" and ((confM == 1 and covLoc/COVERAGE < DEL_THRESH) or (confL == 1 and covLoc_v1/COVERAGE < DEL_CONF_THRESH and confR == 1 and covLoc_v2/COVERAGE < DEL_CONF_THRESH)):
 						
+							print "DEL confirmed (pileup)"
 							#print confM, covLoc/COVERAGE, confL, covLoc_v1/COVERAGE, confR, covLoc_v2/COVERAGE
+							line2_split[1] = "DEL"
+							if covLoc/COVERAGE < DEL_THRESH2:
+								GT="GT:1/1"
+							elif covLoc/COVERAGE > 3*DEL_THRESH2:	
+								GT="GT:0/1"
 					
-							if covLoc/COVERAGE < DEL_THRESH:
-								print "DEL confirmed (pileup)"
-								line2_split[1] = "DEL"
-	                                                        if covLoc/COVERAGE < DEL_THRESH2:
-        	                                                        GT="GT:1/1"
-                	                                        elif covLoc/COVERAGE > 3*DEL_THRESH2:
-                        	                                        GT="GT:0/1"
+							#if confM and covLoc/COVERAGE > 1.0:
+                                                                # since bp3 = -1, this will be written as a BND event
+                                                                #line2_split[1] = "INS"
+								#print "Oops, not confirmed. Barely missed..."
+	
+							#if line2_split[11].find("PE") == -1 and line2_split[11].find("SR") != -1:
+								#nv_SRconf+=1
+								#nv_SRposs+=1
+							#elif line2_split[11].find("PE") != -1:
+								#nv_PEconf+=1
+								#nv_PEposs+=1
 
-							elif covLoc/COVERAGE > DUP_THRESH:
+						elif line2_split[1][0:3] == "DEL":
+
+							if line2_split[11].find("PE") != -1 and line2_split[11].find("SR") == -1:
+								if support < PE_THRESH_H:
+									line2_split[1] = "DEL_POSS"
+								#nv_SRposs+=1
+							#elif line2_split[11].find("PE") != -1:
+								#nv_PEposs+=1
+
+							if confM and covLoc/COVERAGE > 1.0:
 								# since bp3 = -1, this will be written as a BND event
 								line2_split[1] = "INS"
 					
@@ -265,7 +319,7 @@ if __name__ == "__main__":
 						line2_split[1] = "INS_C_P"
 
 					#if on same chromosome
-					elif False and line2_split[2] == line2_split[5] and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
+					elif line2_split[2] == line2_split[5] and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
 						#$put all this in a function
 						#bp 1-2 and 1-3 or 3-1 and 2-1 (dep on upstream vs downstream INS)
 						if int(line2_split[6])-int(line2_split[4]) > 0:
@@ -403,7 +457,7 @@ if __name__ == "__main__":
 							swap = 1
 				
 					#if both bp intervals contain deletion read depth	
-					if False and not confIC and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
+					if not confIC and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
 						#calc1-3 pu
 #						gap = int(line2_split[3])-int(line2_split[10])
 #                                                start = .25*gap + int(line2_split[10])
