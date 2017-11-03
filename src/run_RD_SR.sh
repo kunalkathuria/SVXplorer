@@ -53,7 +53,7 @@ else
 	python DisjointSetCover.py
 fi
 
-python WriteBed.o8.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26} ${27} ${28} ${29}
+python WriteBed.o8.o.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26} ${27} ${28} ${29}
 echo "WB Done"
 cat ../results/text/deletions.bedpe ../results/text/tandemDuplications.bedpe ../results/text/inversions.bedpe ../results/text/insertions.bedpe ../results/text/unknowns.bedpe > ../results/text/All_SVs
 python bed2vcf.py ../results/text/All_SVs

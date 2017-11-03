@@ -11,12 +11,9 @@ DUP_THRESH = float(sys.argv[4])
 DEL_THRESH2 = float(sys.argv[5])
 DUP_THRESH2 = float(sys.argv[6])
 PILEUP_THRESH = float(sys.argv[7])
-MIN_PILEUP_THRESH = float(sys.argv[8])
+MIN_PILEUP_THRESH = 80#float(sys.argv[8])
 RPT_REGIONS_FILE =  sys.argv[9]
 GOOD_REG_THRESH=.8 # to trust pile-up depth in given region, this percentage should return data
-SECOND_SWEEP_THRESH=.75
-MINPU_MULT=1
-VER_BUFFER=100
 PE_THRESH_H=3
 
 class Variant(object):
@@ -115,9 +112,9 @@ if __name__ == "__main__":
 	SR_DEL_THRESH=50
 	MIX_DEL_THRESH=0
 	PE_DEL_THRESH_S=250
-	PE_DEL_THRESH_L=200
+	PE_DEL_THRESH_L=150
 	SD_S = 15
-	SD_L = 20
+	SD_L = 25
 	# calculate min PE size based on insert length standard deviation under simple empirical linear model, and nature of small calls that fits generally well. Aligner tends to mark concordants as discordants when SD is small unless distr v good, seemingly sharp effects around sig_IL of 20 and lower for Poisson and other related distributions.
 	PE_DEL_THRESH=PE_DEL_THRESH_S + int((SD-SD_S)*(PE_DEL_THRESH_L-PE_DEL_THRESH_S)/(SD_L-SD_S))
 	if PE_DEL_THRESH > PE_DEL_THRESH_S:
@@ -177,7 +174,7 @@ if __name__ == "__main__":
 				#f11.write("%s\n" %line2)
 				swap = 0
 				GT=""
-				if (line2_split[1] == "DEL_INS" or line2_split[1] == "DEL" or line2_split[1][0:2]== "TD") and int(line2_split[4]) + MINPU_MULT*MIN_PILEUP_THRESH < int(line2_split[6]):
+				if (line2_split[1] == "DEL_INS" or line2_split[1] == "DEL" or line2_split[1][0:2]== "TD") and int(line2_split[4]) + MIN_PILEUP_THRESH < int(line2_split[6]):
 					chr_n = line2_split[2]
 					gap = int(line2_split[6])-int(line2_split[4])
 					start = .25*gap + int(line2_split[4])
@@ -200,14 +197,14 @@ if __name__ == "__main__":
 							covLoc = (1.0*covLoc)/(1.0*counter2)
 
 					if line2_split[1][0:2] != "TD":	
-
-						ver_stop1 = int(line2_split[3])	
-						ver_start1 = ver_stop1 - VER_BUFFER 
-						ver_start2 = int(line2_split[7])
-						ver_stop2 = ver_start2 + VER_BUFFER
+						ver_start1 = int(line2_split[4])	
+						ver_stop2 = int(line2_split[6])
 						covLoc_v1, covLoc_v2 = 0, 0
+						VER_BUFFER = max(1.5*MIN_PILEUP_THRESH,.25*(ver_stop2-ver_start1))
+						ver_stop1 = ver_start1 + VER_BUFFER
+						ver_start2 = ver_stop2 - VER_BUFFER
 
-						if ver_stop1 > ver_start1:
+						if ver_stop1 > ver_start1 and ver_stop2 - ver_start1 > VER_BUFFER:
 						 for pileupcolumn in samfile.pileup(chr_n, ver_start1, ver_stop1):
 
 							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
@@ -216,7 +213,7 @@ if __name__ == "__main__":
 								counter_v1+=1
 								if counter_v1 > PILEUP_THRESH:
 									break
-						if ver_stop2 > ver_start2:
+						if ver_stop2 > ver_start2 and ver_stop2 - ver_start1 > VER_BUFFER:
 						 for pileupcolumn in samfile.pileup(chr_n, ver_start2, ver_stop2):
 
 							if chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]:
@@ -227,11 +224,11 @@ if __name__ == "__main__":
 									break
 						#print 1.0*covLoc/(.001+counter2), "is local coverage", counter2, counter3, covLoc
 
-						if (counter_v1 > MIN_PILEUP_THRESH and (counter_v1 > GOOD_REG_THRESH*(ver_stop1-ver_start1) or counter_v1 > PILEUP_THRESH)):
+						if (counter_v1 > MIN_PILEUP_THRESH and (counter_v1 > GOOD_REG_THRESH*(ver_stop2-ver_start1) or counter_v1 > PILEUP_THRESH)):
 							confL = 1
 							covLoc_v1 = (1.0*covLoc_v1)/(1.0*counter_v1) 
 
-						if (counter_v2 > MIN_PILEUP_THRESH and (counter_v2 > GOOD_REG_THRESH*(ver_stop2-ver_start2) or counter_v2 > PILEUP_THRESH)):
+						if (counter_v2 > MIN_PILEUP_THRESH and (counter_v2 > GOOD_REG_THRESH*(ver_stop2-ver_start1) or counter_v2 > PILEUP_THRESH)):
 							confR = 1
 							covLoc_v2 = (1.0*covLoc_v2)/(1.0*counter_v2)
 
@@ -295,7 +292,7 @@ if __name__ == "__main__":
 								# since bp3 = -1, this will be written as a BND event
 								line2_split[1] = "INS"
 					
-				elif len(line2_split[1]) > 2 and line2_split[11].find("PE") != -1 and (line2_split[1] == "INS" or line2_split[1] == "INS_I") and int(line2_split[7]) + MINPU_MULT*MIN_PILEUP_THRESH < int(line2_split[9]) and line2_split[8] != "-1":
+				elif len(line2_split[1]) > 2 and line2_split[11].find("PE") != -1 and (line2_split[1] == "INS" or line2_split[1] == "INS_I") and int(line2_split[7]) + MIN_PILEUP_THRESH < int(line2_split[9]) and line2_split[8] != "-1":
 
 					#bp2-3
 					chr_n = line2_split[5]
@@ -319,7 +316,7 @@ if __name__ == "__main__":
 						line2_split[1] = "INS_C_P"
 
 					#if on same chromosome
-					elif line2_split[2] == line2_split[5] and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
+					elif False and line2_split[2] == line2_split[5] and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
 						#$put all this in a function
 						#bp 1-2 and 1-3 or 3-1 and 2-1 (dep on upstream vs downstream INS)
 						if int(line2_split[6])-int(line2_split[4]) > 0:
@@ -457,7 +454,7 @@ if __name__ == "__main__":
 							swap = 1
 				
 					#if both bp intervals contain deletion read depth	
-					if not confIC and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
+					if False and not confIC and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
 						#calc1-3 pu
 #						gap = int(line2_split[3])-int(line2_split[10])
 #                                                start = .25*gap + int(line2_split[10])

@@ -64,10 +64,18 @@ def calcMeanSig(file1, file2):
    meanIL = summedIL/counter
    meanQL = summedQL/counter
    IL_list = sorted(IL_list)
-   PENALTY_PERC = .90
+   PENALTY_PERC = .999999 #SIG_THRESH
+   SMALL_PERC = .001
    #"generalized" 3 sigma distance if not normal distribution, SIG_THRESH = 99.85
-   DIST_END = IL_list[int(SIG_THRESH*len(IL_list)) - 1]
-   DIST_PEN = IL_list[int(PENALTY_PERC*len(IL_list)) - 1]
+   if 0 <= int(SIG_THRESH*len(IL_list)) -1 < len(IL_list):
+   	DIST_END = IL_list[int(SIG_THRESH*len(IL_list)) - 1]
+   	DIST_PEN = IL_list[int(PENALTY_PERC*len(IL_list)) - 1]
+	DISC_D_small = IL_list[int(SMALL_PERC*len(IL_list)) - 1] - meanIL
+   elif len(IL_list) > 0:
+	DIST_END = IL_list[int(.9985*len(IL_list)) - 1]
+	DIST_PEN = IL_list[int(.9985*len(IL_list)) - 1]
+	DISC_D_small = IL_list[int(SMALL_PERC*len(IL_list))] - meanIL
+
    #print "DISC stats:", SIG_THRESH, DISC_D, len(IL_list), IL_list[-50:]
    DISC_D = DIST_END - meanIL
    bamfile.close()
@@ -126,10 +134,13 @@ def calcMeanSig(file1, file2):
    width = 20
    counter2=0
 
-   for pileupcolumn in bamfile.pileup():
+   for chrom in bamfile.contigs:
+      counter_l = 0
+      for pileupcolumn in bamfile.pileup(chrom):
    	cov+=pileupcolumn.n
 	counter2+=1
-	if counter2 > CALC_THRESH:
+	counter_l+=1
+	if counter_l > CALC_THRESH/10.0:
 		break
 
    bamfile.close()
@@ -143,9 +154,9 @@ def calcMeanSig(file1, file2):
    fp = open("../results/text/bam_stats.txt","w")
    fp.write("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n" %(meanQL, meanIL, stdev,cov, max_IL, DISC_D, DIST_PEN, DIST_END))
    fp.close()
-   return meanQL, meanIL, stdev, DISC_D
+   return meanQL, meanIL, stdev, DISC_D, DISC_D_small
 
-[RDL, MEAN_D, SIG_D, DISC_dist] = calcMeanSig(BAMFILE1, BAMFILE2)
+[RDL, MEAN_D, SIG_D, DISC_dist, DISC_dist_small] = calcMeanSig(BAMFILE1, BAMFILE2)
 ignore_buffer =0* RDL
 
 def formHash():
@@ -446,7 +457,7 @@ def FormDiscordant(list1, list2, DList1, DList2):
                 	temp.mapqual = map_qual
 	
 			# "small" means discordant due to IL being smaller than threshold	
-			if left_tid == right_tid and OUTER_D - MEAN_D < -1*DISC_dist:
+			if left_tid == right_tid and OUTER_D - MEAN_D < -1*DISC_dist_small:
 				Cl_small = 1
 
                         if map_type == 0:

@@ -7,7 +7,7 @@ VARSECer accepts a BAM file of target as input and outputs 6 bedpe files (and 1 
 
 ### METHODOLOGY
 
-One unique feature of VARSECer is that it uses all secondary PE alignments above a certain threshold to form variants. VARSECer forms discordant clusters with specific inclusion/filtering criteria and classifies them into all basic variant types after grouping them with all possible cluster matches. It then uses an approach based on unique-fragment-support to call its final variants-- the basic idea being that if a variant has sufficient unique support, it is likely to be true. It uses an iterative approach of using paired-end mappings, split reads and read-depth-based INDEL calls respectively to enhance existing variants and identiy new ones. For the latter, it integrates third-party read-depth-based INDEL calls with existing variants. For split reads, a name-sorted split read file (no secondary alignments) should be provided as mentioned below.
+VARSECer forms discordant clusters via formation of maximal cliques in a weight-thresholded bidirectional graph and classifies them into all basic variant types after grouping them with all possible cluster matches. It then uses an approach based on unique-fragment-support to call its final variants-- the basic idea being that if a variant has sufficient unique support, it is likely to be true. It uses an iterative approach of using paired-end mappings, split reads and read-depth-based pile-up filters respectively to enhance existing variants and identiy new ones. For split reads, a name-sorted split read file (no secondary alignments) should be provided as mentioned below.
 
 ### REQUIREMENTS
 

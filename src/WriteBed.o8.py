@@ -11,10 +11,9 @@ DUP_THRESH = float(sys.argv[4])
 DEL_THRESH2 = float(sys.argv[5])
 DUP_THRESH2 = float(sys.argv[6])
 PILEUP_THRESH = float(sys.argv[7])
-MIN_PILEUP_THRESH = float(sys.argv[8])
+MIN_PILEUP_THRESH = 80#float(sys.argv[8])
 RPT_REGIONS_FILE =  sys.argv[9]
 GOOD_REG_THRESH=.8 # to trust pile-up depth in given region, this percentage should return data
-SECOND_SWEEP_THRESH=.75
 MINPU_MULT=1
 VER_BUFFER=100
 PE_THRESH_H=3
@@ -115,9 +114,9 @@ if __name__ == "__main__":
 	SR_DEL_THRESH=100
 	MIX_DEL_THRESH=40
 	PE_DEL_THRESH_S=250
-	PE_DEL_THRESH_L=100
+	PE_DEL_THRESH_L=150
 	SD_S = 15
-	SD_L = 30
+	SD_L = 25
 	# calculate min PE size based on insert length standard deviation under simple empirical linear model, and nature of small calls that fits generally well. Aligner tends to mark concordants as discordants when SD is small unless distr v good.
 	PE_DEL_THRESH=PE_DEL_THRESH_S + int((SD-SD_S)*(PE_DEL_THRESH_L-PE_DEL_THRESH_S)/(SD_L-SD_S))
 	if PE_DEL_THRESH > PE_DEL_THRESH_S:
