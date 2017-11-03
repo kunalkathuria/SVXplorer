@@ -133,8 +133,17 @@ def calcMeanSig(file1, file2):
    cov = 0
    width = 20
    counter2=0
-
-   for chrom in bamfile.contigs:
+   tid_counter=0
+   while True:
+      #if not bamfile.is_valid_tid(tid_counter):
+         #break
+      try:
+         chrom = bamfile.get_reference_name(tid_counter)
+         if tid_counter > 22 or chrom == None or chrom == -1:
+	    break
+      except:
+	 break
+      tid_counter+=1
       counter_l = 0
       for pileupcolumn in bamfile.pileup(chrom):
    	cov+=pileupcolumn.n
