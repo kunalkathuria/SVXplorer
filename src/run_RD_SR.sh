@@ -7,9 +7,9 @@
 #samtools sort -n -@32 -o $1 {$1}.us
 #rm {$1}.us
 
-#cp ../results/text/ClassifiedVariantMap.txt ../results/text/VariantMap.txt
-#cp ../results/text/All_Variants_O.txt ../results/text/All_Variants.txt
-#python add_SR_hash.2.py $1 $2 $3 $4 ${13} ${12} ${10} ${18} ${21}
+cp ../results/text/ClassifiedVariantMap.txt ../results/text/VariantMap.txt
+cp ../results/text/All_Variants_O.txt ../results/text/All_Variants.txt
+python add_SR_hash.2.py $1 $2 $3 $4 ${13} ${12} ${10} ${18} ${21}
 cp ../results/text/VariantMap_SR.txt ../results/text/VariantMap.txt
 cp ../results/text/All_Variants_SR.txt ../results/text/All_Variants.txt
 python SetCover_mq.py $6 ${11} ${15} ${16}
@@ -53,7 +53,7 @@ else
 	python DisjointSetCover.py
 fi
 
-python WriteBed.o7.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26} ${27} ${28} ${29}
+python WriteBed.o8.o.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26} ${27} ${28} ${29}
 echo "WB Done"
 cat ../results/text/deletions.bedpe ../results/text/tandemDuplications.bedpe ../results/text/inversions.bedpe ../results/text/insertions.bedpe ../results/text/unknowns.bedpe > ../results/text/All_SVs
 python bed2vcf.py ../results/text/All_SVs
