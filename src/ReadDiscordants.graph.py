@@ -466,7 +466,7 @@ def FormDiscordant(list1, list2, DList1, DList2):
                 	temp.mapqual = map_qual
 	
 			# "small" means discordant due to IL being smaller than threshold	
-			if left_tid == right_tid and OUTER_D - MEAN_D < -1*DISC_dist_small:
+			if left_tid == right_tid and CLType == "01" and OUTER_D - MEAN_D < -1*DISC_dist_small:
 				Cl_small = 1
 
                         if map_type == 0:

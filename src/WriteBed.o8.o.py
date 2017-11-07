@@ -15,6 +15,7 @@ MIN_PILEUP_THRESH = 80#float(sys.argv[8])
 RPT_REGIONS_FILE =  sys.argv[9]
 GOOD_REG_THRESH=.8 # to trust pile-up depth in given region, this percentage should return data
 PE_THRESH_H=3
+SPLIT_INS=False
 
 class Variant(object):
 
@@ -235,7 +236,7 @@ if __name__ == "__main__":
 					if confM == 1 or (confL == 1 and confR == 1):
 
 						#print confM, confL, confR	
-						if line2_split[1][0:2] == "TD" and confM == 1 and covLoc/COVERAGE > DUP_THRESH:
+						if line2_split[1][0:2] == "TD" and ((confM == 1 and covLoc/COVERAGE < DEL_THRESH) or (confL == 1 and covLoc_v1/COVERAGE < DEL_CONF_THRESH and confR == 1 and covLoc_v2/COVERAGE < DEL_CONF_THRESH)):
 						
 							print "TD confirmed (pileup)"	
 							line2_split[1] = "TD"
@@ -253,7 +254,7 @@ if __name__ == "__main__":
 							elif line2_split[11].find("PE") == 1:
 								nv_PEposs+=1
 
-							if covLoc/COVERAGE < 1.0:
+							if covLoc/COVERAGE < DEL_THRESH: #1.0:
 								line2_split[1] = "BND"
 
 				
@@ -288,7 +289,7 @@ if __name__ == "__main__":
 							#elif line2_split[11].find("PE") != -1:
 								#nv_PEposs+=1
 
-							if confM and covLoc/COVERAGE > 1.0:
+							if confM and covLoc/COVERAGE > DUP_THRESH: #1.0:
 								# since bp3 = -1, this will be written as a BND event
 								line2_split[1] = "INS"
 					
@@ -316,7 +317,7 @@ if __name__ == "__main__":
 						line2_split[1] = "INS_C_P"
 
 					#if on same chromosome
-					elif False and line2_split[2] == line2_split[5] and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
+					elif SPLIT_INS and line2_split[2] == line2_split[5] and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
 						#$put all this in a function
 						#bp 1-2 and 1-3 or 3-1 and 2-1 (dep on upstream vs downstream INS)
 						if int(line2_split[6])-int(line2_split[4]) > 0:
@@ -454,7 +455,7 @@ if __name__ == "__main__":
 							swap = 1
 				
 					#if both bp intervals contain deletion read depth	
-					if False and not confIC and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
+					if SPLIT_INS and not confIC and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
 						#calc1-3 pu
 #						gap = int(line2_split[3])-int(line2_split[10])
 #                                                start = .25*gap + int(line2_split[10])
