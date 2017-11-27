@@ -54,5 +54,5 @@ These files are stored in the VARSECer/results/text directory. Intermediate bedp
 ### NOTES
 
 1. To enhance sensitivity  and precision of variant calls, one can set MQ_THRESH to 1. By default it is set to 10, but setting it to 1 would work well for high quality data (low spread in insert length, good coverage, low bias etc.). 
-2. One can also set MQ_THRESH to 0 and use the option of secondary alignments (see command line help) which would increase run-time considerably.
+2. One can also set MQ_THRESH to 0 and use the option of secondary alignments by assigning a value less than 1 to MATCHRATIO (-d;see command line help) for higher sensitivity, but which may increase run-time considerably.
 3. One can set SPLIT_INS to True for good-quality data which allows for better performance with this particular filter (reevaluate non-tandem duplications/translocations and break them into deletions and tandem duplications if indicated by local read depth). 
