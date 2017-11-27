@@ -7,9 +7,9 @@
 #samtools sort -n -@32 -o /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/splitters.25.70.bam /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/splitters.25.70.us.bam
 #rm /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/splitters.25.70.us.bam
 
-#cp ../results/text/ClassifiedVariantMap.txt ../results/text/VariantMap.txt
-#cp ../results/text/All_Variants_O.txt ../results/text/All_Variants.txt
-#python add_SR_hash.2.py $1 $2 $3 $4 ${13} ${12} ${10} ${18} ${21}
+cp ../results/text/ClassifiedVariantMap.txt ../results/text/VariantMap.txt
+cp ../results/text/All_Variants_O.txt ../results/text/All_Variants.txt
+python add_SR_hash.2.py $1 $2 $3 $4 ${13} ${12} ${10} ${18} ${21}
 cp ../results/text/VariantMap_SR.txt ../results/text/VariantMap.txt
 cp ../results/text/All_Variants_SR.txt ../results/text/All_Variants.txt
 python SetCover_mq.py $6 ${11} ${15} ${16} ${31}
