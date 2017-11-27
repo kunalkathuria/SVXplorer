@@ -65,7 +65,7 @@ def calcMeanSig(file1, file2):
    meanQL = summedQL/counter
    IL_list = sorted(IL_list)
    PENALTY_PERC = .999999 #SIG_THRESH
-   SMALL_PERC = .001
+   SMALL_PERC = .0001
    #"generalized" 3 sigma distance if not normal distribution, SIG_THRESH = 99.85
    if 0 <= int(SIG_THRESH*len(IL_list)) -1 < len(IL_list):
    	DIST_END = IL_list[int(SIG_THRESH*len(IL_list)) - 1]

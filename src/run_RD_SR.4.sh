@@ -1,18 +1,18 @@
 #samtools view -h ${14} \
 #    | ~/store/sv_caller/other_tools/lumpy/code/lumpy-sv-0.2.11/scripts/extractSplitReads_BwaMem -i stdin \
 #    | samtools view -Sb - \
-#    > /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.us.bam
+#    > {$1}.us
 #
-#samtools sort -n -@32 -o /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.ns.${31}.bam /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.us.bam
-##samtools sort -n -@32 -o /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/$1 /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/us.$1
-#rm /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.us.bam
+##samtools sort -n -@32 -o /m/cphg-RLscratch2/cphg_ratan/kk7t/target/NA12878/SRR505885/splitters.ns.bam /m/cphg-RLscratch/cphg-RLscratch/ar7jq/read_depth/NA12878/SRR505885/alignments/splitters.bam
+#samtools sort -n -@32 -o $1 {$1}.us
+#rm {$1}.us
 
-cp ../results/text/ClassifiedVariantMap.txt ../results/text/VariantMap.txt
-cp ../results/text/All_Variants_O.txt ../results/text/All_Variants.txt
-python add_SR_hash.2.py /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.ns.50X.bam $2 $3 $4 ${13} ${12} ${10} ${18} ${21}
+#cp ../results/text/ClassifiedVariantMap.txt ../results/text/VariantMap.txt
+#cp ../results/text/All_Variants_O.txt ../results/text/All_Variants.txt
+#python add_SR_hash.2.py $1 $2 $3 $4 ${13} ${12} ${10} ${18} ${21}
 cp ../results/text/VariantMap_SR.txt ../results/text/VariantMap.txt
 cp ../results/text/All_Variants_SR.txt ../results/text/All_Variants.txt
-python SetCover_mq.py $6 ${11} ${15} ${16} ${31}
+python SetCover_mq.py $6 ${11} ${15} ${16}
 python WriteBed.o2.py ../results/text/DisjSetCover_S.txt
 
 if [ -d ../results/text/sr_results ]
@@ -48,12 +48,12 @@ fi
 
 if [ $9 -eq 1 ]
 then
-	python SetCover_mq.py $6 ${11} ${15} ${16} ${31}
+	python SetCover_mq.py $6 ${11} ${15} ${16}
 else
 	python DisjointSetCover.py
 fi
 
-python WriteBed.o8.o.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26} ${27} ${28} ${29} ${30}
+python WriteBed.10.py ../results/text/DisjSetCover_S.txt ${14} ${22} ${23} ${25} ${26} ${27} ${28} ${29} ${30}
 echo "WB Done"
 cat ../results/text/deletions.bedpe ../results/text/tandemDuplications.bedpe ../results/text/inversions.bedpe ../results/text/insertions.bedpe ../results/text/unknowns.bedpe > ../results/text/All_SVs
 python bed2vcf.py ../results/text/All_SVs

@@ -14,7 +14,7 @@ cp ../results/text/ClassifiedVariantMap.txt ../results/text/VariantMap.txt
 
 if [ $6 -eq 1 ]
 then
-	python SetCover_mq.py $5 $8 ${10} ${11}
+	python SetCover_mq.py $5 $8 ${10} ${11} ${31}
 else
 	python DisjointSetCover.py
 fi

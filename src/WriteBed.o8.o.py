@@ -16,6 +16,7 @@ RPT_REGIONS_FILE =  sys.argv[9]
 GOOD_REG_THRESH=.8 # to trust pile-up depth in given region, this percentage should return data
 PE_THRESH_H=3
 SPLIT_INS=False
+LIB_INV = int(sys.argv[10])
 
 class Variant(object):
 
@@ -110,8 +111,8 @@ if __name__ == "__main__":
 	DEL_CONF_THRESH = .7
 	UNIV_VAR_THRESH=100
 	INS_VAR_THRESH=50
-	SR_DEL_THRESH=50
-	MIX_DEL_THRESH=0
+	SR_DEL_THRESH=80
+	MIX_DEL_THRESH=50
 	PE_DEL_THRESH_S=250
 	PE_DEL_THRESH_L=150
 	SD_S = 15
@@ -159,7 +160,7 @@ if __name__ == "__main__":
 				line2_split[3], line2_split[7] = line2_split[7], line2_split[3]
 				line2_split[4], line2_split[6] = line2_split[6], line2_split[4]
 
-			if line2_split[1][0:3] == "TD" or (len(line2_split) > 2 and (line2_split[1][0:3] == "DEL" or line2_split[1][0:3] == "INV")):
+			if line2_split[1][0:3] == "TD" or (len(line2_split) > 2 and (line2_split[1][0:3] == "INV")): #or line2_split[1][0:3] == "DEL")):
 				if int(line2_split[7])-int(line2_split[3]) < UNIV_VAR_THRESH:
 					continue
 
@@ -531,7 +532,7 @@ if __name__ == "__main__":
  
                             f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT,line2_split[11]))
                         #$Comment out second condition and next elif if leads to low precision due to SR TD_I's and INS_I's.    
-                        elif line2_split[1] == "TD":
+                        elif line2_split[1] == "TD" or (line2_split[1]=="TD_I" and line2_split[11].find("PE") != -1):
 
 			    [bp1_s, bp1_e] = min(int(line2_split[3]),int(line2_split[6])), min(int(line2_split[4]), int(line2_split[7]))
 			    [bp2_s, bp2_e] = max(int(line2_split[3]),int(line2_split[6])), max(int(line2_split[4]), int(line2_split[7]))
@@ -546,13 +547,17 @@ if __name__ == "__main__":
 
                             f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD_INV",GT))
 
-			elif line2_split[1] == "INV": #or line2_split[1]=="INV_POSS":
+			elif line2_split[1] == "INV" and ( (LIB_INV and line2_split[11].find("SR") != -1) or int(line2_split[12]) > 1): #or line2_split[1]=="INV_POSS":
                             f15.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],GT))
 
 			# this is read from cluster file, so has 2 bps only; INS_C w/ only 2 clusters supporting; INV w/ only 1
-                        elif line2_split[1] == "Unknown" or line2_split[1] == "INS_POSS" or line2_split[1] == "TD_I" or line2_split[1] == "INV_POSS" or ( (line2_split[1] == "INS" or line2_split[1] == "INS_I" or line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I") and (line2_split[9] == "-1" or line2_split[6] == "-1")) or (line2_split[1] == "INS_C" and line2_split[12] == "2"):
+                        elif line2_split[1] == "Unknown" or line2_split[1] == "INS_POSS" or line2_split[1] == "TD_I" or line2_split[1] == "INV_POSS" or ( (line2_split[1] == "INS" or line2_split[1] == "INS_I" or line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I") and (line2_split[9] == "-1" or line2_split[6] == "-1")):
 
                             f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],GT))
+
+			elif (line2_split[1] == "INS_C" and line2_split[12] == "2"):
+
+				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[7], line2_split[8], line2_split[9], line2_split[10],"BND", line2_split[1],GT))
 
                         elif len(line2_split[1]) > 2 and line2_split[1][0:3] == "INS" and not (line2_split[1]== "INS_C" or line2_split[1] == "INS_C_I"):
 

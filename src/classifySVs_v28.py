@@ -1611,6 +1611,7 @@ if __name__ == "__main__":
             temp.bp1_end = cluster.l_end
             temp.bp2_start = cluster.r_start
             temp.bp2_end = cluster.r_end
+	    temp.count = 1
             temp.clusterNums.append(cluster.mapNum)
 
             # In case did not match with mate cluster for INS_U (de novo INS)
@@ -1628,8 +1629,8 @@ if __name__ == "__main__":
                 TDStore.append(temp)
 
 	    # $ remove -- test for comparison with other tools	
-	    #elif cluster.l_orient == cluster.r_orient and cluster.ltid == cluster.rtid:
-		#temp.typeO = "INV"
+	    elif cluster.l_orient == cluster.r_orient and cluster.ltid == cluster.rtid:
+		temp.typeO = "INV"
  
             elif cluster.l_orient == 0 and cluster.r_orient ==1 and cluster.l_start < cluster.r_end and cluster.ltid == cluster.rtid and cluster.clsmall != 1:
                 temp.typeO = "DEL"
