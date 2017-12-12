@@ -94,7 +94,7 @@ mv ../results/text/All_Variants_SR.txt ../results/text/All_Variants_SR.R9.txt
 ##mv ../results/text/bam_stats.txt ../results/text/bam_stats.sim2.txt
 #
 
-#./varsecer -A 0 -B 32 -z /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/disc.bam -a /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/sample.bam  -b /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/sample.bam -r /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.bam -C ../data/bed/ceph.hg19.bed -D ../results/text/ignoreCHR.txt -F 0 -m 0 -I /m/cphg-RLscratch/cphg-RLscratch/ar7jq/read_depth/NA12878/reference.map.bed
+#./varsecer -A 0 -B 32 -z /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim10/disc.bam -a /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim10/sample.bam  -b /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim10/sample.bam -r /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim10/splitters.bam -C ../data/bed/ceph.hg19.bed -D ../results/text/ignoreCHR.txt -F 0 -m 0 -I /m/cphg-RLscratch/cphg-RLscratch/ar7jq/read_depth/NA12878/reference.map.bed
 
 #./varsecer -A 1 -B 32 -z /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim3/disc.sim100.all.bam -a /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim3/sim100.all.sorted.bam  -b /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim3/sim100.all.bam -i ~/scratch/share/samtools-0.1.19/samtools -r /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim3/sim100.all.splitters.bam -C ../data/bed/ceph18.b37.exclude.2014-01-15.bed.webarchive -D ../results/text/ignoreCHR.txt -x ../results/text/sim3.final.cnv -F 0 -m 0 -I /m/cphg-RLscratch/cphg-RLscratch/ar7jq/read_depth/NA12878/reference.map.bed
 #mv ../results/text/pe_results ../results/text/pe_results.s9.sim3.prim

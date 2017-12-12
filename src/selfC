@@ -1,0 +1,29 @@
+#cat $1/$4 | grep -v -w INS_C | grep -v -w INS_C_I | awk '{print $1 "\t" $2 "\t" $2+700 "\t" $1 "\t" $3-700 "\t" $3}' | cut -f1-6 > file1
+#cat $2/$4 | grep -v -w INS_C | grep -v -w INS_C_I | awk '{print $1 "\t" $2 "\t" $2+700 "\t" $1 "\t" $3-700 "\t" $3}' | cut -f1-6 > file2
+#cat $3/$4 | grep -v -w INS_C | grep -v -w INS_C_I | awk '{print $1 "\t" $2 "\t" $2+700 "\t" $1 "\t" $3-700 "\t" $3}' | cut -f1-6 > file3
+
+cat $1 | grep -v hs37 | grep -v NC_ | grep -v MT | awk '$6-$2 > 100' | cut -f1-6 > file1
+cat $2 | grep -v hs37 | grep -v NC_ | grep -v MT | awk '$6-$2 > 100' | cut -f1-6 > file2
+cat $3 | grep -v hs37 | grep -v NC_ | grep -v MT | awk '$6-$2 > 100' | cut -f1-6 > file3
+
+#cat $1/deletions.bedpe $1/tandemDuplications.bedpe $1/inversions.bedpe $1/insertions.bedpe $1/unknowns.bedpe | awk '$6-$2 > 100' | cut -f1-6 > file1
+#cat $2/deletions.bedpe $2/tandemDuplications.bedpe $2/inversions.bedpe $2/insertions.bedpe $2/unknowns.bedpe | awk '$6-$2 > 100' | cut -f1-6 > file2
+#cat $3/deletions.bedpe $3/tandemDuplications.bedpe $3/inversions.bedpe $3/insertions.bedpe $3/unknowns.bedpe | awk '$6-$2 > 100' | cut -f1-6 > file3
+
+echo Son and Father
+bedtools pairtopair -type either -is -slop 550 -a file1 -b file2 | cut -f1-6 | sort | uniq | wc -l
+echo Son and Mother
+bedtools pairtopair -type either -is -slop 550 -a file1 -b file3 | cut -f1-6 | sort | uniq | wc -l
+echo Father and Mother
+bedtools pairtopair -type either -is -slop 550 -a file2 -b file3 | cut -f1-6 | sort | uniq | wc -l
+bedtools pairtopair -is -slop 550 -a file2 -b file3 | cut -f1-6 | sort | uniq > common
+echo Son and Common:
+bedtools pairtopair -type either -is -slop 550 -b file1 -a common | cut -f1-6 | sort | uniq | wc -l
+echo Total in Common b/w parents:
+wc -l common
+echo Son and Either:
+cat file2 file3 > either
+bedtools pairtopair -type either -is -slop 550 -a file1 -b either | cut -f1-6 | sort | uniq | wc -l
+echo Son total:; wc -l file1
+echo Father total:; wc -l file2
+echo Mother total:; wc -l file3

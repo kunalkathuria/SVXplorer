@@ -4,9 +4,9 @@ set -eux
 READTHRESH=20
 ABS_AS=0
 MAP_THRESH=1
-MAP_THRESH_U=10 #-1
+MAP_THRESH_U=10
 MQ_SR=10
-MATCHRATIO=2 #.95
+MATCHRATIO=2
 NMATCHRATIO=0
 NMATCH_PCT=0
 CALC_THRESH=1000000
@@ -215,30 +215,30 @@ do
      esac
 done
 
-if [[ -z $BAM ]] || [[ -z $BAM_NS ]] || [[ -z $S_PATH ]]
+if [[ -z $BAM ]] || [[ -z $S_PATH ]]
 then
      usage
      echo "Please provide paths to input BAM files as well as SAMTOOLS: required option fields are -a, -b, -z, -r."
      exit 1
 fi
 
-#IF disc BAM not ready
-#time ($SAM view -@32 -F 3586 -b -o ../data/bams/disc.bam $BAM_NS) #34m
-#DISCORDANTS=../data/bams/disc.bam
-
-#Remove next 2 comments when done testing
-time ($SAM view -@32 -f 64 -b -o ../data/bams/aln1s_u.bam $DISCORDANTS) #4m
-time ($SAM view -@32 -f 128 -b -o ../data/bams/aln2s_u.bam $DISCORDANTS) # 4m
- 
-if [ $DISC_IS_NS -eq 1 ]
-then
-	mv ../data/bams/aln1s_u.bam ../data/bams/aln1s.bam # change back to al1ns_u.bam etc
-	mv ../data/bams/aln2s_u.bam ../data/bams/aln2s.bam
-else
-	$SAM sort -n -@ $THREADS ../data/bams/aln1s_u.bam > ../data/bams/aln1s.bam
-	$SAM sort -n -@ $THREADS ../data/bams/aln2s_u.bam > ../data/bams/aln2s.bam
-fi
-
-./form_clusters.sh $BAM_NS $BAM $READTHRESH $MATCHRATIO $NMATCHRATIO $CALC_THRESH $NMATCH_PCT $MIN_CS $SIG_MULT $BP_MARGIN $SIG_BOUND $SAM $IGNORE_BED $IGNORE_CHR $MAP_THRESH $ABS_AS $MAP_THRESH_U $SIG_THRESH $AS_STAT_QUANTILE $CLBREAK_QUANTILE $LIB_MULT $DISC_ENHANCER3 $DISC_ENHANCER $CL_BRK $LIB_RDL_GAP
+##IF disc BAM not ready
+##time ($SAM view -@32 -F 3586 -b -o ../data/bams/disc.bam $BAM_NS) #34m
+##DISCORDANTS=../data/bams/disc.bam
+#
+##Remove next 2 comments when done testing
+#time ($SAM view -@32 -f 64 -b -o ../data/bams/aln1s_u.bam $DISCORDANTS) #4m
+#time ($SAM view -@32 -f 128 -b -o ../data/bams/aln2s_u.bam $DISCORDANTS) # 4m
+# 
+#if [ $DISC_IS_NS -eq 1 ]
+#then
+#	mv ../data/bams/aln1s_u.bam ../data/bams/aln1s.bam # change back to al1ns_u.bam etc
+#	mv ../data/bams/aln2s_u.bam ../data/bams/aln2s.bam
+#else
+#	$SAM sort -n -@ $THREADS ../data/bams/aln1s_u.bam > ../data/bams/aln1s.bam
+#	$SAM sort -n -@ $THREADS ../data/bams/aln2s_u.bam > ../data/bams/aln2s.bam
+#fi
+#
+./form_clusters.sh 0 $BAM $READTHRESH $MATCHRATIO $NMATCHRATIO $CALC_THRESH $NMATCH_PCT $MIN_CS $SIG_MULT $BP_MARGIN $SIG_BOUND $SAM $IGNORE_BED $IGNORE_CHR $MAP_THRESH $ABS_AS $MAP_THRESH_U $SIG_THRESH $AS_STAT_QUANTILE $CLBREAK_QUANTILE $LIB_MULT $DISC_ENHANCER3 $DISC_ENHANCER $CL_BRK $LIB_RDL_GAP
 ./run_PE.sh $MIN_CS $VAR_RATE $SLOP $REF_RATE $DTHRESH $USC $BAM $MAP_THRESH_U $SIG_MULT $RD_VARNUM $RD_FRAGNUM $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH # can replace $MIN_CS here with another value and run these 2 steps with new threshold rather than rerun whole cluster formation sequence. In this case, simply comment out previous line and run varsecer.
 ./run_RD_SR.o.sh $S_PATH $S_RISK $SS $SR_MARGIN $RO $DTHRESH $RDS $RD_FILE $USC $IGNORE_CHR $MAP_THRESH_U $MQ_SR $MIN_CS_SR $BAM $RD_VARNUM $RD_FRAGNUM $RD_MARGIN $SR_INS_SEPARATION $RD_SLOP $RD_MQU $MINSR_PE_SUPP $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $DENOVO_RD $DEL_CN_SUPP_THRESH2 $DUP_CN_SUPP_THRESH2 $PILEUP_THRESH $MIN_PILEUP_THRESH $GOOD_CNV_REGIONS $LIB_INV $IL_BOOST 

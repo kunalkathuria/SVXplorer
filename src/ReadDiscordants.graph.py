@@ -13,8 +13,7 @@ MATCH_THRESH = float(sys.argv[5]) #.9 # RELATIVE ALIGNMENT PRECISION OF PRIMARY 
 PCT_THRESH = float(sys.argv[4]) #1
 FILE1 = "../data/bams/aln1s.bam" # read 1 discordants
 FILE2 = "../data/bams/aln2s.bam"# read 2 discordants
-BAMFILE1 = sys.argv[1] #name-sorted BAM file.
-BAMFILE2 = sys.argv[2] # position-sorted same BAM file.
+BAMFILE = sys.argv[2] # position-sorted same BAM file.
 ignoreR_FILE = sys.argv[8]
 ignoreChr = sys.argv[9]
 MAP_THRESH = int(sys.argv[10])
@@ -26,8 +25,8 @@ ignoreTIDList = []
 chrHash = {}
 BIG_NUM = 100000 # used to override thresholds for primary alignments below
 
-def calcMeanSig(file1, file2):
-   bamfile = pysam.Samfile(file2,"rb")
+def calcMeanSig(BAM):
+   bamfile = pysam.Samfile(BAM,"rb")
    summedIL = 0
    summedQL = 0
    counter = 0
@@ -109,7 +108,7 @@ def calcMeanSig(file1, file2):
 	fh.write("%s\t%s\n" %(item,BINDIST_HASH[item]))		
 	
 
-   bamfile = pysam.Samfile(file2,"rb")
+   bamfile = pysam.Samfile(BAM,"rb")
    loopCount=0
    counter=0
    while counter < CALC_THRESH and loopCount < 2*CALC_THRESH:
@@ -128,7 +127,7 @@ def calcMeanSig(file1, file2):
 	loopCount+=1
 
    bamfile.close()
-   bamfile = pysam.AlignmentFile(file2,"rb")
+   bamfile = pysam.AlignmentFile(BAM,"rb")
 
    cov = 0
    width = 20
@@ -165,7 +164,7 @@ def calcMeanSig(file1, file2):
    fp.close()
    return meanQL, meanIL, stdev, DISC_D, DISC_D_small
 
-[RDL, MEAN_D, SIG_D, DISC_dist, DISC_dist_small] = calcMeanSig(BAMFILE1, BAMFILE2)
+[RDL, MEAN_D, SIG_D, DISC_dist, DISC_dist_small] = calcMeanSig(BAMFILE)
 ignore_buffer =0* RDL
 
 def formHash():

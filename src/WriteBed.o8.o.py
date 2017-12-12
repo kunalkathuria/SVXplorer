@@ -142,12 +142,13 @@ if __name__ == "__main__":
 	nv_SRposs = 0
 	nv_SRconf = 0
 
-	support = 0
-	for entry in f2:
-		support = len(entry.split()) - 1
-		break
-
 	for line2 in f1:
+
+		support = 0
+	        for entry in f2:
+        	        support = len(entry.split()) - 1
+               		break
+
 		counter+=1
 		if counter % 100 == 0:
 			print "Writing Variant", counter
@@ -160,7 +161,7 @@ if __name__ == "__main__":
 				line2_split[3], line2_split[7] = line2_split[7], line2_split[3]
 				line2_split[4], line2_split[6] = line2_split[6], line2_split[4]
 
-			if line2_split[1][0:3] == "TD" or (len(line2_split) > 2 and (line2_split[1][0:3] == "INV")): #or line2_split[1][0:3] == "DEL")):
+			if line2_split[1][0:3] == "TD" or (len(line2_split) > 2 and (line2_split[1][0:3] == "INV" or line2_split[1][0:3] == "DEL")):
 				if int(line2_split[7])-int(line2_split[3]) < UNIV_VAR_THRESH:
 					continue
 
@@ -364,7 +365,7 @@ if __name__ == "__main__":
 								line2_split[1] = "DEL"
 								#write deletion
 								print "DEL", covLoc
-								f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], int(start -.25*gap) - (int(line2_split[4]) - int(line2_split[3])), int(start-.25*gap), line2_split[2], int(start+.75*gap), int(start+.75*gap) + int(line2_split[4]) - int(line2_split[3]),"DEL",GT))
+								f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], int(start -.25*gap) - (int(line2_split[4]) - int(line2_split[3])), int(start-.25*gap), line2_split[2], int(start+.75*gap), int(start+.75*gap) + int(line2_split[4]) - int(line2_split[3]),"DEL",line2_split[11],GT,support))
 							
 								if counter_l > MIN_PILEUP_THRESH and (counter_l > GOOD_REG_THRESH*(stop-start) or counter_l > PILEUP_THRESH):
 
@@ -373,7 +374,7 @@ if __name__ == "__main__":
 									if covLoc_l/COVERAGE >= 1.0:
 										line2_split[1] = "TD"
 										#write TD
-										f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], int(start2 -.25*gap2) - (int(line2_split[4]) - int(line2_split[3])), int(start2-.25*gap2), line2_split[2], int(start2+.75*gap2), int(start2+.75*gap2) + int(line2_split[4]) - int(line2_split[3]),"TD"))
+										f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], int(start2 -.25*gap2) - (int(line2_split[4]) - int(line2_split[3])), int(start2-.25*gap2), line2_split[2], int(start2+.75*gap2), int(start2+.75*gap2) + int(line2_split[4]) - int(line2_split[3]),"TD", line2_split[11], support))
 								continue
 
 						elif counter_l > MIN_PILEUP_THRESH and (counter_l > GOOD_REG_THRESH*(stop-start) or counter_l > PILEUP_THRESH):
@@ -382,7 +383,7 @@ if __name__ == "__main__":
 								if covLoc_l/COVERAGE >= DUP_THRESH:
 									line2_split[1] = "TD"
 									#write TD
-									f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], int(start2 -.25*gap2) - (int(line2_split[4]) - int(line2_split[3])), int(start2-.25*gap2), line2_split[2], int(start2+.75*gap2), int(start2+.75*gap2) + int(line2_split[4]) - int(line2_split[3]),"TD"))
+									f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], int(start2 -.25*gap2) - (int(line2_split[4]) - int(line2_split[3])), int(start2-.25*gap2), line2_split[2], int(start2+.75*gap2), int(start2+.75*gap2) + int(line2_split[4]) - int(line2_split[3]),"TD", line2_split[11], support))
 									
 									continue	
 
@@ -477,23 +478,23 @@ if __name__ == "__main__":
 #						
 #						if dup_13:
 #							#write TD
-#							f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT))
+#							f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT,support))
 
 						if line2_split[2] == line2_split[5] and del_23 and del_21:
 							print "DEL 1"
 							if int(line2_split[3]) < int(line2_split[6]):
 					
 								if int(line2_split[10]) - int(line2_split[6]) > PE_DEL_THRESH:	
-									f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[6], line2_split[7], line2_split[2], line2_split[9], line2_split[10],"DEL",GT))
+									f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[6], line2_split[7], line2_split[2], line2_split[9], line2_split[10],"DEL",line2_split[11],GT,support))
 								if int(line2_split[7]) - int(line2_split[3]) > PE_DEL_THRESH:
-									f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[2], line2_split[6], line2_split[7],"DEL",GT))
+									f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[2], line2_split[6], line2_split[7],"DEL",line2_split[11],GT,support))
 
 							else:
 
 								if int(line2_split[7]) - int(line2_split[9]) > PE_DEL_THRESH:
-									f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[9], line2_split[10], line2_split[2], line2_split[6], line2_split[7],"DEL",GT))
+									f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[9], line2_split[10], line2_split[2], line2_split[6], line2_split[7],"DEL",line2_split[11],GT,support))
 								if int(line2_split[4]) - int(line2_split[6]) > PE_DEL_THRESH:
-	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[6], line2_split[7], line2_split[2], line2_split[3], line2_split[4],"DEL",GT))
+	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[6], line2_split[7], line2_split[2], line2_split[3], line2_split[4],"DEL",line2_split[11],GT,support))
 
                                                   	continue
 
@@ -503,22 +504,22 @@ if __name__ == "__main__":
 							if int(line2_split[6]) < int(line2_split[9]):
 							
 								if int(line2_split[10]) - int(line2_split[6]) > PE_DEL_THRESH:
-	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[5], line2_split[6], line2_split[7], line2_split[5], line2_split[9], line2_split[10],"DEL",GT))
+	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[5], line2_split[6], line2_split[7], line2_split[5], line2_split[9], line2_split[10],"DEL",line2_split[11],GT,support))
 
                                                         else:
 								if int(line2_split[7]) - int(line2_split[9]) > PE_DEL_THRESH:
-	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[5], line2_split[9], line2_split[10], line2_split[5], line2_split[6], line2_split[7],"DEL",GT))
+	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[5], line2_split[9], line2_split[10], line2_split[5], line2_split[6], line2_split[7],"DEL",line2_split[11],GT,support))
 							continue
 						elif line2_split[2] == line2_split[5] and del_21:
 							#write 1 DEL
 							print "DEL 3"
 							if int(line2_split[3]) < int(line2_split[6]):
 								if int(line2_split[7]) - int(line2_split[3]) > PE_DEL_THRESH:
-	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[2], line2_split[6], line2_split[7],"DEL",GT))
+	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[2], line2_split[6], line2_split[7],"DEL",line2_split[11],GT,support))
 
                                                         else:
 								if int(line2_split[4]) - int(line2_split[6]) > PE_DEL_THRESH:
-	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[6], line2_split[7], line2_split[2], line2_split[3], line2_split[4],"DEL",GT))
+	                                                                f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[6], line2_split[7], line2_split[2], line2_split[3], line2_split[4],"DEL",line2_split[11],GT,support))
 							continue
 
 			if line2_split[1] == "DEL":
@@ -530,14 +531,14 @@ if __name__ == "__main__":
 			    elif line2_split[11].find("SR") != -1 and line2_split[11].find("PE") != -1 and int(line2_split[7]) - int(line2_split[3]) < MIX_DEL_THRESH:
                                 continue
  
-                            f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",GT,line2_split[11]))
+                            f13.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"DEL",line2_split[11],GT,support))
                         #$Comment out second condition and next elif if leads to low precision due to SR TD_I's and INS_I's.    
                         elif line2_split[1] == "TD" or (line2_split[1]=="TD_I" and line2_split[11].find("PE") != -1):
 
 			    [bp1_s, bp1_e] = min(int(line2_split[3]),int(line2_split[6])), min(int(line2_split[4]), int(line2_split[7]))
 			    [bp2_s, bp2_e] = max(int(line2_split[3]),int(line2_split[6])), max(int(line2_split[4]), int(line2_split[7]))
  
-			    f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD",GT))
+			    f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD",line2_split[11],GT,support))
 
 			#See whether this works better for PE only vs PE and SR both-- unlikely to have inv TD...
 			elif line2_split[1] == "INS_I" and line2_split[2] == line2_split[5] and line2_split[8] == "-1" and line2_split[11][:2] == "PE":
@@ -545,19 +546,19 @@ if __name__ == "__main__":
 			    [bp1_s, bp1_e] = min(int(line2_split[3]),int(line2_split[6])), min(int(line2_split[4]), int(line2_split[7]))
                             [bp2_s, bp2_e] = max(int(line2_split[3]),int(line2_split[6])), max(int(line2_split[4]), int(line2_split[7]))
 
-                            f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD_INV",GT))
+                            f14.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], bp1_s, bp1_e, line2_split[5], bp2_s, bp2_e,"TD_INV",line2_split[11],GT,support))
 
 			elif line2_split[1] == "INV" and ( (LIB_INV and line2_split[11].find("SR") != -1) or int(line2_split[12]) > 1): #or line2_split[1]=="INV_POSS":
-                            f15.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],GT))
+                            f15.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],line2_split[11],GT,support))
 
 			# this is read from cluster file, so has 2 bps only; INS_C w/ only 2 clusters supporting; INV w/ only 1
                         elif line2_split[1] == "Unknown" or line2_split[1] == "INS_POSS" or line2_split[1] == "TD_I" or line2_split[1] == "INV_POSS" or ( (line2_split[1] == "INS" or line2_split[1] == "INS_I" or line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I") and (line2_split[9] == "-1" or line2_split[6] == "-1")):
 
-                            f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],GT))
+                            f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],line2_split[11],GT,support))
 
-			elif (line2_split[1] == "INS_C" and line2_split[12] == "2"):
+			elif line2_split[1] == "INS_C": #and line2_split[12] == "2":
 
-				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[7], line2_split[8], line2_split[9], line2_split[10],"BND", line2_split[1],GT))
+				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[7], line2_split[8], line2_split[9], line2_split[10],"BND", line2_split[1],line2_split[11],GT,support))
 
                         elif len(line2_split[1]) > 2 and line2_split[1][0:3] == "INS" and not (line2_split[1]== "INS_C" or line2_split[1] == "INS_C_I"):
 
@@ -576,14 +577,14 @@ if __name__ == "__main__":
 					bp2_s = bp3_s
 					bp3_e = bp2_e
 						
-                            f16.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line2_split[5], bp2_s, bp3_e, line2_split[2], bp1_s, bp1_e, line2_split[1],GT))
+                            f16.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line2_split[5], bp2_s, bp3_e, line2_split[2], bp1_s, bp1_e, line2_split[1],GT,support))
 
                         else:
-				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],GT))
+				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],line2_split[11],GT,support))
  
 	    	if line2_split[1] == "DEL_uc":
 
-                            f13b.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],GT))
+                            f13b.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],line2_split[11],GT,support))
 	
 	#print "PE good call ratio:", 1.0*nv_PEconf/nv_PEposs
         #print "SR good call ratio:", 1.0*nv_SRconf/nv_SRposs	
