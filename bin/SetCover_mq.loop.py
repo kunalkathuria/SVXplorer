@@ -5,51 +5,13 @@ import sys
 import math
 from collections import Counter
 
-WORK_DIR = sys.argv[6]
-FILE = WORK_DIR+"/VariantMap.txt"
+FILE = "../results/text/VariantMap.txt"
 
-def readStats():
-	f=open(WORK_DIR+"/bam_stats.txt","r")
-	for i,line in enumerate(f):
-		if i==3:	
-			break
-		elif i==2:
-			sigIL = float(line.split()[0])
-	return float(line.split()[0]), sigIL
+PE_THRESH = int(sys.argv[6])
+SR_THRESH = int(sys.argv[7])
+MIX_THRESH = int(sys.argv[8])
 
-#disjThresh = int(sys.argv[1])
-PE_THRESH_MAX = 6
-SR_THRESH_MAX = 6
-PE_THRESH_MIN = 3
-SR_THRESH_MIN = 3
-MIX_THRESH = 4
-PE_LOW = 3
-PE_HIGH = 6
-COVG_LOW = 5
-COVG_HIGH = 50
-SR_LOW = 4
-SR_HIGH = 6
-IL_LOW1 = 25
-IL_LOW2 = 35
-IL_BOOST = 0
-
-[COVG,SIG_IL] = readStats()
-
-#LINEAR MODEL TO CALCULATE SUPPORT THRESHOLDS
-if IL_LOW1 <= int(SIG_IL) <= IL_LOW2:
-	IL_BOOST = float(sys.argv[5])
-
-SR_THRESH = math.floor(SR_LOW + (COVG-COVG_LOW)*1.0*(SR_HIGH - SR_LOW)/(COVG_HIGH - COVG_LOW))
-PE_THRESH = round(IL_BOOST + PE_LOW + (COVG-COVG_LOW)*1.0*(PE_HIGH - PE_LOW)/(COVG_HIGH - COVG_LOW))
-if PE_THRESH > PE_THRESH_MAX:
-	PE_THRESH = PE_THRESH_MAX
-if SR_THRESH > SR_THRESH_MAX:
-        SR_THRESH = SR_THRESH_MAX
-if PE_THRESH < PE_THRESH_MIN:
-        PE_THRESH = PE_THRESH_MIN
-if SR_THRESH < SR_THRESH_MIN:
-        SR_THRESH = SR_THRESH_MIN
-print "SR, PE threshes, covg are:", SR_THRESH, PE_THRESH, COVG
+print "SR, PE threshes:", SR_THRESH, PE_THRESH
 
 MAP_THRESH = int(sys.argv[2])
 RD_VAR_NUM = int(sys.argv[3]) #3000000
@@ -58,7 +20,7 @@ MQ_HASH = {}
 
 def formHash():
 
-	f=open(WORK_DIR+"/All_Discords_P_S.txt","r")
+	f=open("../results/text/All_Discords_P_S.txt","r")
 	for line in f:
 		temp = int(line.split()[0])
 		temp2 = int(line.split()[-1])
@@ -85,10 +47,10 @@ def DisjointAlg(fragmentList, nSetsR):
 
     formHash()
     fp=open(FILE,"r")
-    fp2=open(WORK_DIR+"/DisjSetCover_S.txt","w")
-    fp3=open(WORK_DIR+"/All_Variants.txt","r")
-    fp4=open(WORK_DIR+"/mq0_variants.txt","w")
-    fp5=open(WORK_DIR+"/uniqueCount.txt","w")
+    fp2=open("../results/text/DisjSetCover_S.txt","w")
+    fp3=open("../results/text/All_Variants.txt","r")
+    fp4=open("../results/text/mq0_variants.txt","w")
+    fp5=open("../results/text/uniqueCount.txt","w")
 
     print "In SC fxn."
     x = Counter(fragmentList)
@@ -189,7 +151,7 @@ if __name__ == "__main__":
    
    nSV =  DisjointAlg(allFrags, nSetsR)
    
-   f= open(WORK_DIR+"/NSVs.txt","w")
+   f= open("../results/text/NSVs.txt","w")
    
    f.write("%s\n" %nSV)
    f.close()

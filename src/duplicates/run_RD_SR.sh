@@ -3,15 +3,15 @@ WORK_DIR=${32}
 #samtools view -h ${14} \
 #    | ~/store/sv_caller/other_tools/lumpy/code/lumpy-sv-0.2.11/scripts/extractSplitReads_BwaMem -i stdin \
 #    | samtools view -Sb - \
-#    > /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/splitters.25.70.us.bam
+#    > /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.us.bam
 #
-##samtools sort -n -@32 -o /m/cphg-RLscratch2/cphg_ratan/kk7t/target/NA12878/SRR505885/splitters.ns.bam /m/cphg-RLscratch/cphg-RLscratch/ar7jq/read_depth/NA12878/SRR505885/alignments/splitters.bam
-#samtools sort -n -@32 -o /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/splitters.25.70.bam /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/splitters.25.70.us.bam
-#rm /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/splitters.25.70.us.bam
+#samtools sort -n -@32 -o /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.ns.${31}.bam /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.us.bam
+##samtools sort -n -@32 -o /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/$1 /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim2/us.$1
+#rm /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.us.bam
 
 cp $WORK_DIR/ClassifiedVariantMap.txt $WORK_DIR/VariantMap.txt
 cp $WORK_DIR/All_Variants_O.txt $WORK_DIR/All_Variants.txt
-python add_SR_hash.2.py $1 $2 $3 $4 ${13} ${12} ${10} ${18} ${21} $WORK_DIR
+python add_SR_hash.2.py /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim9/splitters.ns.50X.bam $2 $3 $4 ${13} ${12} ${10} ${18} ${21}
 cp $WORK_DIR/VariantMap_SR.txt $WORK_DIR/VariantMap.txt
 cp $WORK_DIR/All_Variants_SR.txt $WORK_DIR/All_Variants.txt
 python SetCover_mq.py $6 ${11} ${15} ${16} ${31} $WORK_DIR
@@ -61,4 +61,3 @@ cat $WORK_DIR/deletions.bedpe $WORK_DIR/tandemDuplications.bedpe $WORK_DIR/inver
 python ../scripts/bed2vcf.py $WORK_DIR/All_SVs
 cp $WORK_DIR/VariantMap_O.txt $WORK_DIR/VariantMap.txt
 cp $WORK_DIR/All_Variants_O.txt $WORK_DIR/All_Variants.txt
-
