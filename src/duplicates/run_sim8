@@ -1,5 +1,0 @@
-./varsecer -A 0 -B 32 -z /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim8/disc.bam -a /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim8/sample.bam  -b /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim8/sample.bam -r /m/cphg-RLscratch2/cphg_ratan/kk7t/target/sim8/splitters.bam -C ../data/bed/ceph.hg19.bed -D ../results/text/ignoreCHR.txt -F 0 -m 0 -I /m/cphg-RLscratch/cphg-RLscratch/ar7jq/read_depth/NA12878/reference.map.bed
-mkdir ../results/text/sim8.1128.vcf
-mv ../results/text/*.bedpe ../results/text/sim8.1128.vcf
-mv ../results/text/All_SVs* ../results/text/sim8.1128.vcf
-cp ../results/text/sim8.1128.vcf/All_SVs.vcf ~/store/results/svc/sim2
