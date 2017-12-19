@@ -39,11 +39,13 @@ $BWA mem -R '@RG\tID:foo\tSM:bar' -Y -t $threads $REFERENCE $READ1 $READ2 \
 
 In addition, a name-sorted file containing fragments that align discordantly (if unsure, simply uncomment the lines in ./varsecer and provide a dummy input to -z dummy_disc_file) and a name-sorted split-reads BAM file (uncomment the lines in run_RD_SR.sh if unavailable and have the indicated LUMPY SR script handy) should also be available for required input. If using CNV (read-depth) signal as input, set the RDS flag (-m) to 1 and provide a space or tab-delimited file in the format (chr start stop copy-number) as input (-x). The script run_cnv.filters.sh is provided for this purpose assuming CNVNATOR is installed. Only the first 4 columns are required. If one does not wish to use third party CNV calls to call DE NOVO variants, but only to support existing ones, simply use -F 0 when running VARSECer. Using 3rd party read-depth calls is not highly recommended due to the unreliability of reported breakpoints.
 
-All VARSECer command line options are accessed via (./varsecer or ./varsecer -h). A file to ignore alignments in certain chromosome/genomic units for B37 (-C), a file to exclude certain regions of alignment for B37 (-D) and a file listing regions not containing high repeats for use in assessing coverage (-I) are included in the VARSECer/data/bed and VARSECER/data/txt.
+All VARSECer command line options are accessed via (./varsecer or ./varsecer -h). A file to ignore alignments in certain chromosome/genomic units for B37 (-C) and a file to exclude certain regions of alignment for B37 (-D) are included in the VARSECer/data/txt and VARSECER/data/bed respectively.
 
 A typical (and recommended) call on sequenced data might be, with appropriate path replacement:
 
 ./varsecer -A 0 -B 32 -z disc.bam -a sample.bam -r splitters.ns.bam -C exclude.bed -D ignore_CHR.txt -I good_regions.bed -W ../results/text
+
+Option -I expects a file listing regions not containing high repeats for use in assessing coverage.
 
 ### RESULTS
 
