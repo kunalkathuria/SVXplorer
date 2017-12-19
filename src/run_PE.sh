@@ -1,6 +1,7 @@
 #!/bin/bash
 MINCS=$1
-WORK_DIR=${14}
+WORK_DIR=${15}
+
 echo "Classification Start"
 cp $WORK_DIR/VariantMap_O.txt $WORK_DIR/VariantMap.txt # uncomment this and following 3 lines when test done
 cat $WORK_DIR/All_Clusters.txt | awk '$2 >= '$MINCS'' > $WORK_DIR/All_Clusters_minT.txt
@@ -15,7 +16,7 @@ cp $WORK_DIR/ClassifiedVariantMap.txt $WORK_DIR/VariantMap.txt
 
 if [ $6 -eq 1 ]
 then
-	python SetCover_mq.py $5 $8 ${10} ${11} ${31} $WORK_DIR
+	python SetCover_mq.py $5 $8 ${10} ${11} ${14} $WORK_DIR
 else
 	python DisjointSetCover.py $WORK_DIR
 fi

@@ -55,8 +55,11 @@ def calcEdgeWeight(f1lpos, f1rpos, f2lpos, f2rpos, totalent, c_type):
 		ildist = abs(BIN_SIZE*int((f2lpos - f1lpos + f1rpos - f2rpos)/(1.0*BIN_SIZE)))
 	elif c_type == "00" or c_type == "11":
 		ildist = abs(BIN_SIZE*int((f2lpos - f1lpos + f2rpos - f1rpos)/(1.0*BIN_SIZE)))
-	
-	distpen = 1 - (abs(f2lpos-f1lpos)+2*RDL-DIST_END)*1.0/(DIST_PEN - DIST_END)
+
+	if DIST_PEN <= DIST_END:
+		distpen = 1 - (abs(f2lpos-f1lpos)+2*RDL-DIST_END)*1.0/(DIST_END - MEAN_D)
+	else:	
+		distpen = 1 - (abs(f2lpos-f1lpos)+2*RDL-DIST_END)*1.0/(DIST_PEN - DIST_END)
 
 	if distpen > 1:
 		distpen = 1

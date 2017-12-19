@@ -1,0 +1,12 @@
+#!/bin/bash
+for i in `seq 1 15`;
+do
+	echo $i:
+	echo
+	cat ~/svc/results/text/s2.srr505.${i}.nord/inversions.bedpe | cut -f1,2,6 | awk '$3 > $2 && $2 >0' > invs
+	bedtools intersect -wa -wb -f $1 -r -a invs -b 1000Genomes/invs.merged.bed | cut -f4-6 | sort | uniq | wc -l
+	bedtools intersect -wa -wb -f $1 -r -a invs -b 1000Genomes/invs.merged.bed | sort | uniq | cut -f1-3 | sort | uniq -d| wc -l
+	echo "Duplicated uniq -d many svc to 1 truth calls:"; bedtools intersect -wa -wb -f $1 -r -a invs -b 1000Genomes/invs.merged.bed | sort | uniq| cut -f4-6 | sort | uniq -d| wc -l
+	echo "Total calls:"; wc -l invs
+	echo
+done

@@ -5,6 +5,7 @@ import sys
 import math
 from collections import Counter
 
+print sys.argv
 WORK_DIR = sys.argv[6]
 FILE = WORK_DIR+"/VariantMap.txt"
 
