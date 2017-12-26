@@ -13,7 +13,8 @@ def file_len(f):
 if __name__ == "__main__":
 
 	WORK_DIR=sys.argv[2]
-	f1 = open(WORK_DIR+"/All_Variants.txt","r")
+	DEBUG_DIR=sys.argv[3]
+	f1 = open(sys.argv[4],"r")
         f8 = open(sys.argv[1],"r")
 	f11 = open(WORK_DIR+"/allPositives.txt","w")
 	f12 = open(WORK_DIR+"/allPositives.bedpe","w")

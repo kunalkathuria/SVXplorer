@@ -161,11 +161,11 @@ def file_len(f):
 
 if __name__ == "__main__":
 
-    fp1 = open(WORK_DIR+"/All_Variants.txt","r")
-    fp2 = open(WORK_DIR+"/VariantMap.txt","r")
-    fp3 = open(WORK_DIR+"/All_Variants_SR.txt","w")
-    fp4 = open(WORK_DIR+"/VariantMap_SR.txt","w")
-    fp5 = open(WORK_DIR+"/updatedBPs_v5.txt","w")
+    fp1 = open(WORK_DIR+"/allVariants.pe.txt","r")
+    fp2 = open(WORK_DIR+"/variantMap.pe.txt","r")
+    fp3 = open(WORK_DIR+"/allVariants.pe_sr.txt","w")
+    fp4 = open(WORK_DIR+"/variantMap.pe_sr.txt","w")
+    fp5 = open(WORK_DIR+"/updatedBPs.txt","w")
     varHash = {}
     SRVarHash = {}
     # ensure hash objects immutable

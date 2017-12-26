@@ -23,9 +23,9 @@ Simply type "make" from the installation path. Now you are ready to run VARSECer
 
 ./varsecer [options]
 
-A good check to see if the tool is working properly is to provide as input the test alignment files in the VARSECER/data/bams/test folder and check if the resulting bedpe files found in the working directory are identical with those contained in the VARSECER/results/test folder. So, first run the code thus (in this example the current directory is the VARSECER parent directory):
+A good check to see if the tool is working properly is to provide as input the test alignment files in the VARSECER/data/bams/test folder and check if the resulting bedpe files found in the working directory are identical with those contained in the VARSECER/results/test folder. So, first run the code thus:
 
-./bin/varsecer -a ../data/bams/test_1k.bam -r ../data/bams/test_1k_splitters.ns.bam -z ../data/bams/discordants.bam -A 1 -m 0 -E 0 -W ../results/text
+/path_to_SVC/bin/varsecer -a /path_to_SVC/data/bams/test_1k.bam -r /path_to_SVC/data/bams/test_1k_splitters.ns.bam -z /path_to_SVC/data/bams/discordants.bam -A 1 -m 0 -E 0 -W work_dir
 
 Then, ascertain that the bedpe files in VARSECER/results/test match the respective ones just created in the working directory (there should be 3 non-empty ones: deletions.bedpe, tandemDuplications.bedpe and unknowns.bedpe). If this is not the case, please recheck all the paths and checkout the master branch from GitHub again if necessary.
 

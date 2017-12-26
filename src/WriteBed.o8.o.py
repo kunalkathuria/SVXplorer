@@ -10,14 +10,19 @@ DEL_THRESH = float(sys.argv[3])
 DUP_THRESH = float(sys.argv[4])
 DEL_THRESH2 = float(sys.argv[5])
 DUP_THRESH2 = float(sys.argv[6])
+DEL_THRESH_L=.8
+DUP_THRESH_L=1.2
 PILEUP_THRESH = float(sys.argv[7])
 MIN_PILEUP_THRESH = 80#float(sys.argv[8])
 RPT_REGIONS_FILE =  sys.argv[9]
 GOOD_REG_THRESH=.8 # to trust pile-up depth in given region, this percentage should return data
 PE_THRESH_H=3
-SPLIT_INS=False
+SPLIT_INS=int(sys.argv[15])
 LIB_INV = int(sys.argv[10])
 WORK_DIR=sys.argv[11]
+DEBUG_DIR=sys.argv[12]
+AV_FILE=sys.argv[13]
+VM_FILE=sys.argv[14]
 
 class Variant(object):
 
@@ -84,20 +89,20 @@ def file_len(f):
 
 if __name__ == "__main__":
 
-	f1 = open(WORK_DIR+"/All_Variants.txt","r")
-	f2=open(WORK_DIR+"/VariantMap.txt","r")
+	f1 = open(AV_FILE,"r")
+	f2=open(VM_FILE,"r")
         f8 = open(sys.argv[1],"r")
 	f11 = open(WORK_DIR+"/allPositives.txt","w")
 	f12 = open(WORK_DIR+"/allPositives.bedpe","w")
 	f13 = open(WORK_DIR+"/deletions.bedpe","w")
-	f13b = open(WORK_DIR+"/deletions_01.bedpe","w")
+	#f13b = open(WORK_DIR+"/deletions_01.bedpe","w")
         f14 = open(WORK_DIR+"/tandemDuplications.bedpe","w")
         f15 = open(WORK_DIR+"/inversions.bedpe","w")
         f16 = open(WORK_DIR+"/insertions.bedpe","w")
         f17 = open(WORK_DIR+"/unknowns.bedpe","w")
 
 	print "Writing final bedpe files using coverage information..."
-	fo = open(WORK_DIR+"/bam_stats.txt","r")		
+	fo = open(DEBUG_DIR+"/bamStats.txt","r")		
 	RDL = -1
 	SD = -1
 	for i,line in enumerate(fo):
@@ -176,6 +181,7 @@ if __name__ == "__main__":
    
 			if line2_split[11].find("RD") == -1: 
 				#f11.write("%s\n" %line2)
+				bnd=0
 				swap = 0
 				GT=""
 				if (line2_split[1] == "DEL_INS" or line2_split[1] == "DEL" or line2_split[1][0:2]== "TD") and int(line2_split[4]) + MIN_PILEUP_THRESH < int(line2_split[6]):
@@ -257,7 +263,7 @@ if __name__ == "__main__":
 							elif line2_split[11].find("PE") == 1:
 								nv_PEposs+=1
 
-							if covLoc/COVERAGE < DEL_THRESH: #1.0:
+							if covLoc/COVERAGE < DEL_THRESH_L: #1.0:
 								line2_split[1] = "BND"
 
 				
@@ -292,7 +298,7 @@ if __name__ == "__main__":
 							#elif line2_split[11].find("PE") != -1:
 								#nv_PEposs+=1
 
-							if confM and covLoc/COVERAGE > DUP_THRESH: #1.0:
+							if confM and covLoc/COVERAGE > DUP_THRESH_L: #1.0:
 								# since bp3 = -1, this will be written as a BND event
 								line2_split[1] = "INS"
 					
@@ -315,9 +321,14 @@ if __name__ == "__main__":
 					 if counter2 > 0:
 					 	covLoc = 1.0*covLoc/counter2
 					
-					if counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH) and covLoc/COVERAGE < 1.15:
+					if counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH) and covLoc/COVERAGE < DUP_THRESH_L:
 
 						line2_split[1] = "INS_C_P"
+						if line2_split[1] == "INS_I":
+							line2_split[1] = "INS_C_I_P"
+
+					elif counter2 > MIN_PILEUP_THRESH and (counter2 > GOOD_REG_THRESH*(stop-start) or counter2 > PILEUP_THRESH) and covLoc/COVERAGE < DEL_THRESH_L:
+						bnd = 1
 
 					#if on same chromosome
 					elif SPLIT_INS and line2_split[2] == line2_split[5] and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
@@ -456,6 +467,9 @@ if __name__ == "__main__":
 							line2_split[1]+="_P"
 							confIC = 1	
 							swap = 1
+
+						elif (del_23 or del_21) and not SPLIT_INS:
+							bnd = 1
 				
 					#if both bp intervals contain deletion read depth	
 					if SPLIT_INS and not confIC and not (int(line2_split[6]) < int(line2_split[3]) < int(line2_split[10])):
@@ -553,13 +567,16 @@ if __name__ == "__main__":
                             f15.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],line2_split[11],GT,support))
 
 			# this is read from cluster file, so has 2 bps only; INS_C w/ only 2 clusters supporting; INV w/ only 1
-                        elif line2_split[1] == "Unknown" or line2_split[1] == "INS_POSS" or line2_split[1] == "TD_I" or line2_split[1] == "INV_POSS" or ( (line2_split[1] == "INS" or line2_split[1] == "INS_I" or line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I") and (line2_split[9] == "-1" or line2_split[6] == "-1")):
+                        elif line2_split[1] == "Unknown" or line2_split[1] == "INS_POSS" or line2_split[1] == "TD_I" or line2_split[1] == "INV_POSS" or ( (line2_split[1] == "INS" or line2_split[1] == "INS_I" or line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I" or line2_split[1]=="INS_C_P" or line2_split[1]=="INS_C_I_P") and (line2_split[9] == "-1" or line2_split[6] == "-1" or bnd)) or line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I":
 
-                            f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],line2_split[11],GT,support))
-
-			elif line2_split[1] == "INS_C": #and line2_split[12] == "2":
+			    if line2_split[1] == "INS" or line2_split[1] == "INS_I" or line2_split[1] == "INS_C" or line2_split[1] == "INS_C_I" or line2_split[1]=="INS_C_P" or line2_split[1]=="INS_C_I_P":
 
 				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[7], line2_split[8], line2_split[9], line2_split[10],"BND", line2_split[1],line2_split[11],GT,support))
+
+			    else:
+			    	
+                           	f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],line2_split[11],GT,support))
+
 
                         elif len(line2_split[1]) > 2 and line2_split[1][0:3] == "INS" and not (line2_split[1]== "INS_C" or line2_split[1] == "INS_C_I"):
 
@@ -583,7 +600,7 @@ if __name__ == "__main__":
                         else:
 				f17.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],"BND", line2_split[1],line2_split[11],GT,support))
  
-	    	if line2_split[1] == "DEL_uc":
+	    	if False and line2_split[1] == "DEL_uc":
 
                             f13b.write(("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n") %(line2_split[2], line2_split[3], line2_split[4], line2_split[5], line2_split[6], line2_split[7],line2_split[1],line2_split[11],GT,support))
 	

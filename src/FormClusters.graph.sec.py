@@ -38,9 +38,9 @@ MINBPDIST = 100
 
 def readDistHash():
 	TOTAL_ENTRIES = 0
-	f=open(WORK_DIR+"/bindist.txt","r")
+	f=open(WORK_DIR+"/binDist.txt","r")
 	for line in f:
-		ls1 = int(line.split()[1])
+		ls1 = float(line.split()[1])
 		BINDIST_HASH[int(line.split()[0])]=ls1
 		TOTAL_ENTRIES+= ls1
 	print TOTAL_ENTRIES
@@ -320,14 +320,14 @@ def doSubsample(fp):
 
 if __name__== "__main__":
     
-    f1=open(WORK_DIR+"/All_Discords_P_S.txt","r")
+    f1=open(WORK_DIR+"/allDiscordants.txt","r")
     #f2=open(WORK_DIR+"/All_Discords_I_S.txt","r")
-    f3=open(WORK_DIR+"/All_Clusters.txt","w")
-    f4=open(WORK_DIR+"/VariantMap.txt","w")
-    f5=open(WORK_DIR+"/Time_FC_loop.txt","w")
-    f6=open(WORK_DIR+"/Time_FC_line.txt","w")
-    fc = open(WORK_DIR+"/cluster_cliques.txt","w")
-    ft=open(WORK_DIR+"/cc_size.txt","w") 
+    f3=open(WORK_DIR+"/allClusters.txt","w")
+    f4=open(WORK_DIR+"/clusterMap.txt","w")
+    f5=open(WORK_DIR+"/Time.FC.loop.txt","w")
+    f6=open(WORK_DIR+"/Time.FC.line.txt","w")
+    fc = open(WORK_DIR+"/clusterCliques.txt","w")
+    ft=open(WORK_DIR+"/ccSize.txt","w") 
 
     print "Function start"
     
@@ -346,12 +346,14 @@ if __name__== "__main__":
     WP_HIGH = .05
     SD_IL_HIGH = 70
     SD_IL_LOW = 15
+
+    WEIGHT_THRESHP = .001
     #if sigma_IL is high, chances of alignments starying into neighboring cluster/clique is higher
-    WEIGHT_THRESHP = WP_LOW + (SIG_D-SD_IL_LOW)*1.0*(WP_HIGH-WP_LOW)/(SD_IL_HIGH-SD_IL_LOW) #.05
-    if WEIGHT_THRESHP > WP_HIGH:
-	WEIGHT_THRESHP = WP_HIGH
-    elif WEIGHT_THRESHP < WP_LOW:
-	WEIGHT_THRESHP = WP_LOW
+    #WEIGHT_THRESHP = WP_LOW + (SIG_D-SD_IL_LOW)*1.0*(WP_HIGH-WP_LOW)/(SD_IL_HIGH-SD_IL_LOW) #.05
+    #if WEIGHT_THRESHP > WP_HIGH:
+    #	WEIGHT_THRESHP = WP_HIGH
+    #elif WEIGHT_THRESHP < WP_LOW:
+    #	WEIGHT_THRESHP = WP_LOW
 
     edgeStore = []
     EW_THRESH = -1

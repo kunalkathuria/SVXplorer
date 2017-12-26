@@ -60,6 +60,7 @@ GOOD_CNV_REGIONS="none"
 LIB_INV=0
 IL_BOOST=-1
 WORK_DIR=.
+SPLIT_INS=0
 
 usage()
 {
@@ -93,6 +94,7 @@ Options (please use short options for now):
     -I                          (file containing 3 cols -- chr, start, stop -- defining good regions in the reference to use when calculating pile up)
     -L				(liberal inversion reporting: if a split read and 1 paired end cluster support an inversion, report it; if flag is 0, 2 opp. orientation paired-end clusters required to report inversion)					
     -W				(working directory)
+    -S				(Set to 1 to split copy-paste or cut-paste insertion calls into diploid DEL, TD variants if indicated by local coverage in variant region;def=0)
 EOF
 }
 
@@ -100,7 +102,7 @@ versionC(){
 cat $(dirname "$0")/../VERSION
 }
 
-while getopts “hva:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:A:B:C:D:E:F:G:H:I:L:W:” OPTION
+while getopts “hva:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:A:B:C:D:E:F:G:H:I:L:W:S:” OPTION
 do
 
      case $OPTION in
@@ -216,6 +218,9 @@ do
             ;;
 	    W)
             WORK_DIR="$OPTARG"
+	    ;;
+	    S)
+            SPLIT_INS="$OPTARG"
             ;;
 	    ?)
 	    echo "Option not recognized."
@@ -231,28 +236,34 @@ then
      exit 1
 fi
 
+mkdir -p $WORK_DIR
+mkdir -p $WORK_DIR/SVC_results
+mkdir -p $WORK_DIR/SVC_debug
+rm -f $WORK_DIR/SVC_debug/*
+
 #IF disc BAM not ready
 #time ($SAM view -@32 -F 3586 -b -o ../data/bams/disc.bam $BAM_NS) #34m
 #DISCORDANTS=../data/bams/disc.bam
 
 #Remove next 2 comments when done testing
-time ($SAM view -@32 -f 64 -b -o $WORK_DIR/aln1s_u.bam $DISCORDANTS) #4m
-time ($SAM view -@32 -f 128 -b -o $WORK_DIR/aln2s_u.bam $DISCORDANTS) # 4m
+time ($SAM view -@32 -f 64 -b -o $WORK_DIR/SVC_debug/aln1s.us.bam $DISCORDANTS) #4m
+time ($SAM view -@32 -f 128 -b -o $WORK_DIR/SVC_debug/aln2s.us.bam $DISCORDANTS) # 4m
  
 if [ $DISC_IS_NS -eq 1 ]
 then
-	mv $WORK_DIR/aln1s_u.bam $WORK_DIR/aln1s.bam # change back to al1ns_u.bam etc
-	mv $WORK_DIR/aln2s_u.bam $WORK_DIR/aln2s.bam
+	mv $WORK_DIR/SVC_debug/aln1s.us.bam $WORK_DIR/SVC_debug/aln1s.bam # change back to al1ns_u.bam etc
+	mv $WORK_DIR/SVC_debug/aln2s.us.bam $WORK_DIR/SVC_debug/aln2s.bam
 else
-	$SAM sort -n -@ $THREADS $WORK_DIR/aln1s_u.bam > $WORK_DIR/aln1s.bam
-	$SAM sort -n -@ $THREADS $WORK_DIR/aln2s_u.bam > $WORK_DIR/aln2s.bam
+	$SAM sort -n -@ $THREADS $WORK_DIR/SVC_debug/aln1s.us.bam > $WORK_DIR/SVC_debug/aln1s.bam
+	$SAM sort -n -@ $THREADS $WORK_DIR/SVC_debug/aln2s.us.bam > $WORK_DIR/SVC_debug/aln2s.bam
 fi
 
 SRC=$(dirname "$0")
 CURR_DIR=$PWD
-cd $SRC
 
-./form_clusters.sh 0 $BAM $READTHRESH $MATCHRATIO $NMATCHRATIO $CALC_THRESH $NMATCH_PCT $MIN_CS $SIG_MULT $BP_MARGIN $SIG_BOUND $SAM $IGNORE_BED $IGNORE_CHR $MAP_THRESH $ABS_AS $MAP_THRESH_U $SIG_THRESH $AS_STAT_QUANTILE $CLBREAK_QUANTILE $LIB_MULT $DISC_ENHANCER3 $DISC_ENHANCER $CL_BRK $LIB_RDL_GAP $WORK_DIR
-./run_PE.sh $MIN_CS $VAR_RATE $SLOP $REF_RATE $DTHRESH $USC $BAM $MAP_THRESH_U $SIG_MULT $RD_VARNUM $RD_FRAGNUM $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $IL_BOOST $WORK_DIR # can replace $MIN_CS here with another value and run these 2 steps with new threshold rather than rerun whole cluster formation sequence. In this case, simply comment out previous line and run varsecer.
-./run_RD_SR.sh $S_PATH $S_RISK $SS $SR_MARGIN $RO $DTHRESH $RDS $RD_FILE $USC $IGNORE_CHR $MAP_THRESH_U $MQ_SR $MIN_CS_SR $BAM $RD_VARNUM $RD_FRAGNUM $RD_MARGIN $SR_INS_SEPARATION $RD_SLOP $RD_MQU $MINSR_PE_SUPP $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $DENOVO_RD $DEL_CN_SUPP_THRESH2 $DUP_CN_SUPP_THRESH2 $PILEUP_THRESH $MIN_PILEUP_THRESH $GOOD_CNV_REGIONS $LIB_INV $IL_BOOST $WORK_DIR
+$SRC/form_clusters.sh 0 $BAM $READTHRESH $MATCHRATIO $NMATCHRATIO $CALC_THRESH $NMATCH_PCT $MIN_CS $SIG_MULT $BP_MARGIN $SIG_BOUND $SAM $IGNORE_BED $IGNORE_CHR $MAP_THRESH $ABS_AS $MAP_THRESH_U $SIG_THRESH $AS_STAT_QUANTILE $CLBREAK_QUANTILE $LIB_MULT $DISC_ENHANCER3 $DISC_ENHANCER $CL_BRK $LIB_RDL_GAP $WORK_DIR $SRC
+
+$SRC/run_PE.sh $MIN_CS $VAR_RATE $SLOP $REF_RATE $DTHRESH $USC $BAM $MAP_THRESH_U $SIG_MULT $RD_VARNUM $RD_FRAGNUM $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $IL_BOOST $WORK_DIR $SRC # can replace $MIN_CS here with another value and run these 2 steps with new threshold rather than rerun whole cluster formation sequence. In this case, simply comment out previous line and run varsecer.
+
+$SRC/run_RD_SR.sh $S_PATH $S_RISK $SS $SR_MARGIN $RO $DTHRESH $RDS $RD_FILE $USC $IGNORE_CHR $MAP_THRESH_U $MQ_SR $MIN_CS_SR $BAM $RD_VARNUM $RD_FRAGNUM $RD_MARGIN $SR_INS_SEPARATION $RD_SLOP $RD_MQU $MINSR_PE_SUPP $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $DENOVO_RD $DEL_CN_SUPP_THRESH2 $DUP_CN_SUPP_THRESH2 $PILEUP_THRESH $MIN_PILEUP_THRESH $GOOD_CNV_REGIONS $LIB_INV $IL_BOOST $WORK_DIR $SRC $SPLIT_INS
 cd $PWD

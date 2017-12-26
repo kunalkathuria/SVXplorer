@@ -21,23 +21,23 @@ if __name__=="__main__":
 		else:
 			precise="PRECISE"
 
+		chr2=""
+                if line_split[0] != line_split[3]:
+                	chr2="CHR2="+ line_split[3] + ";"
+
 		#$Use SR variant flag to remove IMPRECISE
 		if line_split[6] == "BND" and line_split[7] != "INS_C":
 
 			#l1 = min(int(line_split[1]), int(line_split[4]))
 			#l2 = max(int(line_split[1]), int(line_split[4]))	
 
-			chr2=""
-			if line_split[0] != line_split[3]:
-				chr2="CHR2="+ line_split[3] + ";"
-
 			fw.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line_split[0], line_split[1],counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + line_split[5] + ";" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM="+line_split[6]+";" + chr2 + support + precise))
 
-		elif line_split[6] == "BND" and line_split[7] == "INS_C":
+		elif line_split[6] == "BND" and (line_split[7] == "INS_C" or line_split[7] == "INS_C_P" or line_split[7] == "INS_C_I" or line_split[7] == "INS_C_I_P"):
 
 			#$write exact imprecision and third breakend based on number of supporting clusters for INS_C	
 			fw.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line_split[0], line_split[1],counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + line_split[2]+ ";CIPOS=-100,100;CIEND=-100,100;CM=" + line_split[6]+";" + support + precise))
-			fw.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line_split[3], line_split[2],counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + line_split[5]+ ";CIPOS=-100,100;CIEND=-100,100;CM=" + line_split[6]+";" + support + precise))
+			fw.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %(line_split[0], line_split[1],counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + line_split[5]+ ";" + chr2 + "CIPOS=-100,100;CIEND=-100,100;CM=" + line_split[6]+";" + support + precise))
 			
 		elif line_split[6] == "DEL":
 

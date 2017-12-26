@@ -10,7 +10,7 @@ refRate = int(sys.argv[3]) # 5
 #SIG_MULT_RD = int(sys.argv[4])
 RDL_FACTOR=2
 WORK_DIR = sys.argv[4]
-f=open(WORK_DIR+"/bam_stats.txt","r")
+f=open(WORK_DIR+"/bamStats.txt","r")
 RDL = float(f.readline().split()[0])
 #MEAN_IL = float(f.readline().split()[0])
 #SIG_IL = float(f.readline().split()[0])
@@ -1371,14 +1371,14 @@ if __name__ == "__main__":
 
     # input form files sorted by left TID and position and right TID and position for faster comparison
     # There is double comparison in some cases but that is hard to avoid
-    # Remove columns in All_Clusters.txt before sorting and change Cluster class formation code to speed up
-    fpL = open(WORK_DIR+"/All_Clusters_LS.txt","r")
-    fpR = open(WORK_DIR+"/All_Clusters_RS.txt","r")
+    # Remove columns in allClusters.txt before sorting and change Cluster class formation code to speed up
+    fpL = open(WORK_DIR+"/allClusters.ls.txt","r")
+    fpR = open(WORK_DIR+"/allClusters.rs.txt","r")
     fp2 = open(WORK_DIR+"/doubleOccurences.txt","w")
-    fp3 = open(WORK_DIR+"/All_Variants.txt","w")
-    fp4 = open(WORK_DIR+"/VariantMap.txt", "r")
-    fp5 = open(WORK_DIR+"/ClassifiedVariantMap.txt", "w")
-    #fp6 = open(WORK_DIR+"/All_Clusters_I.txt","r")
+    fp3 = open(WORK_DIR+"/allVariants.pe.txt","w")
+    fp4 = open(WORK_DIR+"/clusterMap.txt", "r")
+    fp5 = open(WORK_DIR+"/variantMap.pe.txt", "w")
+    #fp6 = open(WORK_DIR+"/allClusters.up.txt","r")
     
     Clusters_L = []
     Clusters_R = []
@@ -1403,7 +1403,7 @@ if __name__ == "__main__":
     # This graph stores all comparisons between variants and clusters as undirected edges
     loopNum = 0
     
-    # remove -1 last line from All_Clusters in code
+    # remove -1 last line from allClusters in code
     while fpL:
 
         L_Match = 0
@@ -1591,7 +1591,7 @@ if __name__ == "__main__":
     OCArray_C = []
     store = 0
    
-    fr = open(WORK_DIR+"/ClaimedCls.txt","w") 
+    fr = open(WORK_DIR+"/claimedClusters.txt","w") 
     for line in fpL:
 
         counter+= 1

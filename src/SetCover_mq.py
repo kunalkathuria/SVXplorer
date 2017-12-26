@@ -7,10 +7,11 @@ from collections import Counter
 
 print sys.argv
 WORK_DIR = sys.argv[6]
-FILE = WORK_DIR+"/VariantMap.txt"
+FILE = sys.argv[7]
+AV_FILE = sys.argv[8]
 
 def readStats():
-	f=open(WORK_DIR+"/bam_stats.txt","r")
+	f=open(WORK_DIR+"/bamStats.txt","r")
 	for i,line in enumerate(f):
 		if i==3:	
 			break
@@ -59,7 +60,7 @@ MQ_HASH = {}
 
 def formHash():
 
-	f=open(WORK_DIR+"/All_Discords_P_S.txt","r")
+	f=open(WORK_DIR+"/allDiscordants.txt","r")
 	for line in f:
 		temp = int(line.split()[0])
 		temp2 = int(line.split()[-1])
@@ -86,10 +87,10 @@ def DisjointAlg(fragmentList, nSetsR):
 
     formHash()
     fp=open(FILE,"r")
-    fp2=open(WORK_DIR+"/DisjSetCover_S.txt","w")
-    fp3=open(WORK_DIR+"/All_Variants.txt","r")
-    fp4=open(WORK_DIR+"/mq0_variants.txt","w")
-    fp5=open(WORK_DIR+"/uniqueCount.txt","w")
+    fp2=open(WORK_DIR+"/variants.uniqueFilter.txt","w")
+    fp3=open(AV_FILE,"r")
+    fp4=open(WORK_DIR+"/variants.noUniqueSupport.txt","w")
+    fp5=open(WORK_DIR+"/variants.uniqueSupport.txt","w")
 
     print "In SC fxn."
     x = Counter(fragmentList)

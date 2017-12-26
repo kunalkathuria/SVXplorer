@@ -102,9 +102,12 @@ def calcMeanSig(BAM):
 		if temp >= 0: 
 			if temp not in BINDIST_HASH:
 				BINDIST_HASH[temp] = 0
-			BINDIST_HASH[temp]+= DIST_HASH[item] + DIST_HASH[item2]
+			if temp > 0:
+ 				BINDIST_HASH[temp]+= DIST_HASH[item]*DIST_HASH[item2]
+ 			else:
+ 				BINDIST_HASH[temp]+= (DIST_HASH[item])*(DIST_HASH[item] -1)*.5
 
-   fh = open(WORK_DIR + "/bindist.txt","w")
+   fh = open(WORK_DIR + "/binDist.txt","w")
    for item in BINDIST_HASH:
 	fh.write("%s\t%s\n" %(item,BINDIST_HASH[item]))		
 	
@@ -160,7 +163,7 @@ def calcMeanSig(BAM):
    if DISC_D < 0:
         DISC_D = 3*stdev
    print meanQL, meanIL, stdev, cov, max_IL, DISC_D
-   fp = open(WORK_DIR + "/bam_stats.txt","w")
+   fp = open(WORK_DIR + "/bamStats.txt","w")
    fp.write("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n" %(meanQL, meanIL, stdev,cov, max_IL, DISC_D, DIST_PEN, DIST_END))
    fp.close()
    return meanQL, meanIL, stdev, DISC_D, DISC_D_small
@@ -466,7 +469,7 @@ def FormDiscordant(list1, list2, DList1, DList2):
                 	temp.mapqual = map_qual
 	
 			# "small" means discordant due to IL being smaller than threshold	
-			if left_tid == right_tid and CLType == "01" and OUTER_D - MEAN_D < -1*DISC_dist_small:
+			if left_tid == right_tid and CLType == "01" and OUTER_D - MEAN_D < DISC_dist_small:
 				Cl_small = 1
 
                         if map_type == 0:
@@ -573,8 +576,8 @@ def ReadNextReadAlignments(bamname):
     
 if __name__ == "__main__":
 
-    f1 = open(WORK_DIR + "/All_Discords_P.txt","w")
-    f2 = open(WORK_DIR + "/All_Discords_I.txt","w")
+    f1 = open(WORK_DIR + "/allDiscordants.us.txt","w")
+    f2 = open(WORK_DIR + "/allDiscordants.up.us.txt","w")
    
     print "Ignoring:", ignoreChr, ignoreR_FILE
  
