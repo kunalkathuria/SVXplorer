@@ -100,7 +100,7 @@ def calculateMargin(item):
 			# use small margin
 			cl_margin = BP_MARGIN
 
-		ERROR_MARGIN = int(BP_MARGIN/2)
+		ERROR_MARGIN = int(BP_MARGIN/4)
 		# for SVSim like test where tolerance is only added to start of SV
 
 		#$test-- remove later. Results v good w/SVSim tally on this.

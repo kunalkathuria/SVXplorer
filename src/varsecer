@@ -13,7 +13,7 @@ SIG_THRESH=.9985
 RDS=0
 VAR_RATE=450
 SLOP=0
-BP_MARGIN=30
+BP_MARGIN=20
 SS=10
 SR_MARGIN=0
 RO=0.7
@@ -57,7 +57,7 @@ DENOVO_RD=1
 PILEUP_THRESH=500.0
 MIN_PILEUP_THRESH=100.0
 GOOD_CNV_REGIONS="none"
-LIB_INV=0
+LIB_INV=1
 IL_BOOST=-1
 WORK_DIR=.
 SPLIT_INS=0
@@ -242,8 +242,8 @@ mkdir -p $WORK_DIR/SVC_debug
 rm -f $WORK_DIR/SVC_debug/*
 
 #IF disc BAM not ready
-#time ($SAM view -@32 -F 3586 -b -o ../data/bams/disc.bam $BAM_NS) #34m
-#DISCORDANTS=../data/bams/disc.bam
+#time ($SAM view -@32 -F 3586 -b -o $WORK_DIR/SVC_debug/disc.bam $BAM_NS) #34m
+#DISCORDANTS=$WORK_DIR/SVC_debug/disc.bam
 
 #Remove next 2 comments when done testing
 time ($SAM view -@32 -f 64 -b -o $WORK_DIR/SVC_debug/aln1s.us.bam $DISCORDANTS) #4m

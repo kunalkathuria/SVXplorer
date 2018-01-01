@@ -25,6 +25,7 @@ SR_THRESH_MAX = 6
 PE_THRESH_MIN = 3
 SR_THRESH_MIN = 3
 MIX_THRESH = 4
+COMPLEX_THRESH = 4 # for complex variants, various criteria are satisfied, so threshold more relaxed and static
 PE_LOW = 3
 PE_HIGH = 6
 COVG_LOW = 5
@@ -109,7 +110,10 @@ def DisjointAlg(fragmentList, nSetsR):
 	disjThresh = -1
 
 	for line in fp3:
-		if line.split()[11].find("PE") == -1 and line.split()[11].find("SR") != -1:
+
+		if line.split()[1] == "INV" or line.split()[1].find("INS") != -1:
+			disjThresh = COMPLEX_THRESH
+		elif line.split()[11].find("PE") == -1 and line.split()[11].find("SR") != -1:
 			SRvar = 1
 			disjThresh = SR_THRESH
 		elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") == -1:
@@ -144,8 +148,11 @@ def DisjointAlg(fragmentList, nSetsR):
     fp3.seek(0)
     for g,item in enumerate(disjointness):
 
+	#$redundant, keep tag
 	for line in fp3:
-                if line.split()[11].find("PE") == -1 and line.split()[11].find("SR") != -1:
+		if line.split()[1] == "INV" or line.split()[1].find("INS") != -1:
+                        disjThresh = COMPLEX_THRESH
+                elif line.split()[11].find("PE") == -1 and line.split()[11].find("SR") != -1:
                         SRvar = 1
 			disjThresh = SR_THRESH
                 elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") == -1:

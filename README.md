@@ -43,7 +43,7 @@ All VARSECer command line options are accessed via (./varsecer or ./varsecer -h)
 
 A typical (and recommended) call on sequenced data might be, with appropriate path replacement:
 
-./varsecer -A 0 -B 32 -z disc.bam -a sample.bam -r splitters.ns.bam -C exclude.bed -D ignore_CHR.txt -I good_regions.bed -W ../results/text
+./varsecer -A 0 -B N_THREADS -z disc.bam -a sample.bam -r splitters.ns.bam -C exclude.bed -D ignore_CHR.txt -I good_regions.bed -W pathToworkDir
 
 Option -I expects a file listing regions not containing high repeats for use in assessing coverage.
 
