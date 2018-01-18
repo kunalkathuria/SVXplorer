@@ -223,7 +223,7 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusterSizes, fClusters, fClus
                     if len(item) > 2 and usPos != -1:
                         item_s = item[:uscore]
                     fClusterMap.write(" %s" %item_s)
-                    fClusterMap.write("\n")
+                fClusterMap.write("\n")
                 clusterNum+=1
     return clusterNum
 
