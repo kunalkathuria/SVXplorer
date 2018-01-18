@@ -25,7 +25,7 @@ Simply type "make" from the installation path. Now you are ready to run VARSECer
 
 A good check to see if the tool is working properly is to provide as input the test alignment files in the VARSECER/data/bams/test folder and check if the resulting bedpe files found in the working directory are identical with those contained in the VARSECER/results/test folder. So, first run the code thus:
 
-/path_to_SVC/bin/varsecer -a /path_to_SVC/data/bams/test_1k.bam -r /path_to_SVC/data/bams/test_1k_splitters.ns.bam -z /path_to_SVC/data/bams/discordants.bam -A 1 -m 0 -E 0 -W work_dir
+/path_to_SVC/bin/varsecer -a /path_to_SVC/data/bams/test_1k.bam -r /path_to_SVC/data/bams/test_1k_splitters.ns.bam -z /path_to_SVC/data/bams/discordants.bam -A 1 -m 0 -E 0 -W workDir
 
 Then, ascertain that the bedpe files in VARSECER/results/test match the respective ones just created in the working directory (there should be 3 non-empty ones: deletions.bedpe, tandemDuplications.bedpe and unknowns.bedpe). If this is not the case, please recheck all the paths and checkout the master branch from GitHub again if necessary.
 
@@ -45,7 +45,7 @@ A typical (and recommended) call on sequenced data might be, with appropriate pa
 
 ./varsecer -A 0 -B N_THREADS -z disc.bam -a sample.bam -r splitters.ns.bam -C exclude.bed -D ignore_CHR.txt -I good_regions.bed -W pathToworkDir
 
-Option -I expects a file listing regions not containing high repeats for use in assessing coverage.
+Option -I expects a file listing regions not containing high repeats for use in assessing coverage, and SVC provides one.
 
 ### RESULTS
 
@@ -57,4 +57,5 @@ These files are written in the working directory. Intermediate bedpe files using
 
 1. To enhance sensitivity  and precision of variant calls for good data sets, one can set MQ_THRESH to 1. By default it is set to 10, but setting it to 1 would work well for high quality data (low spread in insert length, good coverage, low bias etc.). 
 2. One can also set MQ_THRESH to 0 and use the option of secondary alignments by assigning a value less than 1 to MATCHRATIO (-d;see command line help) for higher sensitivity, but which may increase run-time considerably.
-3. One can set SPLIT_INS to True for good-quality data which allows for better performance with this particular filter (reevaluates non-tandem duplications/translocations and break them into deletions and tandem duplications if indicated by local read depth). 
+3. One can set SPLIT_INS to True for good-quality data which allows for better performance with this particular filter (reevaluates non-tandem duplications/translocations and break them into deletions and tandem duplications if indicated by local read depth).
+4. One can set LIB_INV to FALSE if wish to call only those inversions that are supported by 2 opposing PE clusters, and not 1 PE and 1 SR cluster only (see manuscript for more details). 

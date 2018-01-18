@@ -11,13 +11,13 @@ FILE = sys.argv[7]
 AV_FILE = sys.argv[8]
 
 def readStats():
-	f=open(WORK_DIR+"/bamStats.txt","r")
-	for i,line in enumerate(f):
-		if i==3:	
-			break
-		elif i==2:
-			sigIL = float(line.split()[0])
-	return float(line.split()[0]), sigIL
+    f=open(WORK_DIR+"/bamStats.txt","r")
+    for i,line in enumerate(f):
+        if i==3:    
+            break
+        elif i==2:
+            sigIL = float(line.split()[0])
+    return float(line.split()[0]), sigIL
 
 #disjThresh = int(sys.argv[1])
 PE_THRESH_MAX = 6
@@ -40,18 +40,18 @@ IL_BOOST = 0
 
 #LINEAR MODEL TO CALCULATE SUPPORT THRESHOLDS
 if IL_LOW1 <= int(SIG_IL) <= IL_LOW2:
-	IL_BOOST = float(sys.argv[5])
+    IL_BOOST = float(sys.argv[5])
 
 SR_THRESH = math.floor(SR_LOW + (COVG-COVG_LOW)*1.0*(SR_HIGH - SR_LOW)/(COVG_HIGH - COVG_LOW))
 PE_THRESH = round(IL_BOOST + PE_LOW + (COVG-COVG_LOW)*1.0*(PE_HIGH - PE_LOW)/(COVG_HIGH - COVG_LOW))
 if PE_THRESH > PE_THRESH_MAX:
-	PE_THRESH = PE_THRESH_MAX
+    PE_THRESH = PE_THRESH_MAX
 if SR_THRESH > SR_THRESH_MAX:
-        SR_THRESH = SR_THRESH_MAX
+    SR_THRESH = SR_THRESH_MAX
 if PE_THRESH < PE_THRESH_MIN:
-        PE_THRESH = PE_THRESH_MIN
+    PE_THRESH = PE_THRESH_MIN
 if SR_THRESH < SR_THRESH_MIN:
-        SR_THRESH = SR_THRESH_MIN
+    SR_THRESH = SR_THRESH_MIN
 print "SR, PE threshes, covg are:", SR_THRESH, PE_THRESH, COVG
 
 MAP_THRESH = int(sys.argv[2])
@@ -61,15 +61,16 @@ MQ_HASH = {}
 
 def formHash():
 
-	f=open(WORK_DIR+"/allDiscordants.txt","r")
-	for line in f:
-		temp = int(line.split()[0])
-		temp2 = int(line.split()[-1])
-		#include only primary alignments; assume if fragment unique for a variant, then it is primary
-		#we are ensured that primary alignment of the read clears MAP_THRESH, and relative AS of secondary is very close by default
-		if temp not in MQ_HASH and temp2 >= MAP_THRESH:
-			MQ_HASH[temp] = 1
-	
+    f=open(WORK_DIR+"/allDiscordants.txt","r")
+    throw = f.readline() #absorb header
+    for line in f:
+        temp = int(line.split()[0])
+        temp2 = int(line.split()[-1])
+        #include only primary alignments; assume if fragment unique for a variant, then it is primary
+        #we are ensured that primary alignment of the read clears MAP_THRESH, and relative AS of secondary is very close by default
+        if temp not in MQ_HASH and temp2 >= MAP_THRESH:
+            MQ_HASH[temp] = 1
+    
 def DisjointAlg(fragmentList, nSetsR):
 
     N_potSVs = 0
@@ -101,76 +102,76 @@ def DisjointAlg(fragmentList, nSetsR):
 
         currentSet = map(int, line.split())
         varNum.append(currentSet[0])
-	currentSet = currentSet[1:] 
-	
-	#3 variables for variant type for clarity	
-	SRvar = 0
-	PEvar = 0
-	mixedVar = 0
-	disjThresh = -1
+        currentSet = currentSet[1:] 
+    
+        #3 variables for variant type for clarity   
+        SRvar = 0
+        PEvar = 0
+        mixedVar = 0
+        disjThresh = -1
 
-	for line in fp3:
+        for line in fp3:
 
-		if line.split()[1] == "INV" or line.split()[1].find("INS") != -1:
-			disjThresh = COMPLEX_THRESH
-		elif line.split()[11].find("PE") == -1 and line.split()[11].find("SR") != -1:
-			SRvar = 1
-			disjThresh = SR_THRESH
-		elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") == -1:
-			PEvar = 1
-			disjThresh = PE_THRESH
-		elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") != -1:
-			mixedVar = 1
-			disjThresh = MIX_THRESH
+            if line.split()[1] == "INV" or line.split()[1].find("INS") != -1:
+                disjThresh = COMPLEX_THRESH
+            elif line.split()[11].find("PE") == -1 and line.split()[11].find("SR") != -1:
+                SRvar = 1
+                disjThresh = SR_THRESH
+            elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") == -1:
+                PEvar = 1
+                disjThresh = PE_THRESH
+            elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") != -1:
+                mixedVar = 1
+                disjThresh = MIX_THRESH
 
-		#print line, disjThresh
-		break
+            #print line, disjThresh
+            break
 
-	
+    
         for elem in currentSet:
-		
-		#pick those supported by RD automatically		
-		if elem >= RD_Frag:
-		
-			if x[elem] == 1:
-				disjointness[counter]+=1
-			pickV[counter] = 2
+        
+            #pick those supported by RD automatically       
+            if elem >= RD_Frag:
+        
+                if x[elem] == 1:
+                    disjointness[counter]+=1
+                pickV[counter] = 2
 
-		#if SR, no secondaries so is above MQ_THRESH automatically
-		elif x[elem] == 1 and (elem in MQ_HASH or elem < 0):
+            #if SR, no secondaries so is above MQ_THRESH automatically
+            elif x[elem] == 1 and (elem in MQ_HASH or elem < 0):
 
-	            disjointness[counter]+=1
+                disjointness[counter]+=1
 
-		if disjointness[counter] == disjThresh:
-			break
-	counter+=1
+            if disjointness[counter] == disjThresh:
+                break
+        counter+=1
 
     fp3.seek(0)
     for g,item in enumerate(disjointness):
 
-	#$redundant, keep tag
-	for line in fp3:
-		if line.split()[1] == "INV" or line.split()[1].find("INS") != -1:
-                        disjThresh = COMPLEX_THRESH
+        #$redundant, keep tag
+        for line in fp3:
+                if line.split()[1] == "INV" or line.split()[1].find("INS") != -1:
+                    disjThresh = COMPLEX_THRESH
                 elif line.split()[11].find("PE") == -1 and line.split()[11].find("SR") != -1:
-                        SRvar = 1
-			disjThresh = SR_THRESH
+                    SRvar = 1
+                    disjThresh = SR_THRESH
                 elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") == -1:
-                        PEvar = 1
-			disjThresh = PE_THRESH
+                    PEvar = 1
+                    disjThresh = PE_THRESH
                 elif line.split()[11].find("PE") != -1 and line.split()[11].find("SR") != -1:
-                        mixedVar = 1
-			disjThresh = MIX_THRESH
+                    mixedVar = 1
+                    disjThresh = MIX_THRESH
 
                 break
 
-	# RD CNVs do not use same support threshold
+        # RD CNVs do not use same support threshold
         if (item >= disjThresh) or (item >= 1 and pickV[g] == 2):
            fp2.write("%s\n" %varNum[g]) 
-	   N_potSVs+=1
-	#make list of variants with unique support till thresh
-	if varNum[g] < RD_VAR_NUM:
-	   fp5.write("%s %s\n" %(varNum[g], disjointness[g]))
+           N_potSVs+=1
+        #make list of variants with unique support till thresh
+        if varNum[g] < RD_VAR_NUM:
+            fp5.write("%s %s\n" %(varNum[g], disjointness[g]))
 
     return N_potSVs
 

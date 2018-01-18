@@ -1,13 +1,16 @@
 #!/bin/bash
+set -eux
 
-READTHRESH=20
-ABS_AS=0
+SUBSAMPLE=0 #use ONLY if code slow. Should rarely be needed.
+VERBOSE=0
+PERMUTATION_THRESH=20
+AS_THRESH=0
 MAP_THRESH=1
 MAP_THRESH_U=10
 MQ_SR=10
-MATCHRATIO=2
-NMATCHRATIO=0
-NMATCH_PCT=0
+AS_RELATIVE_THRESH=2
+NMATCH_RELATIVE_THRESH=0
+NMATCH_PCT_THRESH=0
 CALC_THRESH=1000000
 SIG_THRESH=.9985
 RDS=0
@@ -20,14 +23,11 @@ RO=0.7
 REF_RATE=5
 DTHRESH=3
 S_RISK=1
-SIG_MULT=3 #obsolete
-SIG_BOUND=3
 MIN_CS=3
 MIN_CS_SR=$DTHRESH
 USC=1
 SAM=samtools
-BAM=
-BAM_NS=
+BAMFILE=
 S_PATH=
 RD_FILE="../results/text/cnvs.err.txt"
 DISCORDANTS=
@@ -35,13 +35,8 @@ THREADS=1
 DISC_IS_NS=0
 IGNORE_BED="none"
 IGNORE_CHR="none"
-CLBREAK_QUANTILE=.9999
-LIB_MULT=2.0
-DISC_ENHANCER3=2.0
-AS_STAT_QUANTILE=.999
+AS_CALC_THRESH=.999
 DISC_ENHANCER=1.67
-CL_BRK=0
-LIB_RDL_GAP=1.0
 RD_VARNUM=3000000
 RD_FRAGNUM=100000000
 RD_MARGIN=0
@@ -57,7 +52,6 @@ DENOVO_RD=1
 PILEUP_THRESH=500.0
 MIN_PILEUP_THRESH=100.0
 GOOD_CNV_REGIONS="none"
-LIB_INV=1
 IL_BOOST=-1
 WORK_DIR=.
 SPLIT_INS=0
@@ -77,7 +71,7 @@ Options (please use short options for now):
     -C|--ignoreB		(BED file in format "chr start stop", w/o ANY headers, containing reference regions to ignore in forming variants)
     -D|--ignoreChr		(file containing names of chromosomes, 1 per line,  whose alignments should be completely ignored)
     -c|--read_thresh 		(max number of discordant read mappings a single PE fragment mate can have for it not to be ignored in uniqeness-based set cover, default = 20)
-    -d|--match_thresh 		(min threshold of ratio of a given secondary alignment's score with AS of primary alignment needed for this secondary alignment to be considered/used in set cover, def = .95)
+    -d|--match_thresh 		(min threshold of ratio of a given secondary alignment's score with AS of primary alignment needed for this secondary alignment to be considered/used in set cover, def = 2, recommended = .95 if using secondary alignments)
     -e|--n_match_thresh 	(same as above for number of base pair matches in alignment, instead of AS, def = 0)
     -f|--n_pct_thresh 		(min ratio of matching bases in a given alignment to read length required for read to be used in analysis, default =  0)
     -g|--calc_thresh 		(max entries of bamfile used to ascertain stats like coverage, mean insert length etc., def = 1,000,000)
@@ -95,6 +89,7 @@ Options (please use short options for now):
     -L				(liberal inversion reporting: if a split read and 1 paired end cluster support an inversion, report it; if flag is 0, 2 opp. orientation paired-end clusters required to report inversion)					
     -W				(working directory)
     -S				(Set to 1 to split copy-paste or cut-paste insertion calls into diploid DEL, TD variants if indicated by local coverage in variant region;def=0)
+    -V              (Turn on verbose output;def=off)
 EOF
 }
 
@@ -102,7 +97,7 @@ versionC(){
 cat $(dirname "$0")/../VERSION
 }
 
-while getopts “hva:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:A:B:C:D:E:F:G:H:I:L:W:S:” OPTION
+while getopts “hvLVa:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:A:B:C:D:F:G:I:W:S:” OPTION
 do
 
      case $OPTION in
@@ -110,30 +105,27 @@ do
 	    usage
 	    exit 1
 	    ;;	
-    	    a)
-	    BAM="$OPTARG"
-	    ;;
-	    b)
-	    BAM_NS="$OPTARG"
+        a)
+	    BAMFILE="$OPTARG"
 	    ;;
 	    c)
-	    READTHRESH="$OPTARG"
+	    PERMUTATION_THRESH="$OPTARG"
 	    ;;
 	    d)
-	    MATCHRATIO="$OPTARG"
+	    AS_RELATIVE_THRESH="$OPTARG"
 	    ;;
 	    e)
-	    NMATCHRATIO="$OPTARG"
+	    NMATCH_RELATIVE_THRESH="$OPTARG"
 	    ;;
 	    f)
-	    NMATCH_PCT="$OPTARG"
+	    NMATCH_PCT_THRESH="$OPTARG"
 	    ;;
 	    g)
 	    CALC_THRESH="$OPTARG"
 	    ;;
 	    i)
-            SAM="$OPTARG"
-            ;;
+        SAM="$OPTARG"
+        ;;
 	    j)
 	    BP_MARGIN="$OPTARG"
 	    ;;
@@ -144,8 +136,8 @@ do
 	    SLOP="$OPTARG"
 	    ;;
 	    m)
-            RDS="$OPTARG"
-            ;;
+        RDS="$OPTARG"
+        ;;
 	    n)
 	    RO="$OPTARG"
 	    ;;
@@ -174,9 +166,6 @@ do
 	    versionC
 	    exit 1
 	    ;;
-	    w)
-	    SIG_MULT="$OPTARG"
-	    ;;
 	    x)
 	    RD_FILE="$OPTARG"
 	    ;;
@@ -184,13 +173,13 @@ do
 	    USC="$OPTARG"
 	    ;;
 	    z)
-            DISCORDANTS="$OPTARG"
-            ;;
+        DISCORDANTS="$OPTARG"
+        ;;
 	    A)
-            DISC_IS_NS="$OPTARG"
-            ;;
+        DISC_IS_NS="$OPTARG"
+        ;;
 	    B)
-            THREADS="$OPTARG"		
+        THREADS="$OPTARG"		
 	    ;;
 	    C)
 	    IGNORE_BED="$OPTARG"
@@ -198,30 +187,27 @@ do
 	    D)
 	    IGNORE_CHR="$OPTARG"
 	    ;;
-	    E)
-            CL_BRK="$OPTARG"
-            ;;
 	    F)
-            DENOVO_RD="$OPTARG"
-            ;;
+        DENOVO_RD="$OPTARG"
+        ;;
 	    G)
-            SIG_THRESH="$OPTARG"
-            ;;
-	    H)
-            DISC_ENHANCER3="$OPTARG"
-            ;;
+        SIG_THRESH="$OPTARG"
+        ;;
 	    I)
-            GOOD_CNV_REGIONS="$OPTARG"
-            ;;
-	    J)
-            LIB_INV="$OPTARG"
-            ;;
+        GOOD_CNV_REGIONS="$OPTARG"
+        ;;
 	    W)
-            WORK_DIR="$OPTARG"
-	    ;;
+        WORK_DIR="$OPTARG"
+        ;;
 	    S)
-            SPLIT_INS="$OPTARG"
-            ;;
+        SPLIT_INS="$OPTARG"
+        ;;
+        V)
+        VERBOSE=1
+        ;;
+        L)
+        SUBSAMPLE=1
+        ;;
 	    ?)
 	    echo "Option not recognized."
 	    exit
@@ -229,20 +215,21 @@ do
      esac
 done
 
-if [[ -z $BAM ]] || [[ -z $S_PATH ]]
+if [[ -z $BAMFILE ]] || [[ -z $S_PATH ]]
 then
      usage
      echo "Please provide paths to input BAM files as well as SAMTOOLS: required option fields are -a, -b, -z, -r."
      exit 1
 fi
 
-mkdir -p $WORK_DIR
-mkdir -p $WORK_DIR/SVC_results
-mkdir -p $WORK_DIR/SVC_debug
-rm -f $WORK_DIR/SVC_debug/*
+echo WD IS $WORK_DIR
+#mkdir -p $WORK_DIR
+#mkdir -p $WORK_DIR/SVC_results
+#mkdir -p $WORK_DIR/SVC_debug
+#rm -f $WORK_DIR/SVC_debug/*
 
 #IF disc BAM not ready
-#time ($SAM view -@32 -F 3586 -b -o $WORK_DIR/SVC_debug/disc.bam $BAM_NS) #34m
+#time ($SAM view -@32 -F 3586 -b -o $WORK_DIR/SVC_debug/disc.bam $BAMFILE) #34m
 #DISCORDANTS=$WORK_DIR/SVC_debug/disc.bam
 
 #Remove next 2 comments when done testing
@@ -261,9 +248,15 @@ fi
 SRC=$(dirname "$0")
 CURR_DIR=$PWD
 
-$SRC/form_clusters.sh 0 $BAM $READTHRESH $MATCHRATIO $NMATCHRATIO $CALC_THRESH $NMATCH_PCT $MIN_CS $SIG_MULT $BP_MARGIN $SIG_BOUND $SAM $IGNORE_BED $IGNORE_CHR $MAP_THRESH $ABS_AS $MAP_THRESH_U $SIG_THRESH $AS_STAT_QUANTILE $CLBREAK_QUANTILE $LIB_MULT $DISC_ENHANCER3 $DISC_ENHANCER $CL_BRK $LIB_RDL_GAP $WORK_DIR $SRC
+#$SRC/form_clusters.sh $BAMFILE $PERMUTATION_THRESH $AS_RELATIVE_THRESH $NMATCH_RELATIVE_THRESH \
+#    $CALC_THRESH $NMATCH_PCT_THRESH $MIN_CS $BP_MARGIN $IGNORE_BED $IGNORE_CHR $MAP_THRESH \
+#    $AS_THRESH $SIG_THRESH $AS_CALC_THRESH $DISC_ENHANCER $WORK_DIR $SRC $VERBOSE $SUBSAMPLE
 
-$SRC/run_PE.sh $MIN_CS $VAR_RATE $SLOP $REF_RATE $DTHRESH $USC $BAM $MAP_THRESH_U $SIG_MULT $RD_VARNUM $RD_FRAGNUM $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $IL_BOOST $WORK_DIR $SRC # can replace $MIN_CS here with another value and run these 2 steps with new threshold rather than rerun whole cluster formation sequence. In this case, simply comment out previous line and run varsecer.
+$SRC/run_PE.sh $MIN_CS $VAR_RATE $SLOP $REF_RATE $DTHRESH $USC $BAMFILE $MAP_THRESH_U \
+    $RD_VARNUM $RD_FRAGNUM $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $IL_BOOST $WORK_DIR \
+    $SRC $VERBOSE # can replace $MIN_CS here with another value and run these 2 steps with\
+    #new threshold rather than rerun whole cluster formation sequence. In this case, simply \
+    #comment out previous line and run varsecer.
 
-$SRC/run_RD_SR.sh $S_PATH $S_RISK $SS $SR_MARGIN $RO $DTHRESH $RDS $RD_FILE $USC $IGNORE_CHR $MAP_THRESH_U $MQ_SR $MIN_CS_SR $BAM $RD_VARNUM $RD_FRAGNUM $RD_MARGIN $SR_INS_SEPARATION $RD_SLOP $RD_MQU $MINSR_PE_SUPP $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $DENOVO_RD $DEL_CN_SUPP_THRESH2 $DUP_CN_SUPP_THRESH2 $PILEUP_THRESH $MIN_PILEUP_THRESH $GOOD_CNV_REGIONS $LIB_INV $IL_BOOST $WORK_DIR $SRC $SPLIT_INS
+#$SRC/run_RD_SR.sh $S_PATH $S_RISK $SS $SR_MARGIN $RO $DTHRESH $RDS $RD_FILE $USC $IGNORE_CHR $MAP_THRESH_U $MQ_SR $MIN_CS_SR $BAMFILE $RD_VARNUM $RD_FRAGNUM $RD_MARGIN $SR_INS_SEPARATION $RD_SLOP $RD_MQU $MINSR_PE_SUPP $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $DENOVO_RD $DEL_CN_SUPP_THRESH2 $DUP_CN_SUPP_THRESH2 $PILEUP_THRESH $MIN_PILEUP_THRESH $GOOD_CNV_REGIONS $LIB_INV $IL_BOOST $WORK_DIR $SRC $SPLIT_INS $VERBOSE
 cd $PWD
