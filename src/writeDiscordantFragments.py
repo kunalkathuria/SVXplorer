@@ -602,8 +602,8 @@ if __name__ == "__main__":
     f2 = open(workDir + "/allDiscordants.up.us.txt","w")
     f3 = open(workDir + "/allDiscordants.txt","w")
     f4 = open(workDir + "/allDiscordants.up.txt","w")
-    f3.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("Chr_l", "Chr_r", "L_pos", "R_pos", "Orient.","Small","MapQual"))
-    f4.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("Chr_l", "Chr_r", "L_pos", "R_pos", "Orient.","Small","MapQual"))
+    f3.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("FragIndex", "Chr_l", "Chr_r", "L_pos", "R_pos", "Orient.","Small","MapQual"))
+    f4.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("FragIndex", "Chr_l", "Chr_r", "L_pos", "R_pos", "Orient.","Small","MapQual"))
     currentFrag = 1
     print "Entering writeDiscordantFragments.py read loop..."
     for (q1,aln1s),(q2,aln2s) in izip(readNextReadAlignments(readAlmts1),readNextReadAlignments(readAlmts2)):

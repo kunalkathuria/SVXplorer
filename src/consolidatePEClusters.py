@@ -936,7 +936,7 @@ if __name__ == "__main__":
     try:
         parser = argparse.ArgumentParser(description='Consolidate clusters, formed by formPEClusters.py, into variants')
         parser.add_argument('workDir', help='Work directory')
-        parser.add_argument('statFile', help='File containing BAM statistics, typically bam_stats.txt')
+        parser.add_argument('statFile', help='File containing BAM statistics, typically bamStats.txt')
         parser.add_argument('clusterFileLS', help='File containing clusters sorted by left chr and position, \
             typically allClusters.ls.txt')
         parser.add_argument('clusterFileRS', help='File containing clusters sorted by right chr and position, \

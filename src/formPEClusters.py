@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#Kunal Kathuria 1/18
+# Kunal Kathuria 1/18
 # If using as separate module, first run writeDiscordantFragments.py and provide same working directory
 # Form PE clusters from discordant PE alignments written by readDiscordantFragments.py, via a maximal clique formulation
 import pysam
@@ -332,7 +332,7 @@ if __name__== "__main__":
             alignments written by readDiscordantFragments.py, via a maximal clique formulation')
         parser.add_argument('workDir', help='Work directory')
         parser.add_argument('statFile', help='File containing BAM statistics, typically\
-            bam_stats.txt')
+            bamStats.txt')
         parser.add_argument('IL_BinFile', help='File containing insert length statistics,\
             typically binDist.txt')
         parser.add_argument('-g', default=80, dest='max_AlmtGap', type=int,\

@@ -1,7 +1,9 @@
 #!/bin/bash
+set -eux
+
 MINCS=$1
-WORK_DIR=${14}
-SRC=${15}
+WORK_DIR=${13}
+SRC=${14}
 
 echo "Classification Start"
 cat $WORK_DIR/SVC_debug/allClusters.txt | awk '$2 >= '$MINCS'' > \
@@ -10,18 +12,13 @@ sort -k4,4 -k5,5n $WORK_DIR/SVC_debug/allClusters.thresh.txt > \
     $WORK_DIR/SVC_debug/allClusters.ls.txt
 sort -k7,7 -k8,8n $WORK_DIR/SVC_debug/allClusters.thresh.txt > \
     $WORK_DIR/SVC_debug/allClusters.rs.txt
-time ($SRC/consolidatePEClusters.py -r $2 -s $3 -f $4 -v ${16} $WORK_DIR/SVC_debug \
+time ($SRC/consolidatePEClusters.py -r $2 -s $3 -f $4 -v ${15} $WORK_DIR/SVC_debug \
     $WORK_DIR/SVC_debug/bamStats.txt $WORK_DIR/SVC_debug/allClusters.ls.txt \
     $WORK_DIR/SVC_debug/allClusters.rs.txt $WORK_DIR/SVC_debug/clusterMap.txt)
 
-if [ $6 -eq 1 ]
-then
-	python $SRC/SetCover_mq.py $5 $8 $9 ${10} ${13} $WORK_DIR/SVC_debug \
-        $WORK_DIR/SVC_debug/variantMap.pe.txt $WORK_DIR/SVC_debug/allVariants.pe.txt
-else
-	python $SRC/DisjointSetCover.py $WORK_DIR/SVC_debug $WORK_DIR/SVC_debug/variantMap.pe.txt \
-        $WORK_DIR/SVC_debug/allVariants.pe.txt
-fi
+python $SRC/uniqueSuppFilter.py -g $8 -k $5 $WORK_DIR/SVC_debug \
+    $WORK_DIR/SVC_debug/bamStats.txt $WORK_DIR/SVC_debug/variantMap.pe.txt \
+    $WORK_DIR/SVC_debug/allVariants.pe.txt $WORK_DIR/SVC_debug/allDiscordants.txt
 
 python $SRC/WriteBed.o2.py $WORK_DIR/SVC_debug/variants.uniqueFilter.txt $WORK_DIR/SVC_results \
     $WORK_DIR/SVC_debug $WORK_DIR/SVC_debug/allVariants.pe.txt

@@ -40,7 +40,6 @@ then
 	echo $RD_SLOP
 	cat $WORK_DIR/SVC_debug/allVariants.pe_sr.txt | grep -v INV | grep -v known > $WORK_DIR/SVC_debug/inDels.txt # all INDELS
 	sort -k6,6 $WORK_DIR/SVC_debug/inDels.txt > $WORK_DIR/SVC_debug/inDels_S.txt
-	#./formatRD.sh #make first 2 vars in here user-input
 	python $SRC/add_RD.o2.py $5 $8 ${15} ${16} ${17} ${19} $RD_SLOP ${24} ${23}
 fi
 

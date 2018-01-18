@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-#Kunal Kathuria 1/18
+# Kunal Kathuria 1/18
 # Add Split Reads to existing PE clusters
-# This would have been faster if done in above method but pysam has no direct means of identifying split reads
 
 import pysam
 import sys
