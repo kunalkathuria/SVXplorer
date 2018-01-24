@@ -218,6 +218,7 @@ mkdir -p $WORK_DIR
 mkdir -p $WORK_DIR/SVC_results
 mkdir -p $WORK_DIR/SVC_debug
 rm -f $WORK_DIR/SVC_debug/*
+rm -f $WORK_DIR/SVC_results/*
 
 #IF disc BAM not ready
 #time ($SAM view -@32 -F 3586 -b -o $WORK_DIR/SVC_debug/disc.bam $BAMFILE) #34m
