@@ -202,18 +202,18 @@ def ignoreRead(chr_l, loc_l, chr_r, loc_r):
         return 1
     return 0
 
-def recordExcludeChr(ignoreChr, ignoreTIDList):
+def recordExcludeChr(ignoreChr, ignoreTIDs):
     """ Form list of chromosomes/genomic units all of whose alignments are to be
     excluded from analysis
     Inputs:
         ignoreChr: file listing these, one per line
-        ignoreTIDList: empty list to be populated by these
+        ignoreTIDs: empty list to be populated by these
     Outputs:
         None
     """
     f= open(ignoreChr, "r")
     for line in f:
-        ignoreTIDList.append(line.split()[0])
+        ignoreTIDs.append(line.split()[0])
 
 class alignedFragment(object):
     def __init__(self):
@@ -263,7 +263,7 @@ def findTotalNMatches(al):
         return 0,0
 
 def formDiscordant(aln1s, aln2s, permutation_thresh, map_thresh, as_thresh, 
-        nMatchPct_thresh, nMatch_relative_thresh, as_relative_thresh, disc_thresh, disc_thresh_neg, big_num, mean_IL, chrHash):
+        nMatchPct_thresh, nMatch_relative_thresh, as_relative_thresh, disc_thresh, disc_thresh_neg, big_num, mean_IL, chrHash, ignoreTIDs):
     """ Analyze all discordant alignment pairs, filter them and write to file those that pass in alignedFragment() format
     Inputs:
         aln1s: list of left alignments with same query name
@@ -313,8 +313,9 @@ def formDiscordant(aln1s, aln2s, permutation_thresh, map_thresh, as_thresh,
                 return dList1, dList2
 
             try:
-                if (len(al1_reference_name) > 1 and al1_reference_name[0:2] == "GL") or (len(al2_reference_name) > 1 and al2_reference_name[0:2] == "GL") \
-                    or al1_reference_name in ignoreTIDList or al2_reference_name in ignoreTIDList:
+                if (len(al1_reference_name) > 1 and al1_reference_name[0:2] == "GL") or \
+		    (len(al2_reference_name) > 1 and al2_reference_name[0:2] == "GL") \
+                    or al1_reference_name in ignoreTIDs or al2_reference_name in ignoreTIDs:
                     continue
 
                 if ignoreBED != "none" and ignoreRead(al1_reference_name, al1_reference_start, al2_reference_name, al2_reference_start):
@@ -531,9 +532,9 @@ if __name__ == "__main__":
         parser.add_argument('bamfile', help='Position-sorted alignment file (BAM)')
         parser.add_argument('-v', default=0, dest='verbose', type=int,\
             help='1 for verbose output')
-        parser.add_argument('-i', action='store', dest='ignoreBED',\
+        parser.add_argument('-i', default='none', dest='ignoreBED',\
             help='Exclude-regions file in BED format')
-        parser.add_argument('-c', action='store', dest='ignoreChr',\
+        parser.add_argument('-c', default='none', dest='ignoreChr',\
             help='File listing chromosomes to exclude, one per line')
         parser.add_argument('-p', default=20, dest='permutation_thresh', type=int,\
             help='If all alignments with same query name exceed this number, do not use any in analysis')
@@ -591,7 +592,7 @@ if __name__ == "__main__":
     print "Ignoring:", ignoreChr, ignoreBED
     if ignoreChr != "none":
         recordExcludeChr(ignoreChr, ignoreTIDs)
-        print "Chromosomes", ignoreTIDList, "will be ignored."
+        print "Chromosomes", ignoreTIDs, "will be ignored."
     if ignoreBED != "none":
         print "Forming hash table for bad regions..."
         formExcludeHash(ignoreBuffer, chrHash, ignoreBED)
@@ -614,7 +615,7 @@ if __name__ == "__main__":
         #start_fd = clock()
         dList1, dList2 = formDiscordant(aln1s, aln2s, permutation_thresh, 
             map_thresh, as_thresh, nMatchPct_thresh, nMatch_relative_thresh, \
-            as_relative_thresh, disc_thresh, disc_thresh_neg, big_num, mean_IL, chrHash)
+            as_relative_thresh, disc_thresh, disc_thresh_neg, big_num, mean_IL, chrHash, ignoreTIDs)
         for item in dList1:
              f1.write("%s %s\n" %(currentFrag, item))
         for item in dList2:

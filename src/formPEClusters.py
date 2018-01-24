@@ -340,7 +340,7 @@ if __name__== "__main__":
             of non-overlapping RF alignments in order to consider them candidates \
             for the same cluster')
         parser.add_argument('-m', default=3, dest='min_cluster_size', type=int,\
-            help='Minimum number of almts per cluster')
+            help='Minimum number of almts supporting cluster')
         parser.add_argument('-d', default=1.67, dest='disc_enhancer', type=float,\
             help='Factor to multiply "end" of IL distribution by a "safety" factor so as \
             to not miss larger sampling ILs in certain distributions')

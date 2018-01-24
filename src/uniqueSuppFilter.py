@@ -26,6 +26,7 @@ def formMQSet(mapThresh, mqSet, allDiscordantsFile):
         # mapping qual threshold for uniquely supporting fragments
         if frag not in mqSet and mq >= mapThresh:
             mqSet.add(frag)
+    f.close()
 
 def calculateSVThresh(SVType, SVSupp):
     if SVType == "INV" or SVType.find("INS") != -1:
@@ -95,6 +96,10 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile, ma
         if varNum[g] < rdVarIndex:
             fUS.write("%s %s\n" %(varNum[g], disjointness[g]))
 
+    fVM.close()
+    fAV.close()
+    fUS.close()
+    fUF.close()
     return nSVs
 
 def readVariantMap(filename, allFrags):
@@ -196,6 +201,6 @@ if __name__ == "__main__":
     nInputVariants = readVariantMap(variantMapFile, allFrags)
     nSVs = uniquenessFilter(allFrags, nInputVariants, mqSet, allDiscordantsFile, mapThresh,\
         variantMapFile, allVariantFile, rdFragIndex, rdVarIndex)
-    f= open(workDir+"/NSVs.txt","w")
-    f.write("%s\n" %nSVs)
-    f.close()
+    fNSVs= open(workDir+"/NSVs.txt","w")
+    fNSVs.write("%s\n" %nSVs)
+    fNSVs.close()

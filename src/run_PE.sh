@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eux
+set -eu
 
 MINCS=$1
 WORK_DIR=${13}
@@ -19,9 +19,6 @@ time ($SRC/consolidatePEClusters.py -r $2 -s $3 -f $4 -v ${15} $WORK_DIR/SVC_deb
 python $SRC/uniqueSuppFilter.py -g $8 -k $5 $WORK_DIR/SVC_debug \
     $WORK_DIR/SVC_debug/bamStats.txt $WORK_DIR/SVC_debug/variantMap.pe.txt \
     $WORK_DIR/SVC_debug/allVariants.pe.txt $WORK_DIR/SVC_debug/allDiscordants.txt
-
-python $SRC/WriteBed.o2.py $WORK_DIR/SVC_debug/variants.uniqueFilter.txt $WORK_DIR/SVC_results \
-    $WORK_DIR/SVC_debug $WORK_DIR/SVC_debug/allVariants.pe.txt
 
 if [ -d $WORK_DIR/SVC_results/pe_results ]
 then
