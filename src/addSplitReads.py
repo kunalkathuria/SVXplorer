@@ -116,8 +116,6 @@ if __name__ == "__main__":
     parser.add_argument('allVariantFilePE', help='File containing list of PE variants, \
         typically allVariants.pe.txt')
     parser.add_argument('bamFileSR', help='File containing all split reads, name-sorted: see README.md')
-    parser.add_argument('-r', default=0, dest='riskINV', type=int, 
-        help='File containing all split reads, name-sorted: see README.md')
     parser.add_argument('-s', default=8.0, dest='slop', type=float, help='SR breakpoint slop')
     parser.add_argument('-f', default=0, dest='refRate', type=int, help='Subsample every so many split reads')
     parser.add_argument('-m', default=3, dest='min_vs', type=int,
@@ -137,7 +135,7 @@ if __name__ == "__main__":
     fAVN = open(workDir+"/allVariants.pe_sr.txt","w")
     fVMN = open(workDir+"/variantMap.pe_sr.txt","w")
     bamFileSR = args.bamFileSR
-    riskINV = args.riskINV
+    riskINV = 1
     slop = args.slop
     refRate = args.refRate
     min_vs = args.min_vs

@@ -2,9 +2,9 @@
 set -eu
 
 LIB_INV=1
-SUBSAMPLE=0 #use ONLY if code slow. Should rarely be needed.
+SUBSAMPLE_DISC=0 #use ONLY if code slow. Should rarely be needed.
 VERBOSE=0
-PERMUTATION_THRESH=20
+PE_ALMT_COMB_THRESH=20
 AS_THRESH=0
 MAP_THRESH=1
 MAP_THRESH_U=10
@@ -15,23 +15,21 @@ NMATCH_PCT_THRESH=0
 CALC_THRESH=1000000
 SIG_THRESH=.9985
 RDS=0
-VAR_RATE=450
-SLOP=0
-BP_MARGIN=20
-SR_SLOP=8
+MAX_CL_COMB_GAP=450
+SLOP_PE=0
+MIN_PE_BPMARGIN=20
+SLOP_SR=8
 REF_RATE_SR=0
 RO=0.7
 REF_RATE_PE=5
-DTHRESH=3
-SR_RISK=1
+MIN_UNIQUE_SUPP=3
 MIN_CS=3
-MIN_VS_SR=$DTHRESH
-USC=1
+MIN_VS_SR=3
 SAM=samtools
 BAMFILE=
 S_PATH=
 RD_FILE="none"
-DISCORDANTS=
+DISC_FILE=
 THREADS=1
 DISC_IS_NS=0
 IGNORE_BED="none"
@@ -42,7 +40,7 @@ RD_VAR_INDEX=3000000
 RD_FRAG_INDEX=100000000
 RD_MARGIN=0
 MIN_SIZE_INS_SR=30
-RD_SLOP=250
+SLOP_RD=250
 RD_MQU=10
 MIN_SRtoPE_SUPP=2
 DEL_CN_SUPP_THRESH=.6 
@@ -96,7 +94,7 @@ versionC(){
 cat $(dirname "$0")/../VERSION
 }
 
-while getopts “hvLVa:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:A:B:C:D:F:G:I:W:S:” OPTION
+while getopts “hvLVa:b:c:d:e:f:g:i:j:k:l:m:n:o:p:q:r:s:u:v:w:x:z:A:B:C:D:F:G:I:W:S:” OPTION
 do
 
      case $OPTION in
@@ -108,7 +106,7 @@ do
 	    BAMFILE="$OPTARG"
 	    ;;
 	    c)
-	    PERMUTATION_THRESH="$OPTARG"
+	    PE_ALMT_COMB_THRESH="$OPTARG"
 	    ;;
 	    d)
 	    AS_RELATIVE_THRESH="$OPTARG"
@@ -126,13 +124,13 @@ do
         SAM="$OPTARG"
         ;;
 	    j)
-	    BP_MARGIN="$OPTARG"
+	    MIN_PE_BPMARGIN="$OPTARG"
 	    ;;
 	    k)
 	    REF_RATE_SR="$OPTARG"
 	    ;;
 	    l)
-	    SLOP="$OPTARG"
+	    SLOP_PE="$OPTARG"
 	    ;;
 	    m)
         RDS="$OPTARG"
@@ -141,22 +139,19 @@ do
 	    RO="$OPTARG"
 	    ;;
 	    o)
-	    VAR_RATE="$OPTARG"
+	    MAX_CL_COMB_GAP="$OPTARG"
 	    ;;
 	    p)
 	    REF_RATE_PE="$OPTARG"
 	    ;;
 	    q)
-	    DTHRESH="$OPTARG"
+	    MIN_UNIQUE_SUPP="$OPTARG"
 	    ;;
 	    r)
 	    S_PATH="$OPTARG"
 	    ;;
 	    s)
-	    SR_SLOP="$OPTARG"
-	    ;;
-	    t)
-	    SR_RISK="$OPTARG"
+	    SLOP_SR="$OPTARG"
 	    ;;
 	    u)
 	    MIN_CS="$OPTARG"
@@ -168,11 +163,8 @@ do
 	    x)
 	    RD_FILE="$OPTARG"
 	    ;;
-	    y)
-	    USC="$OPTARG"
-	    ;;
 	    z)
-        DISCORDANTS="$OPTARG"
+        DISC_FILE="$OPTARG"
         ;;
 	    A)
         DISC_IS_NS="$OPTARG"
@@ -205,7 +197,7 @@ do
         VERBOSE=1
         ;;
         L)
-        SUBSAMPLE=1
+        SUBSAMPLE_DISC=1
         ;;
 	    ?)
 	    echo "Option not recognized."
@@ -229,11 +221,11 @@ rm -f $WORK_DIR/SVC_debug/*
 
 #IF disc BAM not ready
 #time ($SAM view -@32 -F 3586 -b -o $WORK_DIR/SVC_debug/disc.bam $BAMFILE) #34m
-#DISCORDANTS=$WORK_DIR/SVC_debug/disc.bam
+#DISC_FILE=$WORK_DIR/SVC_debug/disc.bam
 
 #Remove next 2 comments when done testing
-time ($SAM view -@32 -f 64 -b -o $WORK_DIR/SVC_debug/aln1s.us.bam $DISCORDANTS) #4m
-time ($SAM view -@32 -f 128 -b -o $WORK_DIR/SVC_debug/aln2s.us.bam $DISCORDANTS) # 4m
+time ($SAM view -@ $THREADS -f 64 -b -o $WORK_DIR/SVC_debug/aln1s.us.bam $DISC_FILE) #4m
+time ($SAM view -@ $THREADS -f 128 -b -o $WORK_DIR/SVC_debug/aln2s.us.bam $DISC_FILE) # 4m
  
 if [ $DISC_IS_NS -eq 1 ]
 then
@@ -247,14 +239,13 @@ fi
 SRC=$(dirname "$0")
 CURR_DIR=$PWD
 
-$SRC/form_clusters.sh $BAMFILE $PERMUTATION_THRESH $AS_RELATIVE_THRESH $NMATCH_RELATIVE_THRESH \
-    $CALC_THRESH $NMATCH_PCT_THRESH $MIN_CS $BP_MARGIN $IGNORE_BED $IGNORE_CHR $MAP_THRESH \
-    $AS_THRESH $SIG_THRESH $AS_CALC_THRESH $DISC_ENHANCER $WORK_DIR $SRC $VERBOSE $SUBSAMPLE
-
-$SRC/run_PE.sh $MIN_CS $VAR_RATE $SLOP $REF_RATE_PE $DTHRESH $USC $BAMFILE $MAP_THRESH_U \
+$SRC/form_clusters.sh $BAMFILE $PE_ALMT_COMB_THRESH $AS_RELATIVE_THRESH $NMATCH_RELATIVE_THRESH \
+    $CALC_THRESH $NMATCH_PCT_THRESH $MIN_CS $MIN_PE_BPMARGIN $IGNORE_BED $IGNORE_CHR $MAP_THRESH \
+    $AS_THRESH $SIG_THRESH $AS_CALC_THRESH $DISC_ENHANCER $WORK_DIR $SRC $VERBOSE $SUBSAMPLE_DISC
+$SRC/run_PE.sh $MIN_CS $MAX_CL_COMB_GAP $SLOP_PE $REF_RATE_PE $MIN_UNIQUE_SUPP $BAMFILE $MAP_THRESH_U \
     $RD_VAR_INDEX $RD_FRAG_INDEX $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $WORK_DIR \
-    $SRC $VERBOSE # can replace $MIN_CS here with another value and run these 2 steps with\
-    #new threshold rather than rerun whole cluster formation sequence. In this case, simply \
+    $SRC $VERBOSE # can replace $MIN_CS here with another value and run these 2 steps with
+    #new threshold rather than rerun whole cluster formation sequence. In this case, simply
     #comment out previous line and run varsecer.
-$SRC/run_RD_SR.sh $S_PATH $SR_RISK $SR_SLOP $REF_RATE_SR $RO $DTHRESH $RDS $RD_FILE $USC $IGNORE_CHR $MAP_THRESH_U $MQ_SR $MIN_VS_SR $BAMFILE $RD_VAR_INDEX $RD_FRAG_INDEX $RD_MARGIN $MIN_SIZE_INS_SR $RD_SLOP $RD_MQU $MIN_SRtoPE_SUPP $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $DENOVO_RD $DEL_CN_SUPP_THRESH2 $DUP_CN_SUPP_THRESH2 $PILEUP_THRESH $NH_REGIONS_FILE $LIB_INV $WORK_DIR $SRC $SPLIT_INS $VERBOSE
+$SRC/run_RD_SR.sh $S_PATH $SLOP_SR $REF_RATE_SR $RO $MIN_UNIQUE_SUPP $RDS $RD_FILE $IGNORE_CHR $MAP_THRESH_U $MQ_SR $MIN_VS_SR $BAMFILE $RD_VAR_INDEX $RD_FRAG_INDEX $RD_MARGIN $MIN_SIZE_INS_SR $SLOP_RD $RD_MQU $MIN_SRtoPE_SUPP $DEL_CN_SUPP_THRESH $DUP_CN_SUPP_THRESH $DENOVO_RD $DEL_CN_SUPP_THRESH2 $DUP_CN_SUPP_THRESH2 $PILEUP_THRESH $NH_REGIONS_FILE $LIB_INV $WORK_DIR $SRC $SPLIT_INS $VERBOSE $THREADS
 cd $PWD

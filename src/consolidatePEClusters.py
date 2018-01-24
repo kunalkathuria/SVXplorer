@@ -624,7 +624,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
     if anyMatch:
         claimedCls.add(cluster1.mapNum)
 
-def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClGap, slop):
+def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCombGap, slop):
     anyMatch = 0
     cl1 = 'c' + str(cluster1.mapNum)
     for g,elem in enumerate(varList):
@@ -650,15 +650,15 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClGap
         # don't compare if exceeds left-sorted comparison bounds.
         # will appear again for right bound comparison later.
         if LR == "L" and (elem.bp1TID != cluster1.lTID or abs(elem.bp1_start - cluster1.l_start) \
-            > maxClGap) and (elem.bp2TID != cluster1.lTID or abs(elem.bp2_start - cluster1.l_start) \
-            > maxClGap) and (elem.bp3TID != cluster1.lTID or abs(elem.bp3_start - cluster1.l_start) \
-            > maxClGap):
+            > maxClCombGap) and (elem.bp2TID != cluster1.lTID or abs(elem.bp2_start - cluster1.l_start) \
+            > maxClCombGap) and (elem.bp3TID != cluster1.lTID or abs(elem.bp3_start - cluster1.l_start) \
+            > maxClCombGap):
             continue
         # analogous to above for right -sorted
         if LR == "R" and (elem.bp1TID != cluster1.rTID or abs(elem.bp1_start - cluster1.r_start) \
-            > maxClGap) and (elem.bp2TID != cluster1.rTID or abs(elem.bp2_start - cluster1.r_start) \
-            > maxClGap) and (elem.bp3TID != cluster1.rTID or abs(elem.bp3_start - cluster1.r_start) \
-            > maxClGap):
+            > maxClCombGap) and (elem.bp2TID != cluster1.rTID or abs(elem.bp2_start - cluster1.r_start) \
+            > maxClCombGap) and (elem.bp3TID != cluster1.rTID or abs(elem.bp3_start - cluster1.r_start) \
+            > maxClCombGap):
             continue
         graph_c.add_edge(cl1,v1,1)
       
@@ -890,7 +890,7 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClGap
     if anyMatch:
         claimedCls.add(cluster1.mapNum)
 
-def refreshCCList(consolidatedCls, tidListL, tidListR, maxClGap, cluster_L, cluster_R, \
+def refreshCCList(consolidatedCls, tidListL, tidListR, maxClCombGap, cluster_L, cluster_R, \
     refRate, consolidatedCls_C):
 
     if len(consolidatedCls) % refRate == 0:
@@ -901,17 +901,17 @@ def refreshCCList(consolidatedCls, tidListL, tidListR, maxClGap, cluster_L, clus
                 if cluster_L.lTID not in varTIDs and cluster_R.rTID not in varTIDs and h < len(consolidatedCls) -1:
                     consolidatedCls_C.append(item)
                     del consolidatedCls[h]
-                elif (cluster_L.l_start - item.bp1_start > maxClGap or cluster_L.lTID != item.bp1TID) and \
-                    (cluster_R.rTID != item.bp1TID or cluster_R.r_start - item.bp1_start > maxClGap):
-                    if (cluster_L.l_start - item.bp2_start > maxClGap or cluster_L.lTID != item.bp2TID) and \
-                        (cluster_R.rTID != item.bp2TID or cluster_R.r_start - item.bp2_start > maxClGap):
-                        if (cluster_L.l_start - item.bp3_start > maxClGap or cluster_L.lTID != item.bp3TID) and \
-                            (cluster_R.rTID != item.bp3TID or cluster_R.r_start - item.bp3_start > maxClGap):
+                elif (cluster_L.l_start - item.bp1_start > maxClCombGap or cluster_L.lTID != item.bp1TID) and \
+                    (cluster_R.rTID != item.bp1TID or cluster_R.r_start - item.bp1_start > maxClCombGap):
+                    if (cluster_L.l_start - item.bp2_start > maxClCombGap or cluster_L.lTID != item.bp2TID) and \
+                        (cluster_R.rTID != item.bp2TID or cluster_R.r_start - item.bp2_start > maxClCombGap):
+                        if (cluster_L.l_start - item.bp3_start > maxClCombGap or cluster_L.lTID != item.bp3TID) and \
+                            (cluster_R.rTID != item.bp3TID or cluster_R.r_start - item.bp3_start > maxClCombGap):
                             if h < len(consolidatedCls) -1:
                                 consolidatedCls_C.append(item)
                                 del consolidatedCls[h]
 
-def refreshClusterBuffer(clusters, LR, tidListL, tidListR, cluster_L, cluster_R,  maxClGap):
+def refreshClusterBuffer(clusters, LR, tidListL, tidListR, cluster_L, cluster_R,  maxClCombGap):
     counter=0    
     for item in clusters:
         if LR == "L":
@@ -923,8 +923,8 @@ def refreshClusterBuffer(clusters, LR, tidListL, tidListR, cluster_L, cluster_R,
         if relevTID in tidListL and relevTID in tidListR:
             if cluster_L.lTID != relevTID and cluster_R.rTID != relevTID:
                 counter+=1
-            elif (cluster_L.lTID != relevTID or cluster_L.l_start - relevStart > maxClGap) and \
-                    (cluster_R.rTID != relevTID or cluster_R.r_start - relevStart > maxClGap):
+            elif (cluster_L.lTID != relevTID or cluster_L.l_start - relevStart > maxClCombGap) and \
+                    (cluster_R.rTID != relevTID or cluster_R.r_start - relevStart > maxClCombGap):
                 counter+=1
             else:
                 break
@@ -945,7 +945,7 @@ if __name__ == "__main__":
             typically clusterMap.txt')
         parser.add_argument('-v', default=0, dest='verbose', type=int,\
             help='1 for verbose output')
-        parser.add_argument('-r', default=550, dest='maxClGap', type=int,\
+        parser.add_argument('-r', default=550, dest='maxClCombGap', type=int,\
             help='Maximum gap between start position of cluster breakpoints to consider \
             them for matching into 1 variant')
         parser.add_argument('-s', default=0,dest='slop', type=int,\
@@ -960,7 +960,7 @@ if __name__ == "__main__":
         exit(1)
 
     # working variables and objects
-    maxClGap = args.maxClGap
+    maxClCombGap = args.maxClCombGap
     slop = args.slop
     refRate = args.refRate
     verbose = args.verbose
@@ -1017,19 +1017,19 @@ if __name__ == "__main__":
         # refresh and match clusters to variants in cons cl (complex variant) buffer
         if len(consolidatedCls) > 0:
             # refresh complex variant buffer list for necessary comparisons only 
-            refreshCCList(consolidatedCls, tidListL, tidListR, maxClGap, cluster_L, cluster_R, \
+            refreshCCList(consolidatedCls, tidListL, tidListR, maxClCombGap, cluster_L, cluster_R, \
                 refRate, consolidatedCls_C)       
             # may need both L,R cluster comparisons since variant buffer is kept small
             compareVariant(cluster_L, consolidatedCls, claimedCls, compareGraph, matchGraph, \
-                "L", maxClGap, slop)
+                "L", maxClCombGap, slop)
             compareVariant(cluster_R, consolidatedCls, claimedCls, compareGraph, matchGraph, \
-                "R", maxClGap, slop)
+                "R", maxClCombGap, slop)
 
         # refresh left and right cluster buffers and mutually match
         if len(clusters_LS) > 0:
-            refreshClusterBuffer(clusters_LS, "L", tidListL, tidListR, cluster_L, cluster_R, maxClGap)
+            refreshClusterBuffer(clusters_LS, "L", tidListL, tidListR, cluster_L, cluster_R, maxClCombGap)
         if len(clusters_RS) > 0:
-            refreshClusterBuffer(clusters_RS, "R", tidListL, tidListR, cluster_L, cluster_R, maxClGap)
+            refreshClusterBuffer(clusters_RS, "R", tidListL, tidListR, cluster_L, cluster_R, maxClCombGap)
         compareCluster(cluster_L, clusters_LS, claimedCls, compareGraph, matchGraph, "LL", \
             consolidatedCls, slop)
         compareCluster(cluster_L, clusters_RS, claimedCls, compareGraph, matchGraph, "LR", \

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Add RD variants to existing PE variants
 
 import pysam

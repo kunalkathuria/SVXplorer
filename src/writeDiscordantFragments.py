@@ -262,13 +262,13 @@ def findTotalNMatches(al):
     else:
         return 0,0
 
-def formDiscordant(aln1s, aln2s, permutation_thresh, map_thresh, as_thresh, 
+def formDiscordant(aln1s, aln2s, pe_almtCombThresh, map_thresh, as_thresh, 
         nMatchPct_thresh, nMatch_relative_thresh, as_relative_thresh, disc_thresh, disc_thresh_neg, big_num, mean_IL, chrHash, ignoreTIDs):
     """ Analyze all discordant alignment pairs, filter them and write to file those that pass in alignedFragment() format
     Inputs:
         aln1s: list of left alignments with same query name
         aln2s: list of right alignments with same query name
-        permutation_thresh: if all alignment pairs with same query name exceed this number, 
+        pe_almtCombThresh: if all alignment pairs with same query name exceed this number, 
         do not use any in analysis
         map_thresh: mapping quality threshold
         as_thresh: alignment score threshold for primary almt
@@ -373,7 +373,7 @@ def formDiscordant(aln1s, aln2s, permutation_thresh, map_thresh, as_thresh,
                 return dList1, dList2
 
             # if too many mappings of one fragment, return nothing
-            if counterLoop > permutation_thresh:
+            if counterLoop > pe_almtCombThresh:
                 dList1 = []
                 dList2 = []
                 return dList1, dList2
@@ -536,7 +536,7 @@ if __name__ == "__main__":
             help='Exclude-regions file in BED format')
         parser.add_argument('-c', default='none', dest='ignoreChr',\
             help='File listing chromosomes to exclude, one per line')
-        parser.add_argument('-p', default=20, dest='permutation_thresh', type=int,\
+        parser.add_argument('-p', default=20, dest='pe_almtCombThresh', type=int,\
             help='If all alignments with same query name exceed this number, do not use any in analysis')
         parser.add_argument('-t', default=1000000,dest='calc_thresh', type=int,\
             help='Max number of concordant alignments to use in calculating BAM statistics')
@@ -561,7 +561,7 @@ if __name__ == "__main__":
     ## statistical constants -- most hidden from SVC front-end user. 
     ## see function defs for documentation of specific vars
     ## default settings generally recommended.
-    permutation_thresh = args.permutation_thresh 
+    pe_almtCombThresh = args.pe_almtCombThresh 
     calc_thresh = args.calc_thresh
     nMatchPct_thresh = args.nMatchPct_thresh
     nMatch_relative_thresh = args.nMatch_relative_thresh
@@ -613,7 +613,7 @@ if __name__ == "__main__":
                 print "Fragment", currentFrag, "analyzed."
         assert q1[:-2] == q2[:-2]
         #start_fd = clock()
-        dList1, dList2 = formDiscordant(aln1s, aln2s, permutation_thresh, 
+        dList1, dList2 = formDiscordant(aln1s, aln2s, pe_almtCombThresh, 
             map_thresh, as_thresh, nMatchPct_thresh, nMatch_relative_thresh, \
             as_relative_thresh, disc_thresh, disc_thresh_neg, big_num, mean_IL, chrHash, ignoreTIDs)
         for item in dList1:
