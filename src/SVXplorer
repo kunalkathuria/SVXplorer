@@ -1,0 +1,401 @@
+#!/usr/bin/env python
+
+from os.path import dirname, realpath, exists, abspath
+from os import mkdir, utime, symlink
+from shutil import rmtree
+from sys import stderr, path
+
+import argparse
+import logging
+import pysam
+import numpy as np
+import pandas as pd
+
+from writeDiscordantFragments import writeDiscordantFragments
+from formPEClusters import formPEClusters
+from consolidatePEClusters import consolidatePEClusters
+from uniqueSuppFilter import uniqueSuppFilter
+from writeBEDs import writeBEDs
+from addSplitReads import addSplitReads
+from covPUFilter import covPUFilter
+
+def createDirectory(name):
+    try:
+        mkdir(name)
+    except OSError:
+        return None
+    return name
+
+def createDiscordants():
+    logging.info('Started writing the BAM files')
+
+    # what is the sort order of this file?
+    samfile = pysam.AlignmentFile(ARGS.disc, "rb")
+    sortorder = samfile.header['HD']['SO']
+    samfile.close()
+
+    discfile = ARGS.disc
+    if sortorder == 'coordinate':
+        discfile = "%s/discordants.ns.bam" % WORKSPACE
+        logging.info('Started name sorting the discordant file')
+        pysam.sort("-n", "-O", "bam", "-T", "xxx", "-o", discfile, ARGS.disc)
+        logging.info('Finished name sorting the discordant file')
+    else:
+        assert sortorder == 'queryname'
+
+    samfile = pysam.AlignmentFile(discfile, 'rb')
+    outfile1 = pysam.AlignmentFile("%s/aln1s.bam" % WORKSPACE, 'wb', template=samfile)
+    outfile2 = pysam.AlignmentFile("%s/aln2s.bam" % WORKSPACE, 'wb', template=samfile)
+    logging.info('Started writing the discordant reads')
+
+    for alignment in samfile:
+        if alignment.is_read1:
+            outfile1.write(alignment)
+        else:
+            outfile2.write(alignment)
+    samfile.close()
+    outfile1.close()
+    outfile2.close()
+    logging.info('Finished writing the discordant reads')
+
+    logging.info('Finished writing the BAM files')
+
+def printVCFHeader(f):
+    print >> f, "##fileformat=VCF4.3"
+    print >> f, "##source=SVXplorer-" + VERSION
+    print >> f, """##INFO=<ID=END, Number=1, Type=Integer, Description=\"end point of SV\">
+##INFO=<ID=SVTYPE, Number=1, Type=String, Description=\"SV Type\">
+##INFO=<ID=CM, Number=1, Type=String, Description=\"Comment denoting likely kind of variant\">
+##INFO=<ID=ISINV, Number=1, Type=Flag, Description=\"Whether on inverted or positive strand\">
+##INFO=<ID=CHR2, Number=1, Type=Integer, Description=\"For BNDs the reference ID of the 'END' breakpoint if different from that of start 'POS'\">
+##INFO=<ID=POS2, Number=1, Type=Integer, Description=\"source location start of copy-paste INS\">
+##INFO=<ID=END2, Number=1, Type=Integer, Description=\"source location end of copy-paste INS\">
+##INFO=<ID=GROUPID, Number=1, Type=Integer, Description=\"GROUPID correlating 2 translocation or non-tandem-duplication events\">"""
+    print >> f, "\t".join(["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO"])
+
+def writeVCFFromBedpe(inputFile, outputFile):
+    """Read the BEDPE and convert to VCF."""
+    with open(inputFile, 'r') as inpt, open(outputFile,'w') as otpt:
+        counter = 0
+        printVCFHeader(otpt)
+
+        for line in inpt:
+            counter+=1
+            tokens = line.split()
+            precise=tokens[10].find("SR")
+            support="SUPPORT=" + tokens[12] + ";"
+            chr1 = tokens[0]
+            chr1Start = tokens[1]
+            chr1End = tokens[2]
+            chr2 = tokens[3]
+            chr2Start = tokens[4]
+            chr2End = tokens[5]
+            svType = tokens[6]
+            bnd = tokens[13]
+            cmtSVType = tokens[14]
+
+            cipos = str(int(chr1End)-int(chr1Start))
+            svlen = str(int(chr2Start) - int(chr1Start))
+
+            if precise == -1:
+                precise = "IMPRECISE"
+            else:
+                precise="PRECISE"
+
+            chr2=""
+            if chr1 != chr2:
+                chr2="CHR2="+ tokens[3] + ";"
+
+            if svType == "BND" and cmtSVType not in ["INS_C","INS_C_I"] and not bnd:
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + chr2End + ";" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM="+cmtSVType+";" + chr2 + support + precise)
+            elif svType == "BND" and cmtSVType.startswith("INS"):
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + chr1End+ ";CIPOS=-100,100;CIEND=-100,100;CM=" + cmtSVType+";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + chr2End+ ";" + chr2 + "CIPOS=-100,100;CIEND=-100,100;CM=" + cmtSVType+";" + support + precise)
+            elif svType == "DEL":
+                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM="+svType+ ";" + support + precise)
+            elif svType == "TD" or svType == "TD_INV":
+                isinv=""
+                if svType=="TD_INV":
+                    isinv="ISINV"
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";CM="+svType+";" + support + precise)
+            elif svType == "INV":
+                ciend = int(chr2End) - int(chr2Start)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + chr2End + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";CM="+svType+ ";" + support + precise)
+            elif svType == "INS" or svType=="INS_I":
+                svlen=str(int(chr1End)-int(chr1Start))
+                cipos = 2*(int(chr2End)-int(chr2Start))
+                isinv=""
+                if svType=="INS_I":
+                    isinv="ISINV"
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DUP>",".","PASS", "SVTYPE=DUP;END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";CM="+svType+";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start,counter,"N", "<INS:ME>",".","PASS", "SVTYPE=INS;END=" + str(int(chr2Start) + 1) + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos/2.0) + ";CIEND=0," + str(cipos/2.0) + ";GROUPID=" + str(counter) + ";CM="+svType+ ";" + isinv + ";" + support + precise)
+            elif svType == "INS_C_P" or svType == "INS_C_I_P":
+                cipos = 2*(int(chr2End)-int(chr2Start))   
+                isinv=""
+                if svType == "INS_C_I_P":
+                    isinv="ISINV"
+                len_tr = int(chr1End) - int(chr1Start)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL:ME>",".","PASS", "SVTYPE=DEL;END=" + chr1End + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) + ";GROUPID="+str(counter)+";SVLEN=-" + str(len_tr) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start,counter+1,"N", "<INS:ME>",".","PASS", "SVTYPE=INS;END=" + str(int(chr2Start) + 1) +";CIPOS=0," + str(cipos/2.0) + ";CIEND=-1," + str(cipos/2.0) + ";GROUPID="+str(counter) + ";SVLEN=" + str(len_tr) + ";" + isinv + ";" + support + precise)
+                counter+=1
+
+def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
+    if variantMapFile != None:
+        # pick variants that have the minimum unique support. This writes
+        # 1. variants.uniqueFilter.txt
+        # 2. variants.uniqueSupport.txt
+        uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
+                         "%s/allDiscordants.txt" % WORKSPACE, MAP_THRESH_U, 
+                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 4, 4, 3000000, 100000000, -1)
+
+    # write the results. This writes
+    # 1. variants.bedpe
+    passedFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
+    bedpeFile = "%s/variants.%s.bedpe" % (WORKSPACE, midfix)
+    writeBEDs(allVariantFile, passedFile, bedpeFile, LIB_INV)
+
+    # write a VCF file
+    # 1. variants.vcf
+    vcfFile = "%s/variants.%s.vcf" % (WORKSPACE, midfix)
+    writeVCFFromBedpe(bedpeFile, vcfFile)
+
+def processFragments():
+    # create two BAM files, one with read1s and another with read2s from 
+    # fragments that are discordant
+    createDiscordants()
+
+    # write the discordant fragments in a simple format. This should create:
+    # 1. allDiscordants.us.txt : fragments that are discordant (unsorted)
+    # 2. allDiscordants.up.us.txt : fragments where only one end maps (unsorted).
+    readAlmts1 = "%s/aln1s.bam" % WORKSPACE
+    readAlmts2 = "%s/aln2s.bam" % WORKSPACE
+    writeDiscordantFragments(WORKSPACE, readAlmts1, readAlmts2, ARGS.samplebam,
+                             ARGS.d, ARGS.i, ARGS.c, PE_ALMT_COMB_THRESH, 
+                             CALC_THRESH, NMATCH_PCT_THRESH,
+                             NMATCH_RELATIVE_THRESH, AS_RELATIVE_THRESH, 
+                             MAP_THRESH)
+
+    # sort the allDiscordants.us.txt file -> allDiscordants.txt
+    logging.info('Started sorting the discordants')
+    data = pd.read_table("%s/allDiscordants.us.txt" % WORKSPACE, 
+                         names=['index', 'lchr', 'lpos', 'rchr', 'rpos', 
+                                'orient', 'small', 'mapq'],
+                         dtype={'index':np.int32, 'lchr':np.str, 'lpos':np.int32,
+                                'rchr':np.str, 'rpos':np.int32, 'orient':np.str,
+                                'mapq': np.int16})
+    data = data.sort_values(by = ['lchr', 'rchr', 'lpos', 'rpos'])
+    data.to_csv("%s/allDiscordants.txt" % WORKSPACE, header=None, index=None, sep='\t')
+
+    # sort the allDiscordants.up.us.txt file -> allDiscordants.up.txt
+    data = pd.read_table("%s/allDiscordants.up.us.txt" % WORKSPACE,
+                         names=['index', 'lchr', 'lpos', 'rchr', 'rpos', 
+                                'orient', 'small', 'mapq'],
+                         dtype={'index':np.int32, 'lchr':np.str, 'lpos':np.int32,
+                                'rchr':np.str, 'rpos':np.str, 'orient':np.str,
+                                'mapq': np.int16})
+    data = data.sort_values(by = ['lchr', 'lpos'])
+    data.to_csv("%s/allDiscordants.up.txt" % WORKSPACE, header=None, index=None, sep='\t')
+    logging.info('Finished sorting the discordants')
+
+    # form PE clusters from those discordant fragments. Creates
+    # 1. allClusters.txt
+    # 2. clusterMap.txt
+    # 3. clusterCliques.txt in debug mode 
+    statFile = "%s/bamStats.txt" % WORKSPACE 
+    binFile = "%s/binDist.txt" % WORKSPACE
+    formPEClusters(WORKSPACE, statFile, binFile, MIN_CS, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.s, ARGS.d)
+
+    # collect the clusters that pass requirements -> allClusters.thresh.txt
+    data = pd.read_table("%s/allClusters.txt" % WORKSPACE, 
+                         names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
+                                'rchr', 'rpos', 'rend', 'small'],
+                         dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
+    data = data[data['ns'] >= MIN_CS]
+    data.to_csv("%s/allClusters.thresh.txt" % WORKSPACE, header=None, index=None, sep='\t')
+
+    # calculate the distance you should walk back to compare variants to each 
+    # other
+    df = data['lend'] - data['lpos']
+    max_cl_comb_gap = df.max()
+    logging.info('Setting max_cl_comb_gap to %f', max_cl_comb_gap)
+
+
+    # sort the clusters based on the left breakpoint -> allClusters.ls.txt
+    clusterFileLS = "%s/allClusters.ls.txt" % WORKSPACE
+    data = pd.read_table("%s/allClusters.thresh.txt" % WORKSPACE,
+                         names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
+                                'rchr', 'rpos', 'rend', 'small'],
+                         dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
+    data = data.sort_values(by = ['lchr', 'lpos'])
+    data.to_csv(clusterFileLS, header=None, index=None, sep='\t')
+
+    # sort the clusters based on the right breakpoint -> allClusters.rs.txt
+    clusterFileRS = "%s/allClusters.rs.txt" % WORKSPACE
+    data = pd.read_table("%s/allClusters.thresh.txt" % WORKSPACE,
+                         names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
+                                'rchr', 'rpos', 'rend', 'small'],
+                         dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
+    data = data.sort_values(by = ['rchr', 'rpos'])
+    data.to_csv(clusterFileRS, header=None, index=None, sep='\t')
+
+    # consolidate those clusters in to variants. Creates
+    # 1. allVariants.pe.txt
+    # 2. variantMap.pe.txt
+    # 3. claimedClusters.txt
+    clusterMapFile = "%s/clusterMap.txt" % WORKSPACE
+    consolidatePEClusters(WORKSPACE, statFile, clusterFileLS, clusterFileRS,
+                          clusterMapFile, max_cl_comb_gap, SLOP_PE, REF_RATE_PE)
+
+    # filter and format the results
+    variantMapFile = "%s/variantMap.pe.txt" % WORKSPACE
+    allVariantFile = "%s/allVariants.pe.txt" % WORKSPACE
+    filterAndFormat(variantMapFile, allVariantFile, statFile, "pe")
+
+    # name sort the BAM file if it is not name-sorted. 
+    samfile = pysam.AlignmentFile(ARGS.split, 'rb')
+    sortorder = samfile.header['HD']['SO']
+    samfile.close()
+
+    splitfile = ARGS.split
+    if sortorder == 'coordinate':
+        splitfile = "%s/splitters.ns.bam" % WORKSPACE
+        logging.info('Started name sorting the splitters file')
+        pysam.sort("-n", "-O", "bam", "-T", "xxx", "-o", splitfile, ARGS.split)
+        logging.info('Finished name sorting the splitters file')
+
+    # now add the split read information to the system. Write the files 
+    # 1. variantMap.pe_sr.txt
+    # 2. allVariants.pe_sr.txt
+    addSplitReads(WORKSPACE, variantMapFile, allVariantFile, splitfile,
+                  SLOP_SR, REF_RATE_SR, MIN_VS_SR, MQ_SR, ARGS.c,
+                  MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i)
+
+    # filter and format these results
+    filterAndFormat("%s/variantMap.pe_sr.txt" % WORKSPACE, 
+                    "%s/allVariants.pe_sr.txt" % WORKSPACE, statFile, "pe_sr")
+
+    variantMapFile = "%s/variantMap.pe_sr.txt" % WORKSPACE
+    allVariantFile = "%s/allVariants.pe_sr.txt" % WORKSPACE
+    uniqueVariantFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
+    covPUFilter(WORKSPACE, allVariantFile, variantMapFile, uniqueVariantFile,
+                statFile, ARGS.samplebam, ARGS.m, DEL_CN_SUPP_THRESH,
+                DUP_CN_SUPP_THRESH, SPLIT_INS, PILEUP_THRESH)
+
+    # filter and format these results
+    filterAndFormat(None, "%s/allVariants.pu.txt" % WORKSPACE, statFile, "pu")
+
+if __name__ == '__main__':
+    # set the name of the directory where this script lives
+    SCRIPT_DIR = dirname(realpath(__file__))
+
+    # set the VERSION
+    with open(path[0]+'/VERSION',"r") as version_file:
+        VERSION = version_file.read().strip()    
+
+    # $$$ add option to print version and exit
+    PARSER = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description='Identify SVs in a sample using paired-end reads')
+
+    PARSER.add_argument('-d', action='store_true',
+                        help='print debug information')
+    PARSER.add_argument('-f', action='store_true',
+                        help='overwrite existing workspace')
+
+    PARSER.add_argument('-i', default=None, 
+                        help='ignore regions in this BED file')
+    PARSER.add_argument('-c', default=None,
+                        help='ignore the chromosomes')
+    PARSER.add_argument('-m', default=None,
+                        help='mappable intervals in a BED file')
+    PARSER.add_argument('-w', default="svxplorer", help='use dir as workspace')
+
+
+    PARSER.add_argument('disc', help='bam file of discordant pairs')
+    PARSER.add_argument('split', help='bam file of split reads')
+    PARSER.add_argument('samplebam', help='bam file of alignments')
+
+    # options we do not expect the user to change
+    PARSER.add_argument('-s', action='store_true', help=argparse.SUPPRESS)    
+
+    # writeDiscordantFragments
+    CALC_THRESH=1000000
+    MAP_THRESH=1
+    # useful for secondary alignments
+    PE_ALMT_COMB_THRESH=20
+    NMATCH_RELATIVE_THRESH=0
+    NMATCH_PCT_THRESH=0
+    AS_RELATIVE_THRESH=2
+    
+    # formPEClusters
+    MIN_CS=3
+    DISC_ENHANCER=1.67
+    MIN_PE_BPMARGIN=20
+
+    # consolidatePEClusters
+    SLOP_PE=0
+    REF_RATE_PE=5
+
+    # uniqueSuppFilter (PE)
+    MAP_THRESH_U=10
+    MIN_UNIQUE_SUPP=3
+
+    # writeBEDs
+    LIB_INV=False
+
+    # addSplitReads
+    SLOP_SR=8
+    REF_RATE_SR=0
+    MIN_VS_SR=3
+    MQ_SR=10
+    MIN_SIZE_INS_SR=30
+    MIN_SRtoPE_SUPP=2
+
+    # covPUFilter
+    DEL_CN_SUPP_THRESH=.6 
+    DUP_CN_SUPP_THRESH=1.4
+    SPLIT_INS=0
+    PILEUP_THRESH=1.4
+
+    ARGS = PARSER.parse_args()
+
+    # start logging
+    if ARGS.d:
+        LEVEL = logging.DEBUG
+    else:
+        LEVEL = logging.INFO
+    LOGMODE = 'w'
+
+    # create the workspace
+    if createDirectory(ARGS.w) == None:
+        if ARGS.f:
+            print >> stderr, "Overwriting existing output directory"
+            rmtree(ARGS.w)
+            createDirectory(ARGS.w)
+        else:
+            print >> stderr, "Output directory already exists. Quitting."
+            exit(1)
+
+    createDirectory("%s/workspace" % ARGS.w)
+    createDirectory("%s/results" % ARGS.w)
+
+    logging.basicConfig(filename='%s/run.log' % ARGS.w,
+                        level=LEVEL,
+                        format='%(asctime)s %(levelname)s %(message)s',
+                        datefmt='%m/%d/%Y %I:%M:%S %p',
+                        filemode=LOGMODE)
+
+    WORKSPACE = "%s/workspace" % ARGS.w
+
+    # process PE and SR information
+    processFragments()
+
+    # add soft link to the results
+    inpt = "%s/variants.pu.bedpe" % WORKSPACE
+    otpt = "%s/results/variants.bedpe" % ARGS.w
+    symlink(abspath(inpt), abspath(otpt))
+    inpt = "%s/variants.pu.vcf" % WORKSPACE
+    otpt = "%s/results/variants.vcf" % ARGS.w
+    symlink(abspath(inpt), abspath(otpt))
+
+    logging.shutdown()   

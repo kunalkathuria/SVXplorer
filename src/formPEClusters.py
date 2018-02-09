@@ -1,20 +1,45 @@
 #!/usr/bin/env python
-# Kunal Kathuria 1/18
-# If using as separate module, first run writeDiscordantFragments.py and provide same working directory
-# Form PE clusters from discordant PE alignments written by readDiscordantFragments.py, via a maximal clique formulation
+
+# Form PE clusters from discordant PE alignments written by writeDiscordantFragments.py, via a maximal clique formulation
 import pysam
 import networkx as nx
-import argparse
+import argparse as ap
+import logging
 
-def readBamStats(file1):
-    stats = []  
-    fp = open(file1,"r")
-    for line in fp:
-        stats.append(line)
-    fp.close()
-    return float(stats[0]), float(stats[1]), float(stats[5]), float(stats[6]), float(stats[7])
+class cluster(object):
+    # cluster of aligned fragments
+    def __init__(self):
+        self.l_bound=None
+        self.r_bound=None
+        self.count=1
+        self.cType=None #orientation, e.g. "01" represents "FR" etc.
+        self.lTID = -1
+        self.rTID = -1
+        self.l_min = -1
+        self.lmax = -1
+        self.r_min = -1
+        self.r_max = -1
+        # final cluster locations
+        self.l_start = -1
+        self.l_end = -1
+        self.r_start = -1
+        self.r_end = -1
+        self.clSmall = -1
+        self.fragNum = -1
+        self.used = 0
 
-def readDistHash(fp):
+    def __str__(self):
+        return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.count, self.cType, self.lTID, self.l_start, self.l_end, self.rTID, self.r_start, self.r_end, self.clSmall)
+
+def readBamStats(statFile):
+    stats = []
+    with open(statFile,"r") as fp:
+        for line in fp:
+            stats.append(line)
+    stats = map(float,stats)
+    return stats[0], stats[1], stats[5], stats[6], stats[7]
+
+def readDistHash(fp, IL_BinDistHash):
     total_entries = 0
     for line in fp:
         ls1 = float(line.split()[1])
@@ -22,7 +47,7 @@ def readDistHash(fp):
         total_entries+= ls1
     return total_entries
 
-def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_type):
+def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_type, dist_penalty, dist_end, rdl, IL_BinDistHash, mean_IL):
     # calculate difference in insert lengths between the 2 almts
     bin_size = 10
     if c_type == "01" or c_type == "10":
@@ -32,9 +57,9 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
 
     # calculate weight component 1
     if dist_penalty <= dist_end:
-        distpen = 1 - (abs(f2_lPos-f1_lPos)+2*RDL-dist_end)*1.0/(dist_end - mean_IL)
-    else:   
-        distpen = 1 - (abs(f2_lPos-f1_lPos)+2*RDL-dist_end)*1.0/(dist_penalty - dist_end)
+        distpen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_end - mean_IL)
+    else:
+        distpen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_penalty - dist_end)
     if distpen > 1:
         distpen = 1
 
@@ -46,7 +71,7 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
         weight = 0
     return weight
 
-def calculateMargin(clusterC, max_cluster_length, disc_enhancer, disc_thresh):
+def calculateMargin(clusterC, max_cluster_length, disc_thresh, bp_margin):
 
     marginChangeThresh = 2
     changeMargin = 50
@@ -56,7 +81,7 @@ def calculateMargin(clusterC, max_cluster_length, disc_enhancer, disc_thresh):
     cl_margin_r = max_cluster_length - (clusterC.r_max - clusterC.r_min)
     cl_margin = min(cl_margin_l, cl_margin_r)
     cl_margin = int(cl_margin)
-    #SR support for low support PE clusters may be significant 
+    #SR support for low support PE clusters may be significant
     # but only if lying close -- so, lower margin
     if clusterC.count <= marginChangeThresh:
         cl_margin = min(changeMargin,cl_margin)
@@ -87,7 +112,7 @@ def calculateMargin(clusterC, max_cluster_length, disc_enhancer, disc_thresh):
         clusterC.r_end = max(clusterC.r_start + 1, clusterC.r_end)
 
     # resolve breakpoint margin overlap if needed
-    if clusterC.lTID == clusterC.rTID: 
+    if clusterC.lTID == clusterC.rTID:
         if not l_orient and r_orient:
             clusterC.l_end = min(clusterC.l_end, clusterC.r_end-1)
             clusterC.r_start = max(clusterC.r_start, clusterC.l_start+1)
@@ -95,41 +120,15 @@ def calculateMargin(clusterC, max_cluster_length, disc_enhancer, disc_thresh):
             clusterC.r_start = max(clusterC.lmax+1, clusterC.r_start)
         elif l_orient and r_orient:
             clusterC.l_end = min(clusterC.r_min-1, clusterC.l_end)
-        
-class cluster(object):
-    # cluster of aligned fragments
-    def __init__(self):
-        self.l_bound=None
-        self.r_bound=None
-        self.count=1
-        self.cType=None #orientation, e.g. "01" represents "FR" etc. 
-        self.lTID = -1
-        self.rTID = -1
-        self.l_min = -1
-        self.lmax = -1
-        self.r_min = -1
-        self.r_max = -1
-        # final cluster locations   
-        self.l_start = -1 
-        self.l_end = -1
-        self.r_start = -1
-        self.r_end = -1
-        self.clSmall = -1
-        self.fragNum = -1
-        self.used = 0
 
-    def __str__(self):
-        return "%s %s %s %s %s %s %s %s %s" % (self.count, self.cType, self.lTID, self.l_start, \
-            self.l_end, self.rTID, self.r_start, self.r_end, self.clSmall)
+def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
+                  preserveList, clusterNum, mean_IL, disc_thresh,
+                  max_cluster_length, bp_margin, min_cluster_size, debug):
 
-def writeClusters(fragGraph, fragHash, fCliques, fClusterSizes, fClusters, fClusterMap, \
-    preserveList, min_cluster_size, clusterNum, mean_IL, disc_enhancer, disc_thresh):
-    
     max_clique_list = []
     # do not form cliques out of most recent fragments, as they will connect further
     for connected_comp in list(nx.connected_component_subgraphs(fragGraph)):
-        #fClusterSizes.write("%s %s %s\n" %(len(connected_comp),connected_comp.number_of_nodes(), \
-            #connected_comp.number_of_edges()))
+        logging.debug('Connected component: %s', sorted([x for x in connected_comp.nodes()]))
         preserveComp = 0
         if len(preserveList) > 0:
             for node in connected_comp:
@@ -165,7 +164,6 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusterSizes, fClusters, fClus
         r_max = fragHash[clique0].r_bound + 1
         goodFrags = []
         count = 0
-        #print "Clique size is:", len(clique)
         if len(clique) >= min_cluster_size:
             for item in clique:
                 # do not put diff almts of same *fragment* in same cluster
@@ -209,20 +207,20 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusterSizes, fClusters, fClus
                 newCl.r_min = r_min
                 newCl.lmax = lmax
                 newCl.r_max = r_max
-                #print "Cluster is", newCl.l_min, newCl.lmax, newCl.r_min, newCl.r_max
-                calculateMargin(newCl, max_cluster_length, disc_enhancer, disc_thresh)
-                #print "Cluster clique formed:", clusterNum
-                fCliques.write("%s %s\n" %("@Cluster"+str(clusterNum),newCl))
-                fClusters.write("%s %s\n" %(clusterNum, newCl))
+                calculateMargin(newCl, max_cluster_length, disc_thresh, bp_margin)
+                if debug:
+                    fCliques.write("%s %s\n" %("@Cluster"+str(clusterNum),newCl))
+                fClusters.write("%s\t%s\n" %(clusterNum, newCl))
                 fClusterMap.write("%s" %clusterNum)
                 for item in goodFrags:
                     # write all supporting fragments to clique info file as well
-                    #fCliques.write("%s %s %s\n" %(item, fragHash[item].l_bound, fragHash[item].r_bound))
+                    if debug:
+                        fCliques.write("%s %s %s\n" %(item, fragHash[item].l_bound, fragHash[item].r_bound))
                     item_s = item
                     usPos = item.find("_")
                     if len(item) > 2 and usPos != -1:
                         item_s = item[:uscore]
-                    fClusterMap.write(" %s" %item_s)
+                    fClusterMap.write("\t%s" %item_s)
                 fClusterMap.write("\n")
                 clusterNum+=1
     return clusterNum
@@ -250,64 +248,64 @@ def runSubsample(almt, block_hash):
             break
     return found, process
 
-def processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights, wt_calc_thresh, \
-    wt_isUncalculated, edgeStore, fragmentGraph, edge_weight_thresh, verbose):
+def processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights,
+                   wt_calc_thresh, wt_isUncalculated, edgeStore, fragmentGraph,
+                   edge_weight_thresh, dist_penalty, dist_end, rdl,
+                   IL_BinDistHash, mean_IL, wtThresh_perc, debug):
+    """Include the new fragment into the graph.
+    """
 
+    logging.debug("Processing fragment: %s against %d fragments", almt.fragNum, len(fragList))
     for storedAlmt in fragList:
-        #print "Member:", storedAlmt
-        if storedAlmt.lTID == almt.lTID and storedAlmt.rTID == almt.rTID and \
-                storedAlmt.cType == almt.cType and storedAlmt.clSmall == almt.clSmall:
-            #print almt.l_bound, almt.r_bound, almt.fragNum, storedAlmt.l_bound, storedAlmt.r_bound, storedAlmt.fragNum
-            #print "Comparing 2 frags", almt, storedAlmt, line
+        if storedAlmt.lTID == almt.lTID and \
+           storedAlmt.rTID == almt.rTID and \
+           storedAlmt.cType == almt.cType and \
+           storedAlmt.clSmall == almt.clSmall:
+            logging.debug("Comparing %s~%s-%s to %s~%s-%s", almt.fragNum, almt.l_bound, almt.r_bound, storedAlmt.fragNum, storedAlmt.l_bound, storedAlmt.r_bound)
             #compare 2 frags
             f1_lPos = storedAlmt.l_bound
-            f1_rPos = storedAlmt.r_bound        
+            f1_rPos = storedAlmt.r_bound
             f2_lPos = almt.l_bound
             f2_rPos = almt.r_bound
-            #print x, f1_lPos, f1_rPos, f2_lPos, f2_rPos
-            edge_weight = calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, almt.cType)
-            #print "Weight is:", edge_weight
+            edge_weight = calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, almt.cType, dist_penalty, dist_end, rdl, IL_BinDistHash, mean_IL)
+            if edge_weight > 0: logging.debug("Edge weight is: %f", edge_weight)
             if len(cnnxnWeights) < wt_calc_thresh and edge_weight > 0:
                 cnnxnWeights.append(edge_weight)
-                edgeStore.append([storedAlmt.fragNum, almt.fragNum, edge_weight])
-                #print edge_weight, len(cnnxnWeights)
+                edgeStore.append((storedAlmt.fragNum, almt.fragNum, edge_weight))
             elif len(cnnxnWeights) >= wt_calc_thresh and wt_isUncalculated:
                 cnnxnWeights_S = sorted(cnnxnWeights)
                 indexW = int(wtThresh_perc*len(cnnxnWeights))
                 edge_weight_thresh = cnnxnWeights_S[indexW]
                 wt_isUncalculated = 0
-                if verbose:
-                    print "Edge weight threshold calculated to be", \
-                        edge_weight_thresh, "at percentile:", wtThresh_perc
-                for storeEdge in edgeStore:
-                    edge_weight = storedEdge[2]
-                    frag1 = storedEdge[0]
-                    frag2 = storedEdge[1]
-                    if edge_weight > edge_weight_thresh and storedEdge[0] != storedEdge[1]:
+                logging.debug("Edge weight threshold calculated to be %f at percentile %f", edge_weight_thresh, wtThresh_perc)
+                # $$$ for now I am setting this to be zero in consultation with
+                # Kunal. I should remove all vestiges of this later (31 Jan)
+                edge_weight_thresh = 0.0
+                for frag1,frag2,edge_weight in edgeStore:
+                    if edge_weight > edge_weight_thresh and frag1 != frag2:
                         fragmentGraph.add_edge(frag1, frag2)
                 edgeStore = []
 
-            # only add node if calculation threshold to get edge_weight_thresh 
+            # only add node if calculation threshold to get edge_weight_thresh
             # has been reached, else determine later
             if wt_isUncalculated == False and edge_weight > edge_weight_thresh:
-                #print "Adding connection", edge_weight, edge_weight_thresh, storedAlmt.fragNum, almt.fragNum
                 if storedAlmt.fragNum != almt.fragNum:
                     fragmentGraph.add_edge(storedAlmt.fragNum, almt.fragNum)
 
     return wt_isUncalculated, edge_weight_thresh
 
-def refreshFragList(fragList, almt, verbose, wt_isUncalculated, fragmentGraph, fragHash, \
-    fCliques, fClusterSizes, fClusters, fClusterMap, max_cluster_length, clusterNum, newClusterBlock):
+def refreshFragList(fragList, almt, wt_isUncalculated, fragmentGraph, fragHash,
+                    fCliques, fClusters, fClusterMap, max_cluster_length,
+                    clusterNum, newClusterBlock, mean_IL, disc_thresh,
+                    bp_margin, debug, min_cluster_size):
 
     if len(fragList) > 1:
         if almt.lTID != fragList[-2].lTID or almt.rTID != fragList[-2].rTID:
-            if verbose:
-                print "New TID. Processing lTID: rTID: Size of list:", almt.lTID, almt.rTID, len(fragList)
             newClusterBlock = 0
             fragList = [fragList[-1]]
+            logging.debug('Refreshed list for new chromosomes')
             if not wt_isUncalculated:
-                clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusterSizes, fClusters, fClusterMap, \
-                    preserveList, min_cluster_size, clusterNum, mean_IL, disc_enhancer, disc_thresh)
+                clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, [], clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
                 fragmentGraph.clear()
                 fragmentGraph.add_node(fragList[0].fragNum)
                 fragHash = {}
@@ -318,76 +316,42 @@ def refreshFragList(fragList, almt, verbose, wt_isUncalculated, fragmentGraph, f
                 nodeList = {}
                 for frag in fragList[newClusterBlock:]:
                     nodeList[frag.fragNum] = 1
-                clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusterSizes, fClusters, fClusterMap, \
-                    preserveList, min_cluster_size, clusterNum, mean_IL, disc_enhancer, disc_thresh)
+                clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, nodeList, clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
                 del fragList[0:newClusterBlock]
+                logging.debug('Deleted %d elems from list', newClusterBlock)
                 newClusterBlock = len(fragList)-1
 
-    return clusterNum, newClusterBlock
+    return fragList, clusterNum, newClusterBlock
 
-if __name__== "__main__":
-    # parse arguments
-    try:
-        parser = argparse.ArgumentParser(description='Form PE clusters from discordant PE \
-            alignments written by readDiscordantFragments.py, via a maximal clique formulation')
-        parser.add_argument('workDir', help='Work directory')
-        parser.add_argument('statFile', help='File containing BAM statistics, typically\
-            bamStats.txt')
-        parser.add_argument('IL_BinFile', help='File containing insert length statistics,\
-            typically binDist.txt')
-        parser.add_argument('-g', default=80, dest='max_AlmtGap', type=int,\
-            help='Maximum allowed "inside" gap between respective R and L mates \
-            of non-overlapping RF alignments in order to consider them candidates \
-            for the same cluster')
-        parser.add_argument('-m', default=3, dest='min_cluster_size', type=int,\
-            help='Minimum number of almts supporting cluster')
-        parser.add_argument('-d', default=1.67, dest='disc_enhancer', type=float,\
-            help='Factor to multiply "end" of IL distribution by a "safety" factor so as \
-            to not miss larger sampling ILs in certain distributions')
-        parser.add_argument('-p', default=20, dest='bp_margin', type=int,\
-            help='Breakpoint margin for each breakpoint if its calculation yields zero \
-            or negative value')
-        parser.add_argument('-s', default=0, dest='subsample',type=int,\
-            help='Subsample alignments. Set to 1 ONLY if code is slow, e.g. taking hours on large file')
-        parser.add_argument('-v', default=0, dest='verbose', type=int, help='1 for verbose output')
-        args = parser.parse_args()
-    except:
-        parser.print_help()
-        exit(1)
+def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
+                   disc_enhancer, bp_margin, subsample, debug):
+    # read the stats
+    rdl, mean_IL, disc_thresh, dist_penalty, dist_end = readBamStats(statFile)
+    max_cluster_length = mean_IL + disc_enhancer*disc_thresh - 2*rdl
+    logging.info('max_cluster_length is %f', max_cluster_length)
 
-    ## working variables and objects
-    #* statistical constants
-    #max_AlmtGap = args.max_AlmtGap # if needed, use max_AlmtGap for RF clusters; seems unnecessary currently.
-    min_cluster_size = args.min_cluster_size
-    disc_enhancer = args.disc_enhancer
-    bp_margin = args.bp_margin
-    #*
-    statFile = args.statFile
-    IL_BinFile = args.IL_BinFile
-    verbose = args.verbose
-    RDL, mean_IL, disc_thresh, dist_penalty, dist_end = readBamStats(statFile)
-    max_cluster_length = mean_IL + disc_enhancer*disc_thresh - 2*RDL
-    #** maximal-clique-based cluster formation routine variables -- hidden from command line
-    #* simple empirical weight thresholding Poisson model
+    # maximal-clique-based cluster formation routine variables
+    # simple empirical weight thresholding Poisson model
     wt_thresh_low = 0
     wt_thresh_high = .05
     stdIL_high = 70
     sdtIL_low = 15
-    #*
+
     wt_calc_thresh = 30000
     wtThresh_perc = .001
-    #* subsampling routine variables -- should be rarely required if at all
+
+    # subsampling routine variables -- should be rarely required if at all
     block_gap_thresh = 25
     block_thresh = 3*min_cluster_size
     block_hash = {}
-    #*
+
     edge_weight_thresh = -1
     wt_isUncalculated = 1
     newClusterBlock = 0
     IL_BinDistHash = {}
     fragList = []
     fBin=open(IL_BinFile,"r")
-    IL_BinTotalEntries = readDistHash(fBin)
+    IL_BinTotalEntries = readDistHash(fBin, IL_BinDistHash)
     fragHash = {}
     secCounter = {}
     fragmentGraph = nx.Graph()
@@ -395,27 +359,17 @@ if __name__== "__main__":
     edgeStore = []
     clusterNum = 1
     newClusterBlock = 0
-    #**
-    subsample = args.subsample #doSubsample(fDiscAlmts)
-    workDir = args.workDir
+
     fDiscAlmts=open(workDir+"/allDiscordants.txt","r")
-    #fDiscAlmtsI=open(workDir+"/All_Discords_I_S.txt","r")
     fClusters=open(workDir+"/allClusters.txt","w")
     fClusterMap=open(workDir+"/clusterMap.txt","w")
-    fCliques = open(workDir+"/clusterCliques.txt","w")
-    fClusterSizes=open(workDir+"/clusterSizes.txt","w")
+    fCliques = None
+    if debug:
+        fCliques = open(workDir+"/clusterCliques.txt","w")
 
-    #if sigma_IL is high, chances of alignments starying into neighboring cluster/clique is higher
-    #wtThresh_perc = wt_thresh_low + (SIG_D-stdIL_low)*1.0*(wt_thresh_high-wt_thresh_low)/(stdIL_high-stdIL_low) #.05
-    #if wtThresh_perc > wt_thresh_high:
-    #   wtThresh_perc = wt_thresh_high
-    #elif wtThresh_perc < wt_thresh_low:
-    #   wtThresh_perc = wt_thresh_low
-
-    temp = fDiscAlmts.readline() #remove header
-    print "PE cluster formation loop start..."
+    logging.info('Started PE cluster formation')
     for line_num,line in enumerate(fDiscAlmts):
-        parsed = line.split()
+        parsed = line.strip().split()
         almt = cluster()
         almt.l_bound = int(parsed[2])
         almt.r_bound = int(parsed[4])
@@ -424,18 +378,22 @@ if __name__== "__main__":
         almt.rTID = parsed[3]
         almt.clSmall = int(parsed[6])
         almt.fragNum = parsed[0]
-        if verbose and line_num % 100 == 0:
-            print "Done with fragment", line_num
-        #ignore artefact read seen often
+
+        #ignore artefact seen often
         if almt.lTID == almt.rTID and almt.l_bound == almt.r_bound and (almt.cType == "00" or almt.cType == "11"):
+            logging.debug("Fragment %s appears to be an alignment artefact", almt.fragNum)
             continue
-        #criss crossing read from small TD may appear like this
+
+        #criss crossing read from small TD may appear like this 
         if almt.l_bound > almt.r_bound and almt.lTID == almt.rTID and almt.cType == "01":
+            logging.debug("Fragment %s appears to be from a TD with criss-crossing alignments", almt.fragNum)
             almt.l_bound, almt.r_bound = almt.r_bound, almt.l_bound
             almt.cType = "10"
             almt.clSmall = -1
-        #subsample if alignments v close, for speed -- should be rarely needed  
+
+        #subsample if alignments close, for speed -- should be rarely needed
         if subsample:
+            logging.info('Subsampling since the coverage is extremely high')
             process = 0
             found = 0
             found, process = runSubsample(almt, block_hash)
@@ -449,33 +407,66 @@ if __name__== "__main__":
             fragHash[almt.fragNum] = almt
             secCounter[almt.fragNum] = 1
         # add sec almts of same fragment with underscore
-        else: 
+        else:
             secCounter[almt.fragNum]+=1
             almt.fragNum=str(almt.fragNum) + "_" + str(secCounter[almt.fragNum])
             fragHash[almt.fragNum] = almt
         fragList.append(almt)
 
         # process new PE alignment
-        wt_isUncalculated, edge_weight_thresh = processNewFrag(fragList, almt, IL_BinTotalEntries, \
-            cnnxnWeights, wt_calc_thresh, wt_isUncalculated, edgeStore, fragmentGraph, edge_weight_thresh, verbose)
+        wt_isUncalculated, edge_weight_thresh = processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights, wt_calc_thresh, wt_isUncalculated, edgeStore, fragmentGraph, edge_weight_thresh, dist_penalty, dist_end, rdl, IL_BinDistHash,mean_IL,wtThresh_perc, debug)
 
         # refresh fragment list
-        clusterNum, _ = refreshFragList(fragList, almt, verbose, wt_isUncalculated, fragmentGraph, fragHash, \
-            fCliques, fClusterSizes, fClusters, fClusterMap, max_cluster_length, clusterNum, newClusterBlock)
+        fragList, clusterNum, newClusterBlock = refreshFragList(fragList, almt, wt_isUncalculated, fragmentGraph, fragHash, fCliques,  fClusters, fClusterMap, max_cluster_length, clusterNum, newClusterBlock, mean_IL, disc_thresh, bp_margin, debug, min_cluster_size)
+    logging.info('Finished PE cluster formation')
 
     # write remaining nodes/almts to file
-    for storeEdge in edgeStore:
-        edge_weight = storeEdge[2]
-        frag1 = storeEdge[0]
-        frag2 = storeEdge[1]
-        if edge_weight > 0 and storeEdge[0] != storeEdge[1]:
+    for frag1,frag2,edge_weight in edgeStore:
+        if edge_weight > 0 and frag1 != frag2:
             fragmentGraph.add_edge(frag1, frag2)
-    clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusterSizes, fClusters, fClusterMap, \
-        [], min_cluster_size, clusterNum, mean_IL, disc_enhancer, disc_thresh)
+    logging.info('Started writing clusters')
+    clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, [], clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
+    logging.info('Finished writing clusters')
 
-    fCliques.close()
-    fClusterSizes.close() 
+    if debug:
+        fCliques.close()
     fClusters.close()
-    fClusterMap.close()            
-   
-       
+    fClusterMap.close()
+
+if __name__== "__main__":
+    # parse arguments
+    PARSER = ap.ArgumentParser(description="""
+            Form PE clusters from discordant PE alignments written by
+            writeDiscordantFragments.py, via a maximal clique formulation""",
+            formatter_class=ap.ArgumentDefaultsHelpFormatter)
+    PARSER.add_argument('workDir', help='Work directory')
+    PARSER.add_argument('statFile',
+        help='File containing BAM statistics typically named bamStats.txt')
+    PARSER.add_argument('IL_BinFile',
+        help='File containing insert length statistics typically named binDist.txt')
+    PARSER.add_argument('-d', action='store_true', dest='debug', help='print debug information')
+    PARSER.add_argument('-m', default=3, dest='min_cluster_size', type=int,
+        help='Minimum number of almts per cluster')
+    PARSER.add_argument('-x', default=1.67, dest='disc_enhancer', type=float,
+        help='Factor to multiply "end" of IL distribution by a "safety" factor so as \
+        to not miss larger sampling ILs in certain distributions')
+    PARSER.add_argument('-p', default=20, dest='bp_margin', type=int,
+        help='Breakpoint margin for each breakpoint if its calculation yields zero \
+        or negative value')
+    PARSER.add_argument('-s', action='store_true',
+        help='Subsample alignments. Set to 1 ONLY if code is slow, e.g. taking hours on large file')
+    ARGS = PARSER.parse_args()
+
+    LEVEL = logging.INFO
+    if ARGS.debug:
+        LEVEL = logging.DEBUG
+
+    logging.basicConfig(level=LEVEL,
+                        format='%(asctime)s %(levelname)s %(message)s',
+                        datefmt='%m/%d/%Y %I:%M:%S %p')
+
+    formPEClusters(ARGS.workDir, ARGS.statFile, ARGS.IL_BinFile,
+                   ARGS.min_cluster_size, ARGS.disc_enhancer,
+                   ARGS.bp_margin, ARGS.s, ARGS.debug)
+
+    logging.shutdown()

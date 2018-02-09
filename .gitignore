@@ -1,3 +1,4 @@
 data/bed/large/*
 results/text/*
 bin
+*.pyc
