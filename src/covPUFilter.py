@@ -305,7 +305,7 @@ if __name__ == "__main__":
         help='Minimum unexcluded bases required to trust/use local coverage value in SV')
     PARSER.add_argument('-f', default=0, dest='splitINS', type=int,
         help='Whether to split accidental complex variants into simple diploid variants based on local coverage')
-    PARSER.add_argument('-g', default=0, dest='libINV', type=int,
+    PARSER.add_argument('-g', default=1, dest='libINV', type=int,
         help='Liberal INV calling: 1 PE cluster + SR support sufficient')
     PARSER.add_argument('-v', default=0, dest='verbose', type=int, help='Verbose output')
     ARGS = PARSER.parse_args()
