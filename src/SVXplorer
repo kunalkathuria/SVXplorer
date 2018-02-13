@@ -31,7 +31,11 @@ def createDiscordants():
 
     # what is the sort order of this file?
     samfile = pysam.AlignmentFile(ARGS.disc, "rb")
-    sortorder = samfile.header['HD']['SO']
+    try:
+        sortorder = samfile.header['HD']['SO']
+    except KeyError:
+        print >> stderr, "Missing headers. Please check if BAM was correctly written."
+        exit(1)
     samfile.close()
 
     discfile = ARGS.disc
@@ -253,7 +257,11 @@ def processFragments():
 
     # name sort the BAM file if it is not name-sorted. 
     samfile = pysam.AlignmentFile(ARGS.split, 'rb')
-    sortorder = samfile.header['HD']['SO']
+    try:
+        sortorder = samfile.header['HD']['SO']
+    except KeyError:
+        print >> stderr, "Missing headers. Please check if BAM was correctly written."
+        exit(1)
     samfile.close()
 
     splitfile = ARGS.split
@@ -367,7 +375,8 @@ if __name__ == '__main__':
     LOGMODE = 'w'
 
     # create the workspace
-    if createDirectory(ARGS.w) == None and isdir(ARGS.w):
+    createDirResponse = createDirectory(ARGS.w)
+    if createDirResponse == None and isdir(ARGS.w):
         if ARGS.f:
             print >> stderr, "Overwriting existing output directory"
             rmtree(ARGS.w)
@@ -375,7 +384,7 @@ if __name__ == '__main__':
         else:
             print >> stderr, "Output directory already exists. Quitting."
             exit(1)
-    else:
+    elif createDirResponse == None and not isdir(ARGS.w):
         print >> stderr, "Check output directory path. Quitting."
         exit(1)
 
