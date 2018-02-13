@@ -87,9 +87,9 @@ def calculateMargin(clusterC, max_cluster_length, disc_thresh, bp_margin):
         cl_margin = min(changeMargin,cl_margin)
     if cl_margin <= bp_margin:
         # use small margin
-        cl_margin = int(bp_margin)
+        cl_margin = bp_margin
     # small margin on other side of "alignment tip"
-    reverse_margin = int(bp_margin/4)
+    reverse_margin = bp_margin
 
     # apply margins
     if l_orient == 0:
