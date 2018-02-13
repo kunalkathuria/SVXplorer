@@ -1,0 +1,26 @@
+02/13/2018 04:36:15 PM INFO Started writing the BAM files
+02/13/2018 04:36:15 PM INFO Started writing the discordant reads
+02/13/2018 04:36:15 PM INFO Finished writing the discordant reads
+02/13/2018 04:36:15 PM INFO Finished writing the BAM files
+02/13/2018 04:36:15 PM INFO Started reading discordant pairs
+02/13/2018 04:36:15 PM INFO Finished reading discordant pairs
+02/13/2018 04:36:15 PM INFO Started sorting the discordants
+02/13/2018 04:36:15 PM INFO Finished sorting the discordants
+02/13/2018 04:36:15 PM INFO max_cluster_length is 754.260000
+02/13/2018 04:36:15 PM INFO Started PE cluster formation
+02/13/2018 04:36:15 PM INFO Finished PE cluster formation
+02/13/2018 04:36:15 PM INFO Started writing clusters
+02/13/2018 04:36:15 PM INFO Finished writing clusters
+02/13/2018 04:36:15 PM INFO Setting max_cl_comb_gap to 713.000000
+02/13/2018 04:36:15 PM INFO sr, pe threshes, covg are: 6, 6, 73
+02/13/2018 04:36:15 PM INFO Applying uniqueness filter.
+02/13/2018 04:36:15 PM INFO 6 variants passed threshold
+02/13/2018 04:36:15 PM INFO Started reading the PE variants
+02/13/2018 04:36:15 PM INFO Finished reading the PE variants
+02/13/2018 04:36:17 PM INFO sr, pe threshes, covg are: 6, 6, 73
+02/13/2018 04:36:17 PM INFO Applying uniqueness filter.
+02/13/2018 04:36:17 PM INFO 7 variants passed threshold
+02/13/2018 04:36:17 PM INFO Writing final bedpe files using coverage information
+02/13/2018 04:36:17 PM INFO Some stats from BAM. RDL: 100, Coverage: 73.000000, Sd: 97.775252
+02/13/2018 04:36:17 PM INFO PE deletion threshold is 100
+02/13/2018 04:36:17 PM INFO 7 variants passed threshold

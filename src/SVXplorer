@@ -110,7 +110,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
             if chr1 != chr2:
                 chr2="CHR2="+ tokens[3] + ";"
 
-            if svType == "BND" and cmtSVType not in ["INS_C","INS_C_I"] and not bnd:
+            if svType == "BND" and cmtSVType not in ["INS_C","INS_C_I"] and bnd == "0":
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + chr2End + ";" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM="+cmtSVType+";" + chr2 + support + precise)
             elif svType == "BND" and cmtSVType.startswith("INS"):
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + chr1End+ ";CIPOS=-100,100;CIEND=-100,100;CM=" + cmtSVType+";" + support + precise)
@@ -144,7 +144,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 counter+=1
 
 def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
-    if variantMapFile != None:
+    if variantMapFile is not None:
         # pick variants that have the minimum unique support. This writes
         # 1. variants.uniqueFilter.txt
         # 2. variants.uniqueSupport.txt
