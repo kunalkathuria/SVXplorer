@@ -7,7 +7,7 @@ import argparse as ap
 import numpy as np
 import pysam as ps
 import logging
-
+import sys
 from shared import formExcludeHash, ignoreRead, readChromosomeLengths
 
 ## we would not recommended changing any of these
@@ -447,7 +447,7 @@ def readNextReadAlignments(bamname):
     for alignment in bamfile:
         # ignore QC failed, duplicate, unmapped, and supplementary alignments
         if alignment.is_qcfail or \
-           alignment.is_duplicate or alignment.is_unmapped or \
+           alignment.is_duplicate or \
            alignment.is_supplementary: 
            continue
 
@@ -497,7 +497,12 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
 
             if (currentFrag % 100000) == 0:
                 logging.debug("%d fragments analyzed", currentFrag)
-            assert q1[:-2] == q2[:-2]
+            try:
+                assert q1[:-2] == q2[:-2]
+            except AssertionError:
+                sys.stderr.write("Please check if reads pass vendor checks\n{0}\n{1}\n" 
+                    .format(q1,q2))
+                exit(1)
 
             dList1, dList2 = formDiscordant(aln1s, aln2s, disc_thresh,
                     disc_thresh_neg, mean_IL, chrHash, nMatchPct_thresh,
