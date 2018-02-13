@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from os.path import dirname, realpath, exists, abspath
+from os.path import dirname, realpath, exists, abspath, isdir
 from os import mkdir, utime, symlink
 from shutil import rmtree
 from sys import stderr, path
@@ -367,7 +367,7 @@ if __name__ == '__main__':
     LOGMODE = 'w'
 
     # create the workspace
-    if createDirectory(ARGS.w) == None:
+    if createDirectory(ARGS.w) == None and isdir(ARGS.w):
         if ARGS.f:
             print >> stderr, "Overwriting existing output directory"
             rmtree(ARGS.w)
@@ -375,6 +375,9 @@ if __name__ == '__main__':
         else:
             print >> stderr, "Output directory already exists. Quitting."
             exit(1)
+    else:
+        print >> stderr, "Check output directory path. Quitting."
+        exit(1)
 
     createDirectory("%s/workspace" % ARGS.w)
     createDirectory("%s/results" % ARGS.w)

@@ -500,8 +500,8 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
             try:
                 assert q1[:-2] == q2[:-2]
             except AssertionError:
-                sys.stderr.write("Please check if reads pass vendor checks\n{0}\n{1}\n" 
-                    .format(q1,q2))
+                sys.stderr.write("Please check if reads pass vendor checks \
+                \n{0}\n{1}\nQuitting.\n" .format(q1,q2))
                 exit(1)
 
             dList1, dList2 = formDiscordant(aln1s, aln2s, disc_thresh,
