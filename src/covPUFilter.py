@@ -177,35 +177,20 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 swap = 0
                 GT=""
                 if (svtype == "DEL_INS" or svtype == "DEL" or svtype[0:2]== "TD") and int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
-                    confL, confR, covLocL, covLocR = 0,0,0,0
                     covLocM, confMiddle = calculateLocCovg(lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),
                             PILEUP_THRESH, fBAM, chrHash)
 
-                    if svtype[0:2] != "TD":
-                        verifL_start = int(lineAV_split[4])
-                        verifR_stop = int(lineAV_split[6])
-                        VER_BUFFER = max(1.5*MIN_PILEUP_THRESH,.25*(verifR_stop-verifL_start))
-                        verifL_stop = verifL_start + VER_BUFFER
-                        verifR_start = verifR_stop - VER_BUFFER
-                        if verifR_stop - verifL_start > VER_BUFFER:
-                            covLocL, confL = calculateLocCovg(lineAV_split[2],
-                                    verifL_start, verifL_stop, PILEUP_THRESH,
-                                    fBAM, chrHash)
-                            covLocR, confR = calculateLocCovg(lineAV_split[2],
-                                    verifR_start, verifR_stop, PILEUP_THRESH,
-                                    fBAM, chrHash)
-                    if confMiddle == 1 or (confL == 1 and confR == 1):
-                        if svtype[0:2] == "TD" and ((confMiddle == 1 and covLocM/COVERAGE < DEL_THRESH) or (confL == 1 and covLocL/COVERAGE < DEL_CONF_THRESH and confR == 1 and covLocR/COVERAGE < DEL_CONF_THRESH)):
+                    if confMiddle == 1:
+                        if svtype[0:2] == "TD" and covLocM/COVERAGE < DEL_THRESH: 
 
                             logging.info("TD confirmed using pileup")
                             svtype = "TD"
 
-                        elif svtype[0:2] == "TD" and confMiddle == 1:
-                            if covLocM/COVERAGE < DEL_THRESH_L: #1.0:
-                                svtype = "BND"
+                        elif svtype[0:2] == "TD" and covLocM/COVERAGE < 1.0:
+                            svtype = "BND"
 
-                        elif svtype[0:3] == "DEL" and ((confMiddle == 1 and covLocM/COVERAGE < DEL_THRESH) or (confL == 1 and covLocL/COVERAGE < DEL_CONF_THRESH and confR == 1 and covLocR/COVERAGE < DEL_CONF_THRESH)):
+                        elif svtype[0:3] == "DEL" and covLocM/COVERAGE < DEL_THRESH: 
 
                             logging.info("DEL confirmed using pileup")
                             svtype = "DEL"
@@ -214,10 +199,9 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             elif covLocM/COVERAGE > 3*DEL_THRESH2:
                                 GT="GT:0/1"
 
-                        elif svtype[0:3] == "DEL":
-                            if confMiddle and covLocM/COVERAGE > DUP_THRESH_L: #1.0:
-                                # since bp3 = -1, this will be written as a BND event
-                                svtype = "INS"
+                        elif svtype[0:3] == "DEL" and covLocM/COVERAGE > DUP_THRESH_L: #1.0:
+                            # since bp3 = -1, this will be written as a BND event
+                            svtype = "INS"
 
                 elif len(svtype) > 2 and lineAV_split[11].find("PE") != -1 and (svtype == "INS" \
                     or svtype == "INS_I") and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \
