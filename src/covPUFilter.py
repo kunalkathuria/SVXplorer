@@ -15,16 +15,17 @@ DEL_THRESH_L = .8
 DUP_THRESH_L = 1.2
 MIN_PILEUP_THRESH = 80
 # to trust pile-up depth in a region, this percentage of bases should return data
-GOOD_REG_THRESH=.8
+GOOD_REG_THRESH =.8
+CALC_THRESH = 1000000
 
 DEL_CONF_THRESH = .7
-UNIV_VAR_THRESH=100
-INS_VAR_THRESH=100
-INS_VAR_THRESH_PE=50
-SR_DEL_THRESH=80
-MIX_DEL_THRESH=50
-PE_DEL_THRESH_S=250
-PE_DEL_THRESH_L=150
+UNIV_VAR_THRESH = 100
+INS_VAR_THRESH = 100
+INS_VAR_THRESH_PE = 50
+SR_DEL_THRESH = 80
+MIX_DEL_THRESH = 50
+PE_DEL_THRESH_S = 250
+PE_DEL_THRESH_L = 150
 SD_S = 14
 SD_L = 24
 
@@ -68,10 +69,8 @@ def readBamStats(statFile):
                 rdl=float(line[:-1])
             elif i==2:
                 sd=float(line[:-1])
-            elif i==3:
-                coverage = float(line[:-1])
                 break
-    return rdl, sd, coverage
+    return rdl, sd
 
 def calculateDELThreshPE(SD):
     PE_DEL_THRESH=PE_DEL_THRESH_S + int((SD-SD_S)*(PE_DEL_THRESH_L-PE_DEL_THRESH_S)/(SD_L-SD_S))
@@ -82,7 +81,18 @@ def calculateDELThreshPE(SD):
 
     return PE_DEL_THRESH
 
-def calculateLocCovg(chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash):
+def calculateLocCovg(chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, covHash):
+    if chr_n not in covHash:
+        logging.info("Calculating coverage for %s", chr_n)
+        counterBase, cov = 0,0
+        for pileupcolumn in fBAM.pileup(chr_n):
+            cov += pileupcolumn.n
+            counterBase += 1
+            if counterBase > CALC_THRESH:
+                break
+        covHash[chr_n] = 1.0*cov/counterBase
+        logging.info("Coverage of Chr %s written as %f",
+                      chr_n, covHash[chr_n])
     gap = bpSecond - bpFirst
     start = .25*gap + bpFirst
     stop = min(start+.5*gap,start +3*PILEUP_THRESH)
@@ -97,7 +107,7 @@ def calculateLocCovg(chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash):
         if (counter > MIN_PILEUP_THRESH and (counter > GOOD_REG_THRESH*(stop-start) or counter > PILEUP_THRESH)):
             confRegion = 1
             covLoc = (1.0*covLoc)/(1.0*counter)
-    return covLoc, confRegion
+    return 1.0*covLoc/covHash[chr_n], confRegion
 
 def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH):
     if lineAV_split[1] == "DEL":
@@ -122,9 +132,9 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     fUF = open(ufFile,"r")
     fAVN = open(workDir+"/allVariants.pu.txt","w")
     logging.info("Writing final bedpe files using coverage information")
-    RDL,SD,COVERAGE = readBamStats(statFile)
-    logging.info("Some stats from BAM. RDL: %d, Coverage: %f, Sd: %f", 
-                  RDL, COVERAGE, SD)
+    RDL,SD = readBamStats(statFile)
+    logging.info("Some stats from BAM. RDL: %d, Sd: %f", 
+                  RDL, SD)
 
     # calculate min PE size based on insert length standard deviation under empirical model
     # aligner tends to mark concordants as discordants when SD is small unless distr v good, seemingly sharp effects
@@ -132,6 +142,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     PE_DEL_THRESH = calculateDELThreshPE(SD)
     logging.info("PE deletion threshold is %d", PE_DEL_THRESH)
 
+    covHash = {}
     uniqueFilterSVs = set()
     chrHash = {}
     for line in fUF:
@@ -179,27 +190,27 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 if (svtype == "DEL_INS" or svtype == "DEL" or svtype[0:2]== "TD") and int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
                     covLocM, confMiddle = calculateLocCovg(lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),
-                            PILEUP_THRESH, fBAM, chrHash)
+                            PILEUP_THRESH, fBAM, chrHash, covHash)
 
                     if confMiddle == 1:
-                        if svtype[0:2] == "TD" and covLocM/COVERAGE < DEL_THRESH: 
+                        if svtype[0:2] == "TD" and covLocM < DEL_THRESH: 
 
                             logging.info("TD confirmed using pileup")
                             svtype = "TD"
 
-                        elif svtype[0:2] == "TD" and covLocM/COVERAGE < 1.0:
+                        elif svtype[0:2] == "TD" and covLocM < 1.0:
                             svtype = "BND"
 
-                        elif svtype[0:3] == "DEL" and covLocM/COVERAGE < DEL_THRESH: 
+                        elif svtype[0:3] == "DEL" and covLocM < DEL_THRESH: 
 
                             logging.info("DEL confirmed using pileup")
                             svtype = "DEL"
-                            if covLocM/COVERAGE < DEL_THRESH2:
+                            if covLocM < DEL_THRESH2:
                                 GT="GT:1/1"
-                            elif covLocM/COVERAGE > 3*DEL_THRESH2:
+                            elif covLocM > 3*DEL_THRESH2:
                                 GT="GT:0/1"
 
-                        elif svtype[0:3] == "DEL" and covLocM/COVERAGE > DUP_THRESH_L: #1.0:
+                        elif svtype[0:3] == "DEL" and covLocM > DUP_THRESH_L: #1.0:
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS"
 
@@ -210,12 +221,12 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     #bp2-3
                     covLoc, confReg = calculateLocCovg(lineAV_split[5],
                         int(lineAV_split[7]), int(lineAV_split[9]),
-                        PILEUP_THRESH, fBAM, chrHash)
-                    if confReg and covLoc/COVERAGE < DUP_THRESH_L:
+                        PILEUP_THRESH, fBAM, chrHash, covHash)
+                    if confReg and covLoc < DUP_THRESH_L:
                         svtype = "INS_C_P"
                         if svtype == "INS_I":
                             svtype = "INS_C_I_P"
-                    elif confReg and covLoc/COVERAGE < DEL_THRESH_L:
+                    elif confReg and covLoc < DEL_THRESH_L:
                         bnd = 1
 
                 elif len(svtype) > 4 and lineAV_split[11].find("PE") != -1 and \
@@ -230,7 +241,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     if start > stop:
                         start, stop = stop, start
                     covLoc_23, conf_23 = calculateLocCovg(lineAV_split[5],
-                            start, stop, PILEUP_THRESH, fBAM, chrHash)
+                            start, stop, PILEUP_THRESH, fBAM, chrHash, covHash)
                     #bp1-2
                     start = int(lineAV_split[4])
                     stop = int(lineAV_split[6])
@@ -238,19 +249,19 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         start, stop = stop, start
                     if lineAV_split[2] == lineAV_split[5]:
                         covLoc_12, conf_12 = calculateLocCovg(lineAV_split[5],
-                                start, stop, PILEUP_THRESH, fBAM, chrHash)
+                                start, stop, PILEUP_THRESH, fBAM, chrHash, covHash)
                     else:
                         convLoc_12, conf_12 = 0,0
 
                     if conf_23:
-                        if covLoc_23/COVERAGE > DUP_THRESH:
+                        if covLoc_23 > DUP_THRESH:
                             dup_23 = 1
-                        elif covLoc_23/COVERAGE < DEL_THRESH:
+                        elif covLoc_23 < DEL_THRESH:
                             del_23 =1
                     if conf_12:
-                        if covLoc_12/COVERAGE > DUP_THRESH:
+                        if covLoc_12 > DUP_THRESH:
                             dup_21 = 1
-                        elif covLoc_12/COVERAGE < DEL_THRESH:
+                        elif covLoc_12 < DEL_THRESH:
                             del_21 =1
 
                     confINSBP = 0
