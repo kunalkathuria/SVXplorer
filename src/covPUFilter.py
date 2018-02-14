@@ -19,7 +19,8 @@ GOOD_REG_THRESH=.8
 
 DEL_CONF_THRESH = .7
 UNIV_VAR_THRESH=100
-INS_VAR_THRESH=50
+INS_VAR_THRESH=100
+INS_VAR_THRESH_PE=50
 SR_DEL_THRESH=80
 MIX_DEL_THRESH=50
 PE_DEL_THRESH_S=250
@@ -153,14 +154,21 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
             svtype = lineAV_split[1]
 
             ## skip SV if size thresholds not met
-            if svtype[0:3] == "TD" or (len(lineAV_split) > 2 and (svtype[0:3] == "INV" or svtype[0:3] == "DEL")):
+            if svtype.startswith("TD") or svtype.startswith("INV") or svtype.startswith("DEL"):
                 if int(lineAV_split[7])-int(lineAV_split[3]) < UNIV_VAR_THRESH:
                     continue
-            elif len(svtype) > 2 and svtype[0:3] == "INS" and not (svtype == "INS_C" or svtype == "INS_C_I"):
-                if 0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH:
+            elif svtype.startswith("INS") and svtype not in ["INS_C","INS_C_I"]:
+                if lineAV_split[11].find("PE") != -1 and \
+                0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH_PE:
+                    continue
+                elif lineAV_split[11].find("PE") == -1 and \
+                0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH:
                     continue
             elif lineAV_split == "INS_C" or lineAV_split == "INS_C_I":
-                if (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH and 0 < int(lineAV_split[7])-int(lineAV_split[3]) < INS_VAR_THRESH) or (0 < int(lineAV_split[7])-int(lineAV_split[9]) < INS_VAR_THRESH and 0 < int(lineAV_split[4])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                if (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH and \
+                0 < int(lineAV_split[7])-int(lineAV_split[3]) < INS_VAR_THRESH) or \
+                (0 < int(lineAV_split[7])-int(lineAV_split[9]) < INS_VAR_THRESH and \
+                0 < int(lineAV_split[4])-int(lineAV_split[6]) < INS_VAR_THRESH):
                     continue
 
             ## RUN PILEUP FILTER
