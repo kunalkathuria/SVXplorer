@@ -273,8 +273,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             lineAV_split[1]+="_P"
                             confINSBP = 1
                             swap = 1
-                        elif (del_23 or del_21) and not splitINS:
-                            bnd = 1
 
             ## write in BED files
             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN,

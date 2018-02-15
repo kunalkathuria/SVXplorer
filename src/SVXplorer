@@ -86,7 +86,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
         for line in inpt:
             counter+=1
             tokens = line.split()
-            precise=tokens[10].find("SR")
+            precise=tokens[7].find("SR")
             support="SUPPORT=" + tokens[12] + ";"
             chr1 = tokens[0]
             chr1Start = tokens[1]
@@ -110,11 +110,8 @@ def writeVCFFromBedpe(inputFile, outputFile):
             if chr1 != chr2:
                 chr2="CHR2="+ tokens[3] + ";"
 
-            if svType == "BND" and cmtSVType not in ["INS_C","INS_C_I"] and bnd == "0":
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + chr2End + ";" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM="+cmtSVType+";" + chr2 + support + precise)
-            elif svType == "BND" and cmtSVType.startswith("INS"):
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + chr1End+ ";CIPOS=-100,100;CIEND=-100,100;CM=" + cmtSVType+";" + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<BND>",".","PASS", "SVTYPE=BND;END=" + chr2End+ ";" + chr2 + "CIPOS=-100,100;CIEND=-100,100;CM=" + cmtSVType+";" + support + precise)
+            if svType == "BND": 
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", tokens[3] + ":" + chr2End,".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM=" + cmtSVType + ";" + support + precise)
             elif svType == "DEL":
                  print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM="+svType+ ";" + support + precise)
             elif svType == "TD" or svType == "TD_INV":
@@ -131,8 +128,8 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 isinv=""
                 if svType=="INS_I":
                     isinv="ISINV"
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DUP>",".","PASS", "SVTYPE=DUP;END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";CM="+svType+";" + isinv + ";" + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start,counter,"N", "<INS:ME>",".","PASS", "SVTYPE=INS;END=" + str(int(chr2Start) + 1) + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos/2.0) + ";CIEND=0," + str(cipos/2.0) + ";GROUPID=" + str(counter) + ";CM="+svType+ ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DUP>",".","PASS", "SVTYPE=DUP;END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start,counter,"N", "<INS:ME>",".","PASS", "SVTYPE=INS;END=" + str(int(chr2Start) + 1) + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos/2.0) + ";CIEND=0," + str(cipos/2.0) + ";GROUPID=" + str(counter) + ";" + isinv + ";" + support + precise)
             elif svType == "INS_C_P" or svType == "INS_C_I_P":
                 cipos = 2*(int(chr2End)-int(chr2Start))   
                 isinv=""
