@@ -99,7 +99,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
             cmtSVType = tokens[14]
 
             cipos = str(int(chr1End)-int(chr1Start))
-            svlen = str(int(chr2Start) - int(chr1Start))
+            svlen = str(abs(int(chr2End) - int(chr1Start)))
 
             if precise == -1:
                 precise = "IMPRECISE"
