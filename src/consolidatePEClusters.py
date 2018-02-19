@@ -1092,7 +1092,8 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
         storeTD = 1
         for TD in TDStore:
             if TD.bp1TID == elem.bp1TID and \
-               abs(elem.bp1_start-TD.bp2_start+TD.bp1_end-elem.bp2_end) < disc_thresh:
+               abs(elem.bp1_start-TD.bp2_start) < disc_thresh and \
+               abs(elem.bp2_end-TD.bp1_end) < disc_thresh:
                 storeTD = 0
                 break
         if storeTD:
