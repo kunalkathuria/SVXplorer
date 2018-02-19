@@ -254,9 +254,29 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
             l_orient = 2
             r_orient = 2
 
-            al1_reference_name, al1_reference_start, al1_reference_end, al1_is_unmapped, al1_mapping_quality, al1_is_reverse, al1_score, al1_infer_query_length =  al1.reference_name, al1.reference_start, al1.reference_end, al1.is_unmapped, al1.mapping_quality, al1.is_reverse, float(al1.get_tag("AS")), al1.infer_query_length()
+            # if both almts unmapped, return nothing
+            if al1.is_unmapped and al2.is_unmapped:
+                return dList1, dList2
+            # if primary alignment and below mapping quality threshold, return nothing
+            if (al1.mapping_quality < map_thresh or al2.mapping_quality < map_thresh) and counterLoop == 1:
+                return dList1, dList2
+            # if too many mappings of one fragment, return nothing
+            if counterLoop > permutation_thresh:
+                return dList1, dList2
 
-            al2_reference_name, al2_reference_start, al2_reference_end, al2_is_unmapped, al2_mapping_quality, al2_is_reverse, al2_score, al2_infer_query_length =  al2.reference_name, al2.reference_start, al2.reference_end, al2.is_unmapped, al2.mapping_quality, al2.is_reverse, float(al2.get_tag("AS")), al2.infer_query_length()
+            if al1.is_unmapped == False:
+                al1_reference_name = al1.reference_name
+            else:
+                al1_reference_name = None
+
+            if al2.is_unmapped == False:
+                al2_reference_name = al2.reference_name
+            else:
+                al2_reference_name = None
+
+            al1_reference_start, al1_reference_end, al1_is_unmapped, al1_mapping_quality, al1_is_reverse, al1_score, al1_infer_query_length =  al1.reference_start, al1.reference_end, al1.is_unmapped, al1.mapping_quality, al1.is_reverse, float(al1.get_tag("AS")), al1.infer_query_length()
+
+            al2_reference_start, al2_reference_end, al2_is_unmapped, al2_mapping_quality, al2_is_reverse, al2_score, al2_infer_query_length =  al2.reference_start, al2.reference_end, al2.is_unmapped, al2.mapping_quality, al2.is_reverse, float(al2.get_tag("AS")), al2.infer_query_length()
 
             if al1_reference_start == None and al1_reference_end == None and \
                al2_reference_start == None and al2_reference_end == None:
@@ -298,29 +318,19 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                 al2ToPrim_nMatchRatio = float(al2_nMatchRatio)/float(al2_nMatchRatio_prim)
 
             try:
-                if al1_score_prim > AS_THRESH*al1_infer_query_length and al1_nMatchRatio >= nMatchPct_thresh and \
+                if al1_score_prim > AS_THRESH and al1_nMatchRatio >= nMatchPct_thresh and \
                     al1ToPrim_nMatchRatio >= nMatch_relative_thresh and al1_score >= as_relative_thresh*al1_score_prim:
                     al1_match = 1
             except:
                 pass
             try:
-                if al2_score_prim > AS_THRESH*al2_infer_query_length and al2_nMatchRatio >= nMatchPct_thresh and \
+                if al2_score_prim > AS_THRESH and al2_nMatchRatio >= nMatchPct_thresh and \
                     al2ToPrim_nMatchRatio >= nMatch_relative_thresh and al2_score >= as_relative_thresh*al2_score_prim:
                     al2_match = 1
             except:
                 pass
             if (al1_match == False and al2_match == False):
                 continue
-
-            # if primary alignment and below mapping quality threshold, return nothing
-            if (al1_mapping_quality < map_thresh or al2_mapping_quality < map_thresh) and counterLoop == 1:
-                return dList1, dList2
-
-            # if too many mappings of one fragment, return nothing
-            if counterLoop > permutation_thresh:
-                dList1 = []
-                dList2 = []
-                return dList1, dList2
 
             if al1_match and al2_match:
                 newAlmt = alignedFragment()
@@ -445,7 +455,7 @@ def readNextReadAlignments(bamname):
     qname = None
 
     for alignment in bamfile:
-        # ignore QC failed, duplicate, unmapped, and supplementary alignments
+        # ignore QC failed, duplicate and supplementary alignments
         if alignment.is_qcfail or \
            alignment.is_duplicate or \
            alignment.is_supplementary: 

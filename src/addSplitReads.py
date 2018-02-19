@@ -514,7 +514,6 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     ## POSTPROCESS DE NOVO SR VARIANTS AND WRITE TO FILE
     k = 0
     for SRVar in SRVarHash:
-        k+=1
         #print SRVar, SRVarHash[SRVar],SRVarHash[SRVar].typeSV, SRVarHash[SRVar].count
         if SRVarHash[SRVar].count > 0:
             bpTemp = SRVar.bp
@@ -573,6 +572,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 SRVarHash[chosenVar].count = len(SRVarHash[chosenVar].support)
 
             if SRVarHash[SRVar].write == 1 and SRVarHash[SRVar].count >= min_vs:
+                k+=1
                 if SRVarHash[SRVar].typeSV == "INS_I" and \
                     SRVarHash[SRVar].insToInv == 1 and SRVarHash[SRVar].bp3 == -1:
                     SRVarHash[SRVar].typeSV == "INV"
