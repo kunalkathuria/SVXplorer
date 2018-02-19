@@ -173,6 +173,14 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
     # if chr where overlap occurs also is the site for 1 of the other mates/half clusters
     elif (LR == "RR" or LR == "LL") and newVariant.bp1TID == newVariant.bp2TID and \
         newVariant.bp2TID != newVariant.bp3TID:
+        logging.info('Continue loop if orientation mismatch for INS_C')
+        if cluster1.lTID == cluster1.rTID and \
+            not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+            return 0
+        if clusterP.lTID == clusterP.rTID and \
+            not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+            return 0
+
         # breakpoint locations are confirmed
         if newVariant.SVType == "INS":
             newVariant.SVType = "INS_C_P"
@@ -195,6 +203,14 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
                 newVariant.bp3_orient
     elif  (LR == "RR" or LR == "LL") and newVariant.bp1TID == newVariant.bp3TID and \
         newVariant.bp3TID != newVariant.bp2TID:
+        logging.info('Continue loop if orientation mismatch for INS_C')
+        if cluster1.lTID == cluster1.rTID and \
+            not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+            return 0
+        if clusterP.lTID == clusterP.rTID and \
+            not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+            return 0
+
         if newVariant.SVType == "INS":
             newVariant.SVType = "INS_C_P"
         elif newVariant.SVType == "INS_I":
@@ -427,7 +443,9 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                 newVariant.bp2_orient, newVariant.bp3_orient = cluster1.r_orient, clusterP.r_orient
                 # check for cut-paste
                 logging.debug('Large INS check 1: check if could be cut-paste')
-                formCutPasteINS(newVariant, cluster1, clusterP, "LL")
+                isValidCP = formCutPasteINS(newVariant, cluster1, clusterP, "LL")
+                if isValidCP == 0:
+                    continue
 
         elif RROverlap and cluster1.r_orient != clusterP.r_orient and \
             (cluster1.rTID == cluster1.lTID or cluster1.rTID == clusterP.lTID or cluster1.lTID == clusterP.lTID):
@@ -456,7 +474,9 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                 newVariant.bp2_orient, newVariant.bp3_orient = cluster1.l_orient, clusterP.l_orient
                 # check for cut-paste
                 logging.debug('Large INS check 2: check if could be cut-paste')
-                formCutPasteINS(newVariant, cluster1, clusterP, "RR")
+                isValidCP = formCutPasteINS(newVariant, cluster1, clusterP, "RR")
+                if isValidCP == 0:
+                    continue
         
         elif LROverlap and not RLOverlap and (cluster1.rTID == cluster1.lTID or \
             clusterP.lTID == cluster1.lTID or cluster1.rTID == clusterP.lTID) and \
@@ -470,7 +490,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             if clusterP.lTID == clusterP.rTID and not (cluster1.l_start > clusterP.l_start + RDL_Factor*RDL):
               continue
             if cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID and \
-                cluster1.r_orient == 0 and clusterP.l_orient == 1:
+                not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
                 continue
             newVariant.SVType = "INS_C"
             newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
@@ -497,6 +517,14 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 
                 logging.debug('Large INS check 3: mark as cut-paste if one of source breakpoints is on same chr as overlap pt')
                 if newVariant.bp1TID == newVariant.bp2TID and newVariant.bp3TID != newVariant.bp1TID:
+                    logging.info('Continue loop if orientation mismatch for INS_C')
+                    if cluster1.lTID == cluster1.rTID and \
+                        not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                        continue
+                    if clusterP.lTID == clusterP.rTID and \
+                        not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                        continue
+
                     # breakpoint locations are confirmed
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
@@ -510,6 +538,14 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                     newVariant.bp1_orient, newVariant.bp3_orient = newVariant.bp3_orient, newVariant.bp1_orient
 
                 elif newVariant.bp1TID == newVariant.bp3TID and newVariant.bp2TID != newVariant.bp1TID:
+                    logging.info('Continue loop if orientation mismatch for INS_C')
+                    if cluster1.lTID == cluster1.rTID and \
+                        not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                        continue
+                    if clusterP.lTID == clusterP.rTID and \
+                        not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                        continue
+
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
                     elif newVariant.SVType == "INS_C_I":
@@ -544,7 +580,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             if clusterP.lTID == clusterP.rTID and not (cluster1.r_end < clusterP.r_end - RDL_Factor*RDL):
                 continue
             if cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID and \
-                cluster1.l_orient == 1 and clusterP.r_orient == 0:
+                not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
                 continue
             newVariant.SVType = "INS_C"
             newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
@@ -566,10 +602,17 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             elif newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID:
                     newVariant.SVType = "INS"
             else:
-                formCutPasteINS(newVariant, cluster1, clusterP, "LR")
+                formCutPasteINS(newVariant, cluster1, clusterP, "RL")
                 
                 logging.debug('Large INS check 4: mark as cut-paste if one of source breakpoints is on same chr as overlap pt')
                 if newVariant.bp1TID == newVariant.bp2TID and newVariant.bp3TID != newVariant.bp1TID:
+                    logging.info('Continue loop if orientation mismatch for INS_C')
+                    if cluster1.lTID == cluster1.rTID and \
+                        not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                        continue
+                    if clusterP.lTID == clusterP.rTID and \
+                        not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                        continue
                     # breakpoint locations are confirmed
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
@@ -583,6 +626,14 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                     newVariant.bp1_orient, newVariant.bp3_orient = newVariant.bp3_orient, newVariant.bp1_orient
 
                 elif newVariant.bp1TID == newVariant.bp3TID and newVariant.bp2TID != newVariant.bp1TID:
+                    logging.info('Continue loop if orientation mismatch for INS_C')
+                    if cluster1.lTID == cluster1.rTID and \
+                        not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                        continue
+                    if clusterP.lTID == clusterP.rTID and \
+                        not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                        continue
+
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
                     elif newVariant.SVType == "INS_C_I":
