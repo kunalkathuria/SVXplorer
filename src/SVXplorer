@@ -136,8 +136,8 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 if svType == "INS_C_I_P":
                     isinv="ISINV"
                 len_tr = int(chr1End) - int(chr1Start)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL:ME>",".","PASS", "SVTYPE=DEL;END=" + chr1End + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) + ";GROUPID="+str(counter)+";SVLEN=-" + str(len_tr) + ";" + isinv + ";" + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start,counter+1,"N", "<INS:ME>",".","PASS", "SVTYPE=INS;END=" + str(int(chr2Start) + 1) +";CIPOS=0," + str(cipos/2.0) + ";CIEND=-1," + str(cipos/2.0) + ";GROUPID="+str(counter) + ";SVLEN=" + str(len_tr) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL:ME>",".","PASS", "SVTYPE=DEL;END=" + chr1End + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) + "0;GROUPID="+str(counter)+";SVLEN=-" + str(len_tr) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start,counter+1,"N", "<INS:ME>",".","PASS", "SVTYPE=INS;END=" + str(int(chr2Start) + 1) +";CIPOS=0," + str(cipos/2.0) + ";CIEND=0," + str(cipos/2.0) + ";GROUPID="+str(counter) + ";SVLEN=" + str(len_tr) + ";" + isinv + ";" + support + precise)
                 counter+=1
 
 def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):

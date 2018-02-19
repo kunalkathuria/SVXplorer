@@ -812,6 +812,28 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 elem.bp1_orient = -1
                 elem.bp3_orient = -1
                 #print "INS_C 2", elem.count
+            elif cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp2TID and elem.bp1_orient != -1 \
+                and elem.bp2_orient != -1 and isOverlapping("V",cluster1,elem,"L1", slop) and \
+                cluster1.l_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"R2", slop) \
+                and cluster1.r_orient != elem.bp2_orient:
+
+                match = 1
+                elem.count+=1
+                anyMatch = 1
+                elem.bp1_orient = -1
+                elem.bp3_orient = -1
+                # bp has 2 overlapping reads now
+                #print "INS_C 1", elem.count
+            elif cluster1.lTID == elem.bp2TID and cluster1.rTID == elem.bp1TID and elem.bp1_orient != -1 \
+                and elem.bp2_orient != -1 and isOverlapping("V",cluster1,elem,"R1", slop) and \
+                cluster1.r_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"L2", slop) \
+                and cluster1.l_orient != elem.bp2_orient:
+
+                match = 1
+                elem.count+=1
+                anyMatch = 1
+                elem.bp1_orient = -1
+                elem.bp3_orient = -1
             # the _P subscript denotes that the breakpoints are confirmed.
             # bp1 is indeed the pasted location for this INS_C
             # small cluster overlap to confirm paste location-- overlaps both bp 1 and 2
@@ -928,7 +950,7 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                                 elem.bp3_start, elem.bp3_end, elem.bp2_start, elem.bp2_end
                             elem.bp2TID, elem.bp3TID = elem.bp3TID, elem.bp2TID
                             elem.bp2_orient, elem.bp3_orient = elem.bp3_orient, elem.bp2_orient
-                        elif cluster1.l_orient == cluster1.r_orient:
+                        elif cluster1.l_orient == 0 and cluster1.r_orient == 1:
                             if elem.SVType == "INS":
                                 elem.SVType = "INS_C"
                             if elem.SVType == "INS_I":
