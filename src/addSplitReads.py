@@ -70,9 +70,13 @@ def mapSVtoNum(SV_type):
         return 1
     elif SV_type == "INV":
         return 2
-    elif SV_type == "INS":
+    elif SV_type in ["INS","INS_C","INS_C_P"]:
+        if SV_type == "INS_C":
+            return 5
         return 3
-    elif SV_type == "INS_I":
+    elif SV_type in ["INS_I", "INS_C_I", "INS_C_I_P"]:
+        if SV_type == "INS_C_I":
+            return 6
         return 4
     else:
         return -1
@@ -124,7 +128,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
 
     SRFrag = 0
     SRtoPESuppFrags = [[] for _ in range(1+nSVsPE)]
-    SRtoPESuppList = {}
+    SRtoPESuppBPs = {}
     newSRList = []
     bamfile = pysam.Samfile(bamFileSR,"rb")
     # if subsampling: shouldn't be required`
@@ -226,7 +230,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
 
             varNumPE = SVHashPE[newAlmt].num
             varType = SVHashPE[newAlmt].typeSV
-            if varNumPE not in SRtoPESuppList:
+            if varNumPE not in SRtoPESuppBPs:
                 newBp = [sr_bp1, sr_bp2, -1]
         # if not found, try other side of SR
         else:
@@ -241,7 +245,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
 
                 varNumPE = SVHashPE[newAlmt].num
                 varType = SVHashPE[newAlmt].typeSV
-                if varNumPE not in SRtoPESuppList:
+                if varNumPE not in SRtoPESuppBPs:
                     newBp = [sr_bp2, sr_bp1, -1]
         #check DEL
         if varType == 0 and swap==0 and minsr.is_reverse == maxsr.is_reverse:
@@ -253,26 +257,27 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         elif varType == 2 and swap==0 and minsr.is_reverse != maxsr.is_reverse:
             match = 1
         #check INS
-        elif (varType == 3 and minsr.is_reverse == maxsr.is_reverse) or \
-            (varType == 4 and minsr.is_reverse != maxsr.is_reverse):
+        elif (varType in [3,5] and minsr.is_reverse == maxsr.is_reverse) or \
+            (varType in [4,6] and minsr.is_reverse != maxsr.is_reverse):
             match = 1
             # Set new bp3 of insertion if unset
-            if varNumPE in SRtoPESuppList and SRtoPESuppList[varNumPE][2] == -1:
-                SRtoPESupp_bp = SRtoPESuppList[varNumPE]
+            if varNumPE in SRtoPESuppBPs and SRtoPESuppBPs[varNumPE][2] == -1:
+                SRtoPESupp_bp = SRtoPESuppBPs[varNumPE]
                 if abs(sr_bp1 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp1 - SRtoPESupp_bp[1]) > 2*slop \
                     and SVHashPE[newAlmt].bp3_1 < sr_bp1 < SVHashPE[newAlmt].bp3_2:
-                    SRtoPESuppList[varNumPE][2] = sr_bp1
+                    SRtoPESuppBPs[varNumPE][2] = sr_bp1
                 elif abs(sr_bp2 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp2 - SRtoPESupp_bp[1]) > 2*slop and \
                     SVHashPE[newAlmt].bp3_1 < sr_bp2 < SVHashPE[newAlmt].bp3_2:
-                    SRtoPESuppList[varNumPE][2] = sr_bp2
+                    SRtoPESuppBPs[varNumPE][2] = sr_bp2
                 # insertion bp2 should be < bp3
-                if SRtoPESuppList[varNumPE][2] != -1 and SRtoPESuppList[varNumPE][2] < SRtoPESuppList[varNumPE][1]:
-                    SRtoPESuppList[varNumPE][2], SRtoPESuppList[varNumPE][1] =\
-                        SRtoPESuppList[varNumPE][2], SRtoPESuppList[varNumPE][1]
+                if varType in [3,4] \
+                    and SRtoPESuppBPs[varNumPE][2] != -1 and SRtoPESuppBPs[varNumPE][2] < SRtoPESuppBPs[varNumPE][1]:
+                    SRtoPESuppBPs[varNumPE][2], SRtoPESuppBPs[varNumPE][1] =\
+                        SRtoPESuppBPs[varNumPE][2], SRtoPESuppBPs[varNumPE][1]
         # if matches existing PE SV
         if match:
-            if varNumPE not in SRtoPESuppList:
-                SRtoPESuppList[varNumPE] = newBp
+            if varNumPE not in SRtoPESuppBPs:
+                SRtoPESuppBPs[varNumPE] = newBp
                 SRtoPESuppFrags[varNumPE].append(SRFrag)
             else:
                 SRtoPESuppFrags[varNumPE].append(SRFrag)
@@ -480,33 +485,34 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         varNumPE = int(lineVM_split[0])
         for lineAV in fAV:
             lineAV_split = lineAV.split()
-            if varNumPE in SRtoPESuppList:
+            if varNumPE in SRtoPESuppBPs:
                 lineAV_split[11] = lineAV_split[11] + "_SR"
-                lineAV_split[3] = str(SRtoPESuppList[varNumPE][0])
-                lineAV_split[4] = str(SRtoPESuppList[varNumPE][0] + 1)
-                if len(SRtoPESuppFrags[varNumPE]) > minSRtoPEsupport and SRtoPESuppList[varNumPE][2] == -1:
-                    if int(lineAV_split[6]) < SRtoPESuppList[varNumPE][1] < int(lineAV_split[7]):
-                        lineAV_split[6] = str(SRtoPESuppList[varNumPE][1])
-                        lineAV_split[7] = str(SRtoPESuppList[varNumPE][1] + 1)
-                    elif int(lineAV_split[9]) < SRtoPESuppList[varNumPE][1] < int(lineAV_split[10]):
-                        lineAV_split[9] = str(SRtoPESuppList[varNumPE][1])
-                        lineAV_split[10] = str(SRtoPESuppList[varNumPE][1] + 1)
+                lineAV_split[3] = str(SRtoPESuppBPs[varNumPE][0])
+                lineAV_split[4] = str(SRtoPESuppBPs[varNumPE][0] + 1)
+                if len(SRtoPESuppFrags[varNumPE]) > minSRtoPEsupport and SRtoPESuppBPs[varNumPE][2] == -1:
+                    if int(lineAV_split[6]) < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[7]):
+                        lineAV_split[6] = str(SRtoPESuppBPs[varNumPE][1])
+                        lineAV_split[7] = str(SRtoPESuppBPs[varNumPE][1] + 1)
+                    elif int(lineAV_split[9]) < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[10]):
+                        lineAV_split[9] = str(SRtoPESuppBPs[varNumPE][1])
+                        lineAV_split[10] = str(SRtoPESuppBPs[varNumPE][1] + 1)
                     if (lineAV_split[1] == "DEL" or lineAV_split[1] == "TD" or lineAV_split[1] == "INV") \
                         and int(lineAV_split[3]) > int(lineAV_split[7]):
                         lineAV_split[3], lineAV_split[6] = lineAV_split[6], lineAV_split[3]
                         lineAV_split[4], lineAV_split[7] = lineAV_split[7], lineAV_split[4]
                 # full insertion matches
                 elif len(SRtoPESuppFrags[varNumPE]) > minSRtoPEsupport:
-                    lineAV_split[6] = str(SRtoPESuppList[varNumPE][1])
-                    lineAV_split[7] = str(SRtoPESuppList[varNumPE][1] + 1)
-                    lineAV_split[9] = str(SRtoPESuppList[varNumPE][2])
-                    lineAV_split[10] = str(SRtoPESuppList[varNumPE][2] + 1)
+                    lineAV_split[6] = str(SRtoPESuppBPs[varNumPE][1])
+                    lineAV_split[7] = str(SRtoPESuppBPs[varNumPE][1] + 1)
+                    lineAV_split[9] = str(SRtoPESuppBPs[varNumPE][2])
+                    lineAV_split[10] = str(SRtoPESuppBPs[varNumPE][2] + 1)
+
             lineAVJ = "\t".join(lineAV_split)
             fAVN.write("%s\n" %lineAVJ)
             break
         lineVMJ = "\t".join(lineVM_split)
         fVMN.write("%s" %lineVMJ)
-        if varNumPE in SRtoPESuppList:
+        if varNumPE in SRtoPESuppBPs:
             for SRFrag in SRtoPESuppFrags[varNumPE]:
                 fVMN.write(" %s" %SRFrag)
         fVMN.write("\n")
