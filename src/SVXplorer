@@ -82,7 +82,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
     with open(inputFile, 'r') as inpt, open(outputFile,'w') as otpt:
         counter = 0
         printVCFHeader(otpt)
-
+        bndID = 1
         for line in inpt:
             counter+=1
             tokens = line.split()
@@ -111,7 +111,10 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 chr2="CHR2="+ tokens[3] + ";"
 
             if svType == "BND": 
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", tokens[3] + ":" + chr2End,".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM=" + cmtSVType + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", tokens[3] + ":" + chr2End,".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM=" + cmtSVType + ";bndID=" + str(bndID) + ";bndMateID=" + str(bndID + 1) + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter, "N", chr1 + ":" + chr1Start,".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM=" + cmtSVType + ";bndID=" + str(bndID + 1) + ";bndMateID=" + str(bndID) + ";" + support + precise)
+                bndID+= 2
+                counter+= 1
             elif svType == "DEL":
                  print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM="+svType+ ";" + support + precise)
             elif svType == "TD" or svType == "TD_INV":
@@ -122,23 +125,26 @@ def writeVCFFromBedpe(inputFile, outputFile):
             elif svType == "INV":
                 ciend = int(chr2End) - int(chr2Start)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + chr2End + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";CM="+svType+ ";" + support + precise)
-            elif svType == "INS" or svType=="INS_I":
+            elif svType in ["INS","INS_I","INS_C_P","INS_C_I_P"]:
+                if svType in ["INS","INS_I"]:
+                    field1 = "DUP"
+                    CM = "Copy-paste insertion"
+                else:
+                    field1 = "DEL"
+                    CM = "Cut-paste insertion"
                 svlen=str(int(chr1End)-int(chr1Start))
-                cipos = 2*(int(chr2End)-int(chr2Start))
+                cipos = int(chr2End)-int(chr2Start)
                 isinv=""
                 if svType=="INS_I":
                     isinv="ISINV"
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DUP>",".","PASS", "SVTYPE=DUP;END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + ";" + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start,counter,"N", "<INS:ME>",".","PASS", "SVTYPE=INS;END=" + str(int(chr2Start) + 1) + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos/2.0) + ";CIEND=0," + str(cipos/2.0) + ";GROUPID=" + str(counter) + ";" + isinv + ";" + support + precise)
-            elif svType == "INS_C_P" or svType == "INS_C_I_P":
-                cipos = 2*(int(chr2End)-int(chr2Start))   
-                isinv=""
-                if svType == "INS_C_I_P":
-                    isinv="ISINV"
-                len_tr = int(chr1End) - int(chr1Start)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL:ME>",".","PASS", "SVTYPE=DEL;END=" + chr1End + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) + "0;GROUPID="+str(counter)+";SVLEN=-" + str(len_tr) + ";" + isinv + ";" + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start,counter+1,"N", "<INS:ME>",".","PASS", "SVTYPE=INS;END=" + str(int(chr2Start) + 1) +";CIPOS=0," + str(cipos/2.0) + ";CIEND=0," + str(cipos/2.0) + ";GROUPID="+str(counter) + ";SVLEN=" + str(len_tr) + ";" + isinv + ";" + support + precise)
-                counter+=1
+
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", field1, ".","PASS", "SVTYPE=" + field1 + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", chr1 + ":" + chr1Start ,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";bndID ="  + str(bndID) + ";bndMateID=" + str(bndID + 1) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", tokens[3] + ":" + chr2Start,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";bndID =" + str(bndID + 1) + ";bndMateID=" + str(bndID) + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", tokens[3] + ":" + chr2Start ,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";bndID =" + str(bndID + 2) + ";bndMateID=" + str(bndID + 3) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 4,"N", chr1 + ":" + chr1End, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";bndID =" + str(bndID + 3) + ";bndMateID=" + str(bndID + 2) + isinv + ";" + support + precise)
+                bndID+= 4
+                counter+= 4
 
 def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
     if variantMapFile is not None:
