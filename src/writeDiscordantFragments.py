@@ -131,14 +131,16 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
             break
 
         if m1.is_proper_pair and not m1.is_secondary and \
-          not m1.is_supplementary and \
-          m1.get_tag("AS") > AS_CALC_THRESH*m1.infer_query_length() and \
-          m1.template_length > 0:
+            not m1.is_supplementary and \
+            m1.get_tag("AS") > AS_CALC_THRESH*m1.infer_query_length() and \
+            m1.template_length > 0:
             stdIL += (m1.template_length - meanIL)**2
             counterRead += 1
         counterLoop += 1
 
     bamfile.close()
+    stdIL = stdIL/counterRead
+    stdIL = stdIL**(.5)
 
     bamfile = ps.AlignmentFile(bamfile1, "rb")
     cov = 0
@@ -163,9 +165,8 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
             if counterLoop > calc_thresh/subsampleRate:
                 break
     bamfile.close()
-    stdIL = stdIL/counterRead
-    stdIL = stdIL**(.5)
-    cov = cov/counterBase
+    if counterBase > 0:
+        cov = cov/counterBase
 
     if disc_thresh < 0:
         disc_thresh = 3*stdIL
