@@ -135,10 +135,10 @@ def setBPs(clus1, clus2, LR):
         sorted_bps = sorted([clus2.l_start, clus2.l_end, clus1.l_start, clus1.l_end])
         return sorted_bps[1], sorted_bps[2]
     elif LR == "LR":
-        sorted_bps = sorted([clus2.l_start, clus2.l_end, clus1.r_start, clus1.r_end])
+        sorted_bps = sorted([clus1.l_start, clus1.l_end, clus2.r_start, clus2.r_end])
         return sorted_bps[1], sorted_bps[2]
     elif LR == "RL":
-        sorted_bps = sorted([clus2.r_start, clus2.r_end, clus1.l_start, clus1.l_end])
+        sorted_bps = sorted([clus1.r_start, clus1.r_end, clus2.l_start, clus2.l_end])
         return sorted_bps[1], sorted_bps[2]
     elif LR == "RR":
         sorted_bps = sorted([clus2.r_start, clus2.r_end, clus1.r_start, clus1.r_end])
@@ -173,7 +173,7 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
     # if chr where overlap occurs also is the site for 1 of the other mates/half clusters
     elif (LR == "RR" or LR == "LL") and newVariant.bp1TID == newVariant.bp2TID and \
         newVariant.bp2TID != newVariant.bp3TID:
-        logging.info('Continue loop if orientation mismatch for INS_C')
+        logging.debug('Continue loop if orientation mismatch for INS_C')
         if cluster1.lTID == cluster1.rTID and \
             not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
             return 0
@@ -203,7 +203,7 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
                 newVariant.bp3_orient
     elif  (LR == "RR" or LR == "LL") and newVariant.bp1TID == newVariant.bp3TID and \
         newVariant.bp3TID != newVariant.bp2TID:
-        logging.info('Continue loop if orientation mismatch for INS_C')
+        logging.debug('Continue loop if orientation mismatch for INS_C')
         if cluster1.lTID == cluster1.rTID and \
             not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
             return 0
@@ -517,7 +517,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 
                 logging.debug('Large INS check 3: mark as cut-paste if one of source breakpoints is on same chr as overlap pt')
                 if newVariant.bp1TID == newVariant.bp2TID and newVariant.bp3TID != newVariant.bp1TID:
-                    logging.info('Continue loop if orientation mismatch for INS_C')
+                    logging.debug('Continue loop if orientation mismatch for INS_C')
                     if cluster1.lTID == cluster1.rTID and \
                         not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
                         continue
@@ -533,12 +533,12 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 
                     # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
                     newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end=\
-                        newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end
+                        newVariant.bp3_start, newVariant.bp3_end, newVariant.bp1_start, newVariant.bp1_end
                     newVariant.bp1TID, newVariant.bp3TID = newVariant.bp3TID, newVariant.bp1TID
                     newVariant.bp1_orient, newVariant.bp3_orient = newVariant.bp3_orient, newVariant.bp1_orient
 
                 elif newVariant.bp1TID == newVariant.bp3TID and newVariant.bp2TID != newVariant.bp1TID:
-                    logging.info('Continue loop if orientation mismatch for INS_C')
+                    logging.debug('Continue loop if orientation mismatch for INS_C')
                     if cluster1.lTID == cluster1.rTID and \
                         not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
                         continue
@@ -587,7 +587,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
             newVariant.bp3_start, newVariant.bp3_end = clusterP.r_start, clusterP.r_end
             newVariant.bp1TID, newVariant.bp2TID, newVariant.bp3TID \
-                = cluster1.lTID, cluster1.lTID, clusterP.rTID
+                = cluster1.rTID, cluster1.lTID, clusterP.rTID
             newVariant.bp2_orient, newVariant.bp3_orient = cluster1.l_orient, clusterP.r_orient
             newSVFlag = 1
             # one mate same orientation, other opposite, then inverted cut insertion
@@ -606,7 +606,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                 
                 logging.debug('Large INS check 4: mark as cut-paste if one of source breakpoints is on same chr as overlap pt')
                 if newVariant.bp1TID == newVariant.bp2TID and newVariant.bp3TID != newVariant.bp1TID:
-                    logging.info('Continue loop if orientation mismatch for INS_C')
+                    logging.debug('bp3 chr diff')
                     if cluster1.lTID == cluster1.rTID and \
                         not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
                         continue
@@ -621,12 +621,12 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 
                     # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
                     newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end=\
-                        newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end
+                        newVariant.bp3_start, newVariant.bp3_end, newVariant.bp1_start, newVariant.bp1_end
                     newVariant.bp1TID, newVariant.bp3TID = newVariant.bp3TID, newVariant.bp1TID
                     newVariant.bp1_orient, newVariant.bp3_orient = newVariant.bp3_orient, newVariant.bp1_orient
 
                 elif newVariant.bp1TID == newVariant.bp3TID and newVariant.bp2TID != newVariant.bp1TID:
-                    logging.info('Continue loop if orientation mismatch for INS_C')
+                    logging.debug('bp2 chr diff')
                     if cluster1.lTID == cluster1.rTID and \
                         not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
                         continue
@@ -638,7 +638,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                         newVariant.SVType = "INS_C_P"
                     elif newVariant.SVType == "INS_C_I":
                         newVariant.SVType = "INS_C_I_P"
-
+                    logging.debug('%d %d %d %d', newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end)
                     # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
                     newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end=\
                         newVariant.bp2_start, newVariant.bp2_end, newVariant.bp1_start, newVariant.bp1_end
@@ -649,7 +649,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             if (newVariant.SVType == "INS_C_P" or newVariant.SVType == "INS_C_I_P" or \
                 newVariant.SVType == "INS" or newVariant.SVType == "INS_I") and \
                 newVariant.bp2_start > newVariant.bp3_start:
-
+                logging.debug('bp2 > bp3')
                 newVariant.bp2_start, newVariant.bp2_end, newVariant.bp3_start,\
                     newVariant.bp3_end = newVariant.bp3_start, newVariant.bp3_end, \
                     newVariant.bp2_start, newVariant.bp2_end
