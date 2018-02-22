@@ -173,14 +173,13 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
     # if chr where overlap occurs also is the site for 1 of the other mates/half clusters
     elif (LR == "RR" or LR == "LL") and newVariant.bp1TID == newVariant.bp2TID and \
         newVariant.bp2TID != newVariant.bp3TID:
-        logging.debug('Continue loop if orientation mismatch for INS_C')
         if cluster1.lTID == cluster1.rTID and \
             not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
             return 0
         if clusterP.lTID == clusterP.rTID and \
             not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
             return 0
-
+        logging.debug('Orientation matches for INS_C')
         # breakpoint locations are confirmed
         if newVariant.SVType == "INS":
             newVariant.SVType = "INS_C_P"
@@ -203,14 +202,13 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
                 newVariant.bp3_orient
     elif  (LR == "RR" or LR == "LL") and newVariant.bp1TID == newVariant.bp3TID and \
         newVariant.bp3TID != newVariant.bp2TID:
-        logging.debug('Continue loop if orientation mismatch for INS_C')
         if cluster1.lTID == cluster1.rTID and \
             not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
             return 0
         if clusterP.lTID == clusterP.rTID and \
             not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
             return 0
-
+        logging.debug('Orientation matches for INS_C')
         if newVariant.SVType == "INS":
             newVariant.SVType = "INS_C_P"
         elif newVariant.SVType == "INS_I":
@@ -274,27 +272,26 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
         if cluster1.mapNum == clusterP.mapNum:
             continue
         cl2 = 'c' + str(clusterP.mapNum)
-        #print "Comparing", cl1, "and", cl2, LR
+        logging.debug("Comparing cluster %s and cluster %s as %s", cl1, cl2, LR)
         # If 2 clusters have been compared do not compare them again
-        logging.debug('Continue if these 2 clusters were compared before')
         if graph_c.get_vertex(cl1) != None:
             if cl2 in graph_c.get_vertex(cl1).get_connections():
+                logging.debug('Continue as these 2 clusters were compared before')
                 continue
         # If 2 clusters share variant, then comparing them is redundant.
         # Any subtleties can be addressed when comparing to existing variant, e.g. variant branches.
         skip = 0
-        logging.debug('Continue if these 2 clusters already part of same consolidated cluster')
         if graph_m.get_vertex(cl1) != None and graph_m.get_vertex(cl2) != None:
             for variant in graph_m.get_vertex(cl1).get_connections():
                 if variant in graph_m.get_vertex(cl2).get_connections():
                     skip = 1
                     break
         if skip:
-            #print "Skipping m", cl2, cl1
+            logging.debug('Continue as these 2 clusters already part of same consolidated cluster')
             continue
 
         # determine which sides of clusters overlap
-        logging.debug('Determine signature of 2-cluster overlap: left with left (LL) etc.')
+        logging.debug('Determining signature of 2-cluster overlap: left with left (LL) etc.')
         LLOverlap=0
         LROverlap=0
         RLOverlap=0
@@ -422,12 +419,12 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             logging.debug('Large INS : left with left overlap')
 
             # if mate between the reads that overlap, then not a bona fide match
-            logging.debug('Ensure safe distance between overlap point and other 2 mate almts')
             if cluster1.lTID == cluster1.rTID and not (clusterP.l_end < cluster1.r_end - RDL_Factor*RDL):
+                logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
                 continue
             if clusterP.lTID == clusterP.rTID and not (cluster1.l_end < clusterP.r_end - RDL_Factor*RDL):
+                logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
                 continue
-
             if cluster1.l_orient == cluster1.r_orient and clusterP.l_orient == clusterP.r_orient:
                 newVariant.SVType = "INS_I"
             elif cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
@@ -452,12 +449,12 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             logging.debug('Large INS : right with right overlap')
 
             # if mate between the reads that overlap, then not a bona fide match
-            logging.debug('Ensure safe distance between overlap point and other 2 mate almts')
             if cluster1.lTID == cluster1.rTID and not (clusterP.r_start > cluster1.l_start + RDL_Factor*RDL):
+                logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
                 continue
             if clusterP.lTID == clusterP.rTID and not (cluster1.r_start > clusterP.l_start + RDL_Factor*RDL):
+                logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
                 continue
-
             if cluster1.l_orient == cluster1.r_orient and clusterP.l_orient == clusterP.r_orient:
                 newVariant.SVType = "INS_I"
             elif cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
@@ -484,11 +481,12 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             logging.debug('Large INS check 3: left mate of cluster 1 overlapping with right of 2')
 
             # if mate between the reads that overlap, then not a bona fide match
-            logging.debug('Ensure safe distance between overlap point and other 2 mate almts')
             if cluster1.lTID == cluster1.rTID and not (clusterP.r_end < cluster1.r_end - RDL_Factor*RDL):
-              continue
+                logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
+                continue
             if clusterP.lTID == clusterP.rTID and not (cluster1.l_start > clusterP.l_start + RDL_Factor*RDL):
-              continue
+                logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
+                continue
             if cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID and \
                 not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
                 continue
@@ -517,14 +515,13 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 
                 logging.debug('Large INS check 3: mark as cut-paste if one of source breakpoints is on same chr as overlap pt')
                 if newVariant.bp1TID == newVariant.bp2TID and newVariant.bp3TID != newVariant.bp1TID:
-                    logging.debug('Continue loop if orientation mismatch for INS_C')
                     if cluster1.lTID == cluster1.rTID and \
                         not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
                         continue
                     if clusterP.lTID == clusterP.rTID and \
                         not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
                         continue
-
+                    logging.debug('Orientation matches for INS_C')
                     # breakpoint locations are confirmed
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
@@ -538,14 +535,13 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                     newVariant.bp1_orient, newVariant.bp3_orient = newVariant.bp3_orient, newVariant.bp1_orient
 
                 elif newVariant.bp1TID == newVariant.bp3TID and newVariant.bp2TID != newVariant.bp1TID:
-                    logging.debug('Continue loop if orientation mismatch for INS_C')
                     if cluster1.lTID == cluster1.rTID and \
                         not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
                         continue
                     if clusterP.lTID == clusterP.rTID and \
                         not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
                         continue
-
+                    logging.debug('Orientation matches for INS_C')
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
                     elif newVariant.SVType == "INS_C_I":
@@ -574,10 +570,11 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             logging.debug('Large INS check 4: right mate of cluster 1 overlapping with left mate of cluster 2')
 
             # if mate between the reads that overlap, then not a bona fide match
-            logging.debug('Ensure safe distance between overlap point and other 2 mate almts')
             if cluster1.lTID == cluster1.rTID and not (clusterP.l_start > cluster1.l_start + RDL_Factor*RDL):
+                logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
                 continue
             if clusterP.lTID == clusterP.rTID and not (cluster1.r_end < clusterP.r_end - RDL_Factor*RDL):
+                logging.debug('Not safe distance between overlap point and other 2 mate almts:2 %d %d',cluster1.r_end,clusterP.r_end)
                 continue
             if cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID and \
                 not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
@@ -656,9 +653,9 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                 newVariant.bp3_orient, newVariant.bp2_orient = newVariant.bp2_orient,\
                     newVariant.bp3_orient
 
-        logging.debug('Write new complex variant')
         # if clusters matched to form new SV
         if newSVFlag:
+            logging.debug('Writing new complex variant:%s', newVariant.SVType)
             newVariant.clusterNums.append(cluster1.mapNum)
             newVariant.clusterNums.append(clusterP.mapNum)
             # should never occur after start, so okay to refresh variant buffer
@@ -676,8 +673,8 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             graph_c.add_edge(cl1,v1,1)
             #print "Match:", v1, " from", cluster1, "and", clusterP
 
-    logging.debug('Add cluster to claimed list if matched with any existing cluster')
     if anyMatch:
+        logging.debug('Adding cluster to claimed list')
         claimedCls.add(cluster1.mapNum)
 
 def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCombGap, slop):
@@ -1020,7 +1017,7 @@ def refreshClusterBuffer(clusters, LR, tidListL, tidListR, cluster_L, cluster_R,
 def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
                           clusterMapFile, maxClCombGap, slop, refRate):
     variantNum = 1
-    RDL_Factor=2 # default recommended
+    RDL_Factor=1.2 # default recommended
     fStat = open(statFile,"r")
     RDL = int(fStat.readline().split()[0])
     disc_thresh = int(fStat.readlines()[5].split()[0])
