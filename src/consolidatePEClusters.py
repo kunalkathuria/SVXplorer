@@ -416,7 +416,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
         # Large insertions
         elif LLOverlap and cluster1.l_orient != clusterP.l_orient and (cluster1.lTID == \
             cluster1.rTID or cluster1.lTID == clusterP.rTID or cluster1.rTID == clusterP.rTID):
-            logging.debug('Large INS : left with left overlap')
+            logging.debug('Large INS check 1: left with left overlap')
 
             # if mate between the reads that overlap, then not a bona fide match
             if cluster1.lTID == cluster1.rTID and not (clusterP.l_end < cluster1.r_end - RDL_Factor*RDL):
@@ -429,6 +429,15 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                 newVariant.SVType = "INS_I"
             elif cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
                 newVariant.SVType = "INS"
+                if cluster1.rTID == clusterP.rTID and cluster1.r_end < clusterP.r_start and \
+                    not (cluster1.r_orient == 1 and clusterP.r_orient == 0):
+                    logging.debug("Orientation mismatch for INS/INS_C:1")
+                    continue
+                if cluster1.rTID == clusterP.rTID and clusterP.r_end < cluster1.r_start and \
+                    not (clusterP.r_orient == 1 and cluster1.r_orient == 0):
+                    logging.debug("Orientation mismatch for INS/INS_C:2")
+                    continue
+
             if newVariant.SVType == "INS" or newVariant.SVType == "INS_I":
                 newSVFlag=1
                 # set breakpoints
@@ -446,7 +455,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 
         elif RROverlap and cluster1.r_orient != clusterP.r_orient and \
             (cluster1.rTID == cluster1.lTID or cluster1.rTID == clusterP.lTID or cluster1.lTID == clusterP.lTID):
-            logging.debug('Large INS : right with right overlap')
+            logging.debug('Large INS check 2: right with right overlap')
 
             # if mate between the reads that overlap, then not a bona fide match
             if cluster1.lTID == cluster1.rTID and not (clusterP.r_start > cluster1.l_start + RDL_Factor*RDL):
@@ -459,6 +468,14 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                 newVariant.SVType = "INS_I"
             elif cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
                 newVariant.SVType = "INS"
+                if cluster1.lTID == clusterP.lTID and cluster1.l_end < clusterP.l_start and \
+                    not (cluster1.l_orient == 1 and clusterP.l_orient == 0):
+                    logging.debug("Orientation mismatch for INS/INS_C:1")
+                    continue
+                if cluster1.lTID == clusterP.lTID and clusterP.l_end < cluster1.l_start and \
+                    not (clusterP.l_orient == 1 and cluster1.l_orient == 0):
+                    logging.debug("Orientation mismatch for INS/INS_C:2")
+                    continue
 
             if newVariant.SVType == "INS" or newVariant.SVType == "INS_I":
                 newSVFlag=1

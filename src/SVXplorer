@@ -130,10 +130,10 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + chr2End + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";CM="+svType+ ";" + support + precise)
             elif svType in ["INS","INS_I","INS_C_P","INS_C_I_P"]:
                 if svType in ["INS","INS_I"]:
-                    field1 = "<DUP>"
+                    field1 = "DUP"
                     CM = "CopyPasteInsertion"
                 else:
-                    field1 = "<DEL>"
+                    field1 = "DEL"
                     CM = "CutPasteInsertion"
                 svlen=str(int(chr1End)-int(chr1Start))
                 cipos = int(chr2End)-int(chr2Start)
@@ -141,7 +141,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 if svType=="INS_I":
                     isinv="ISINV"
 
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", field1, ".","PASS", "SVTYPE=" + field1 + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + ";" + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", chr1 + ":" + chr1Start ,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 2) + ";" + isinv + ";" + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", tokens[3] + ":" + chr2Start,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 1) + isinv + ";" + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", tokens[3] + ":" + chr2Start ,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 4) + ";" + isinv + ";" + support + precise)
