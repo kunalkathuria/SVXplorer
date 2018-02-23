@@ -69,7 +69,8 @@ def printVCFHeader(f):
     print >> f, "##source=SVXplorer-" + VERSION
     print >> f, """##INFO=<ID=END, Number=1, Type=Integer, Description=\"end point of SV\">
 ##INFO=<ID=SVTYPE, Number=1, Type=String, Description=\"SV Type\">
-##INFO=<ID=CM, Number=1, Type=String, Description=\"Comment denoting likely kind of variant\">
+##INFO=<ID=CM, Number=1, Type=String, Description=\"SV Type for all entries with current GROUPID combined, e.g. "Cut-paste insertion (translocation)\">
+##INFO=<ID=PROBTYPE, Number=1, Type=String, Description=\"Likely or possible SV Type for BND event\"> 
 ##INFO=<ID=ISINV, Number=1, Type=Flag, Description=\"Whether on inverted or positive strand\">
 ##INFO=<ID=CHR2, Number=1, Type=Integer, Description=\"For BNDs the reference ID of the 'END' breakpoint if different from that of start 'POS'\">
 ##INFO=<ID=POS2, Number=1, Type=Integer, Description=\"source location start of copy-paste INS\">
@@ -115,19 +116,21 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 elif CM.startswith("INS_C"):
                     CM = "Translocation"
 
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", tokens[3] + ":" + chr2End,".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM=" + CM + ";MATEID=" + str(counter + 1) + ";" + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", chr1 + ":" + chr1Start,".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM=" + CM + ";MATEID=" + str(counter) + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", tokens[3] + ":" + chr2End,".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter + 1) + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", chr1 + ":" + chr1Start,".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter) + ";" + support + precise)
                 counter+= 1
             elif svType == "DEL":
-                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;CM="+svType+ ";" + support + precise)
+                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise)
             elif svType == "TD" or svType == "TD_INV":
                 isinv=""
                 if svType=="TD_INV":
                     isinv="ISINV"
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";CM="+svType+";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + support + precise)
             elif svType == "INV":
                 ciend = int(chr2End) - int(chr2Start)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + chr2End + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";CM="+svType+ ";" + support + precise)
+                pos = int((int(chr1Start) + int(chr1End))/2.0)
+                end = int((int(chr2Start) + int(chr2End))/2.0)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, pos, counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + str(end) + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";" + support + precise)
             elif svType in ["INS","INS_I","INS_C_P","INS_C_I_P"]:
                 if svType in ["INS","INS_I"]:
                     field1 = "DUP"

@@ -450,7 +450,7 @@ if __name__== "__main__":
     PARSER.add_argument('-x', default=1.67, dest='disc_enhancer', type=float,
         help='Factor to multiply "end" of IL distribution by a "safety" factor so as \
         to not miss larger sampling ILs in certain distributions')
-    PARSER.add_argument('-p', default=20, dest='bp_margin', type=int,
+    PARSER.add_argument('-p', default=25, dest='bp_margin', type=int,
         help='Breakpoint margin for each breakpoint if its calculation yields zero \
         or negative value')
     PARSER.add_argument('-s', action='store_true',
