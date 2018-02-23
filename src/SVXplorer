@@ -336,7 +336,7 @@ if __name__ == '__main__':
 
     # writeDiscordantFragments
     CALC_THRESH=1000000
-    MAP_THRESH=1
+    MAP_THRESH=10
     # useful for secondary alignments
     PE_ALMT_COMB_THRESH=20
     NMATCH_RELATIVE_THRESH=0
@@ -353,11 +353,11 @@ if __name__ == '__main__':
     REF_RATE_PE=5
 
     # uniqueSuppFilter (PE)
-    MAP_THRESH_U=10
+    MAP_THRESH_U=-1
     MIN_UNIQUE_SUPP=3
 
     # writeBEDs
-    LIB_INV=False
+    LIB_INV=True
 
     # addSplitReads
     SLOP_SR=8
