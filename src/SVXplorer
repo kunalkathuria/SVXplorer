@@ -69,7 +69,7 @@ def printVCFHeader(f):
     print >> f, "##source=SVXplorer-" + VERSION
     print >> f, """##INFO=<ID=END, Number=1, Type=Integer, Description=\"end point of SV\">
 ##INFO=<ID=SVTYPE, Number=1, Type=String, Description=\"SV Type\">
-##INFO=<ID=CM, Number=1, Type=String, Description=\"SV Type for all entries with current GROUPID combined, e.g. "Cut-paste insertion (translocation)\">
+##INFO=<ID=CM, Number=1, Type=String, Description=\"SV Type for all entries with current GROUPID combined, e.g. 'Cut-paste insertion'\">
 ##INFO=<ID=PROBTYPE, Number=1, Type=String, Description=\"Likely or possible SV Type for BND event\"> 
 ##INFO=<ID=ISINV, Number=1, Type=Flag, Description=\"Whether on inverted or positive strand\">
 ##INFO=<ID=CHR2, Number=1, Type=Integer, Description=\"For BNDs the reference ID of the 'END' breakpoint if different from that of start 'POS'\">
