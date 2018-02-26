@@ -345,7 +345,7 @@ if __name__ == '__main__':
     
     # formPEClusters
     MIN_CS=3
-    DISC_ENHANCER=1.67
+    DISC_ENHANCER=2.0
     MIN_PE_BPMARGIN=20
 
     # consolidatePEClusters
