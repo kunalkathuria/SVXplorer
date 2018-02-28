@@ -95,9 +95,14 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 bp1_s, bp1_e = start1, end1
                 bp2_s, bp2_e = start2, end2
                 bp3_s, bp3_e = start3, end3
+
+                if swap == "1":
+                    bp1_s, bp3_s = bp3_s, bp1_s
+                    bp1_e = bp3_e
                 if bp3_s < bp2_s:
                     bp2_s = bp3_s
                     bp3_e = bp2_e
+
                 output = [chrom2, bp2_s, bp3_e, chrom1, bp1_s, bp1_e]
                 name = svtype
             else:

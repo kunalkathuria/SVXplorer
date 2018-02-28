@@ -2,7 +2,7 @@
 
 # Filter variants based on local coverage in variant regions and write final SVs in BED format
 
-import sys
+from sys import stderr
 import pysam
 from collections import Counter
 from bitarray import bitarray
@@ -82,17 +82,30 @@ def calculateDELThreshPE(SD):
     return PE_DEL_THRESH
 
 def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, covHash):
+    bin_size = 100
     if chr_n not in covHash:
         logging.info("Calculating coverage for %s", chr_n)
-        counterBase, cov = 0,0
+        counterBase, cov, refLoop = 0,0,0
+        covList = []
         for pileupcolumn in fBAM.pileup(chr_n):
             cov += pileupcolumn.n
             counterBase += 1
+            refLoop += 1
+            if refLoop == bin_size:
+                covList.append(1.0*cov/refLoop)
+                refLoop = 0
             if counterBase > CALC_THRESH:
                 break
-        covHash[chr_n] = 1.0*cov/counterBase
-        logging.info("Coverage of Chr %s written as %f",
-                      chr_n, covHash[chr_n])
+        if len(covList) > 0:
+            covHash[chr_n] = covList[len(covList)/2] 
+            avgCov = 1.0*cov/counterBase
+            #change to debug when test done
+            logging.info("Median coverage of Chr %s written as %f; average was %f",
+                          chr_n, covHash[chr_n], avgCov)
+        else:
+            print >> stderr, "No chromosomes used in sample. Exiting."
+            exit(1)
+
     gap = bpSecond - bpFirst
     start = .25*gap + bpFirst
     stop = min(start+.5*gap,start +3*PILEUP_THRESH)
@@ -152,7 +165,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     fBAM = pysam.AlignmentFile(bamFile, "rb" )
     if NH_REGIONS_FILE is not None:
         formChrHash(NH_REGIONS_FILE)
-
+    else:
+        print >> stderr, "Warning! Not using a good regions file for pile-up filter! This can affect some coverage-based results adversely."
     for counter, lineAV in enumerate(fAV):
         support = 0
         for entry in fVM:
@@ -223,12 +237,15 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     covLoc, confReg = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                         int(lineAV_split[7]), int(lineAV_split[9]),
                         PILEUP_THRESH, fBAM, chrHash, covHash)
+                    #if confReg and 1.0 < covLoc < DUP_THRESH_L:
+                        #svtype = "INS_C_P"
+                        #if svtype == "INS_I":
+                            #svtype = "INS_C_I_P"
+                    #elif confReg and covLoc < DEL_THRESH_L:
+                        #bnd = 1
                     if confReg and covLoc < DUP_THRESH_L:
-                        svtype = "INS_C_P"
-                        if svtype == "INS_I":
-                            svtype = "INS_C_I_P"
-                    elif confReg and covLoc < DEL_THRESH_L:
                         bnd = 1
+
                 elif len(svtype) > 4 and lineAV_split[11].find("PE") != -1 and \
                     svtype[0:5] == "INS_C" and lineAV_split[8] != "-1":
                     del_23 = 0
@@ -254,12 +271,12 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         convLoc_12, conf_12 = 0,0
 
                     if conf_23:
-                        if covLoc_23 > DUP_THRESH:
+                        if covLoc_23 > DUP_THRESH_L:
                             dup_23 = 1
                         elif covLoc_23 < DEL_THRESH:
                             del_23 =1
                     if conf_12:
-                        if covLoc_12 > DUP_THRESH:
+                        if covLoc_12 > DUP_THRESH_L:
                             dup_21 = 1
                         elif covLoc_12 < DEL_THRESH:
                             del_21 =1
