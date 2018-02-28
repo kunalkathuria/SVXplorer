@@ -336,7 +336,7 @@ if __name__ == '__main__':
 
     # writeDiscordantFragments
     CALC_THRESH=1000000
-    MAP_THRESH=10
+    MAP_THRESH=1
     # useful for secondary alignments
     PE_ALMT_COMB_THRESH=20
     NMATCH_RELATIVE_THRESH=0
@@ -345,8 +345,8 @@ if __name__ == '__main__':
     
     # formPEClusters
     MIN_CS=3
-    DISC_ENHANCER=2.0
-    MIN_PE_BPMARGIN=20
+    DISC_ENHANCER=1.67
+    MIN_PE_BPMARGIN=25
 
     # consolidatePEClusters
     SLOP_PE=0

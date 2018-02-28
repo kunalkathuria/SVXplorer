@@ -701,18 +701,20 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 
         # if clusters matched to form new SV
         if newSVFlag:
-            logging.debug('Writing new complex variant:%s', newVariant.SVType)
             newVariant.clusterNums.append(cluster1.mapNum)
             newVariant.clusterNums.append(clusterP.mapNum)
             # should never occur after start, so okay to refresh variant buffer
             if len(consolidatedCls) > 0:
-                newVariant.variantNum = consolidatedCls[-1].variantNum
+                newVariant.variantNum = 1 + consolidatedCls[-1].variantNum
             else:
+                logging.debug("CC list empty, about to write new variant")
                 newVariant.variantNum = 1
+           
             consolidatedCls.append(newVariant)
             claimedCls.add(clusterP.mapNum)
             anyMatch = 1
             v1 = 'v' + str(newVariant.variantNum)
+            logging.debug("Writing new complex variant %s, type: %s", v1, newVariant.SVType)
             graph_m.add_edge(cl2,v1,1)
             graph_m.add_edge(cl1,v1,1)
             graph_c.add_edge(cl2,v1,1)
@@ -726,20 +728,19 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCombGap, slop):
     anyMatch = 0
     cl1 = 'c' + str(cluster1.mapNum)
-    logging.debug('Start loop to compare this cluster to all complex variants in list')
+    logging.debug('Start loop to compare cluster %s to all complex variants in list', cl1)
     for g,elem in enumerate(varList):
         match = 0
         v1 = 'v' + str(elem.variantNum)
-
+        logging.debug("Trying to compare cluster %s and variant %s", cl1, v1)
         # If cluster has been compared to variant, do not compare
-        logging.debug('Do not compare cluster to variant if compared before')
         if graph_c.get_vertex(cl1) != None and graph_c.get_vertex(v1) != None:
             if cl1 in graph_c.get_vertex(v1).get_connections():
+                logging.debug('Do not compare cluster to variant: compared before')
                 continue
         # if cluster compared to all clusters currently in variant, no need to compare again.
         # implement variant branching later to resolve unlikely exceptions to this, if any.
         skip = 0
-        logging.debug('Do not compare cluster to variant if compared to all members of variant individually already')
         if graph_c.get_vertex(cl1) !=None and graph_m.get_vertex(v1) != None:
             skip = 1
             for connection in graph_m.get_vertex(v1).get_connections():
@@ -747,27 +748,30 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                     skip = 0
                     break
         if skip:
+            logging.debug('Do not compare cluster to variant: compared to all members of variant individually already')
             continue
 
         # don't compare if exceeds left-sorted comparison bounds.
         # will appear again for right bound comparison later.
-        logging.debug('Do not compare to variant if gap exceeds necessary comparison bounds')
         if LR == "L" and (elem.bp1TID != cluster1.lTID or abs(elem.bp1_start - cluster1.l_start) \
             > maxClCombGap) and (elem.bp2TID != cluster1.lTID or abs(elem.bp2_start - cluster1.l_start) \
             > maxClCombGap) and (elem.bp3TID != cluster1.lTID or abs(elem.bp3_start - cluster1.l_start) \
             > maxClCombGap):
+            logging.debug('Do not compare to variant: gap exceeds necessary comparison bounds: 1')
             continue
         # analogous to above for right -sorted
         if LR == "R" and (elem.bp1TID != cluster1.rTID or abs(elem.bp1_start - cluster1.r_start) \
             > maxClCombGap) and (elem.bp2TID != cluster1.rTID or abs(elem.bp2_start - cluster1.r_start) \
             > maxClCombGap) and (elem.bp3TID != cluster1.rTID or abs(elem.bp3_start - cluster1.r_start) \
             > maxClCombGap):
+            logging.debug('Do not compare to variant: gap exceeds necessary comparison bounds: 2')
             continue
         graph_c.add_edge(cl1,v1,1)
 
         # check for this cluster's signature and location match with existing variants
-        logging.debug('Check conditions for match: cluster against variant if variant is TD_I')
+        logging.debug('Comparing cluster %s against variant %s', cl1, v1)
         if elem.SVType == "TD_I":
+            logging.debug('Check conditions for match: cluster against variant for TD_I')
             # small-medium TD's: second small cluster overlap on other side possible with TD's
             # but not with insertions.
             if cluster1.isSmall and cluster1.lTID == elem.bp2TID and cluster1.rTID == elem.bp2TID and \
@@ -830,7 +834,7 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                     elem.SVType = "INS_C"
         elif elem.SVType == "INS_C" or elem.SVType == "INS_C_I" or \
             elem.SVType == "INS_C_P" or elem.SVType == "INS_C_I_P":
-            logging.debug('Check conditions for match: cluster against variant if variant is in INS_C family')
+            logging.debug('Check conditions for match: cluster against variant for INS_C family')
 
             if cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp3TID and elem.bp1_orient != -1 \
                 and elem.bp3_orient != -1 and isOverlapping("V",cluster1,elem,"L1", slop) and \
@@ -913,7 +917,7 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 elif elem.SVType =="INS_C_I":
                     elem.SVType = "INS_C_I_P"
         elif elem.SVType == "TD":
-            logging.debug('Check conditions for match: cluster against variant if variant is TD')            
+            logging.debug('Check conditions for match: cluster against variant for TD')            
             if cluster1.isSmall and (isOverlapping("V", cluster1, elem, "L1", slop) and \
                 cluster1.lTID == elem.bp1TID) and (isOverlapping("V", cluster1, elem, "R2", slop) and \
                 cluster1.rTID == elem.bp2TID):
@@ -923,7 +927,7 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 anyMatch = 1
                 elem.complete = 1
         elif elem.SVType == "INS" or elem.SVType == "INS_I":
-            logging.debug('Check conditions for match: cluster against variant if variant is regular INS')        
+            logging.debug('Check conditions for match: cluster against variant for INS')        
             # 2-bp-thus-far INS's
             if elem.bp3_start == -1:
                 if cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
@@ -1010,25 +1014,25 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 match = 1
                 elem.count+=1
                 anyMatch = 1
-        logging.debug('Append cluster to complex variant if supports it')
         if match:
+            logging.debug('Append cluster %s to complex variant %s', cl1, v1)
             #print "Cluster", cluster1, "and variant", g, "matched~"
             if cluster1.mapNum not in elem.clusterNums:
                 elem.clusterNums.append(cluster1.mapNum)
             graph_m.add_edge(cl1,v1,1)
-    logging.debug('Write cluster to claimed list if matched with existing variants')
     if anyMatch:
+        logging.debug('Write cluster %s to claimed list', cl1)
         claimedCls.add(cluster1.mapNum)
 
 def refreshCCList(consolidatedCls, tidListL, tidListR, maxClCombGap, cluster_L, cluster_R, \
     refRate, consolidatedCls_C):
-
+    logging.debug("Length of CC list before refresh: %d", len(consolidatedCls))
     if len(consolidatedCls) % refRate == 0:
         for h,item in enumerate(consolidatedCls):
             varTIDs = set([item.bp1TID, item.bp2TID, item.bp3TID])
             # if ref IDs in variant have occurred in both cluster lists
             if varTIDs.issubset(tidListL) and varTIDs.issubset(tidListR):
-                if cluster_L.lTID not in varTIDs and cluster_R.rTID not in varTIDs and h < len(consolidatedCls) -1:
+                if cluster_L.lTID not in varTIDs and cluster_R.rTID not in varTIDs and (h < len(consolidatedCls) - 1):
                     consolidatedCls_C.append(item)
                     del consolidatedCls[h]
                 elif (cluster_L.l_start - item.bp1_start > maxClCombGap or cluster_L.lTID != item.bp1TID) and \
@@ -1040,6 +1044,7 @@ def refreshCCList(consolidatedCls, tidListL, tidListR, maxClCombGap, cluster_L, 
                             if h < len(consolidatedCls) -1:
                                 consolidatedCls_C.append(item)
                                 del consolidatedCls[h]
+    logging.debug("Length of CC list after refresh: %d", len(consolidatedCls))
 
 def refreshClusterBuffer(clusters, LR, tidListL, tidListR, cluster_L, cluster_R,  maxClCombGap):
     counter=0
