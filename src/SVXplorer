@@ -371,7 +371,7 @@ if __name__ == '__main__':
     DEL_CN_SUPP_THRESH=.6 
     DUP_CN_SUPP_THRESH=1.4
     SPLIT_INS=0
-    PILEUP_THRESH=1.4
+    PILEUP_THRESH=500.0
 
     ARGS = PARSER.parse_args()
 
