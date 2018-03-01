@@ -85,26 +85,27 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     bin_size = 100
     if chr_n not in covHash:
         logging.info("Calculating coverage for %s", chr_n)
-        counterBase, cov, refLoop = 0,0,0
+        counterBase, refLoop, cov_100bp, totalCov = 0,0,0,0
         covList = []
         for pileupcolumn in fBAM.pileup(chr_n):
-            cov += pileupcolumn.n
+            cov_100bp += pileupcolumn.n
+            totalCov += pileupcolumn.n
             counterBase += 1
             refLoop += 1
             if refLoop == bin_size:
-                covList.append(1.0*cov/refLoop)
-                refLoop = 0
+                covList.append(1.0*cov_100bp/refLoop)
+                cov_100bp, refLoop = 0,0
             if counterBase > CALC_THRESH:
                 break
         if len(covList) > 0:
             covHash[chr_n] = covList[len(covList)/2] 
-            avgCov = 1.0*cov/counterBase
+            avgCov = 1.0*totalCov/counterBase
             #change to debug when test done
             logging.info("Median coverage of Chr %s written as %f; average was %f",
                           chr_n, covHash[chr_n], avgCov)
         else:
-            print >> stderr, "No chromosomes used in sample. Exiting."
-            exit(1)
+            print >> stderr, ("Warning! No good bases in chromosome %s", chr_n)
+            covHash[chr_n] = 0
 
     gap = bpSecond - bpFirst
     start = .25*gap + bpFirst
@@ -121,7 +122,11 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
         if (counter > MIN_PILEUP_THRESH and (counter > GOOD_REG_THRESH*(stop-start) or counter > PILEUP_THRESH)):
             confRegion = 1
             covLoc = (1.0*covLoc)/(1.0*counter)
-    return 1.0*covLoc/covHash[chr_n], confRegion
+
+    if covHash[chr_n] != 0:
+        return 1.0*covLoc/covHash[chr_n], confRegion
+    else:
+        return 0, 0
 
 def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH):
     if lineAV_split[1] == "DEL":
@@ -237,10 +242,9 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     covLoc, confReg = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                         int(lineAV_split[7]), int(lineAV_split[9]),
                         PILEUP_THRESH, fBAM, chrHash, covHash)
-                    #if confReg and 1.0 < covLoc < DUP_THRESH_L:
-                        #svtype = "INS_C_P"
-                        #if svtype == "INS_I":
-                            #svtype = "INS_C_I_P"
+                    # $use following for bp1-2 and code some for INS_C_P below
+                    #if confReg and DEL_THRESH_L < covLoc < DUP_THRESH_L:
+                        #bnd = 1
                     #elif confReg and covLoc < DEL_THRESH_L:
                         #bnd = 1
                     if confReg and covLoc < DUP_THRESH_L:

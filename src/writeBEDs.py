@@ -116,7 +116,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 output.extend([GT, support, bnd])
 
             if name == 'BND': output.append(svtype)
-            else: output.append('.')
+            elif name != 'BND_2': output.append('.')
             
             if name != 'BND_2':
                 print >> outfile, "\t".join(map(str, output))
