@@ -20,7 +20,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
     if outname != sys.stdout: outfile = open(outname, 'w')
 
     with open(variantFile, 'r') as fAV:
-        for lineAV in fAV:
+        for counter, lineAV in enumerate(fAV):
             tokens = lineAV.split()
 
             svindx = tokens[0]
@@ -76,18 +76,18 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 name = 'BND_2'
                 if (svtype in ["INS", "INS_I"] and bnd == "1"):
                     out1 = [chrom1, start1, end1, chrom2, start2, end2, 
-                        name, support_tag, ".", ".", ".", GT, support,
-                        bnd, svtype]
+                        "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
+                        ".", GT, support, bnd, svtype]
                     out2 = [chrom1, start1, end1, chrom3, start3, end3, 
-                        name, support_tag, ".", ".", ".", GT, support,
-                        bnd, svtype]
+                        "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
+                        ".", GT, support, bnd, svtype]
                 elif svtype in ["INS_C", "INS_C_I"] or svtype in ["INS_C_P", "INS_C_I_P"]:
                     out1 = [chrom1, start1, end1, chrom2, start2, end2, 
-                        name, support_tag, ".", ".", ".", GT, support,
-                        bnd, svtype]
+                        "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
+                        ".", GT, support, bnd, svtype]
                     out2 = [chrom2, start2, end2, chrom3, start3, end3, 
-                        name, support_tag, ".", ".", ".", GT, support,
-                        bnd, svtype]
+                        "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
+                        ".", GT, support, bnd, svtype]
                 else:
                     output = tokens[2:8]
                     name = 'BND'
@@ -110,6 +110,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 name = 'BND'
 
             if name != 'BND_2':
+                output.extend(["SV" + str(counter), ".", ".", "."])
                 output.append(name)
                 output.append(support_tag)
                 output.extend([".", ".", "."])

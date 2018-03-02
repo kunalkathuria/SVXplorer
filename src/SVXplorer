@@ -73,9 +73,23 @@ def printVCFHeader(f):
 ##INFO=<ID=PROBTYPE, Number=1, Type=String, Description=\"Likely or possible SV Type for BND event\"> 
 ##INFO=<ID=ISINV, Number=1, Type=Flag, Description=\"Whether on inverted or positive strand\">
 ##INFO=<ID=CHR2, Number=1, Type=Integer, Description=\"For BNDs the reference ID of the 'END' breakpoint if different from that of start 'POS'\">
-##INFO=<ID=POS2, Number=1, Type=Integer, Description=\"source location start of copy-paste INS\">
-##INFO=<ID=END2, Number=1, Type=Integer, Description=\"source location end of copy-paste INS\">
-##INFO=<ID=GROUPID, Number=1, Type=Integer, Description=\"GROUPID correlating 2 translocation or non-tandem-duplication events\">"""
+##INFO=<ID=GROUPID, Number=1, Type=Integer, Description=\"GROUPID correlating 2 translocation or non-tandem-duplication events\">
+##INFO=<ID=SVLEN,Number=.,Type=Integer,Description="Difference in length between REF and ALT alleles">
+##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">
+##INFO=<ID=PRECISE,Number=0,Type=Flag,Description="Precise structural variation">
+##INFO=<ID=CIPOS,Number=2,Type=Integer,Description="Confidence interval around POS for imprecise variants">
+##INFO=<ID=CIEND,Number=2,Type=Integer,Description="Confidence interval around END for imprecise variants">
+##INFO=<ID=MATEID,Number=.,Type=String,Description="ID of mate breakends for BND events">
+##INFO=<ID=SUPPORT,Number=.,Type=Integer,Description="PE+SR">
+##INFO=<ID=PE,Number=.,Type=Integer,Description="Number of paired-end reads supporting the variant">
+##INFO=<ID=SR,Number=.,Type=Integer,Description="Number of split reads supporting the variant">
+##ALT=<ID=<DEL>,Description="Deletion">
+##ALT=<ID=<DUP>,Description="Duplication">
+##ALT=<ID=<INV>,Description="Inversion">
+##ALT=<ID=<DUP:TANDEM>,Description="Tandem duplication">
+##ALT=<ID=INS,Description="Insertion of novel sequence">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+"""
     print >> f, "\t".join(["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO"])
 
 def writeVCFFromBedpe(inputFile, outputFile):
@@ -86,17 +100,17 @@ def writeVCFFromBedpe(inputFile, outputFile):
         for line in inpt:
             counter+=1
             tokens = line.split()
-            precise=tokens[7].find("SR")
-            support="SUPPORT=" + tokens[12] + ";"
+            precise=tokens[11].find("SR")
+            support="SUPPORT=" + tokens[16] + ";"
             chr1 = tokens[0]
             chr1Start = tokens[1]
             chr1End = tokens[2]
             chr2 = tokens[3]
             chr2Start = tokens[4]
             chr2End = tokens[5]
-            svType = tokens[6]
-            bnd = tokens[13]
-            CM = tokens[14]
+            svType = tokens[10]
+            bnd = tokens[17]
+            CM = tokens[18]
 
             cipos = str(int(chr1End)-int(chr1Start))
             svlen = str(abs(int(chr2End) - int(chr1Start)))
