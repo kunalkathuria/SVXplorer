@@ -242,7 +242,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     covLoc, confReg = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                         int(lineAV_split[7]), int(lineAV_split[9]),
                         PILEUP_THRESH, fBAM, chrHash, covHash)
-                    print covLoc, confReg
                     if confReg and covLoc < DUP_THRESH_L:
                         bnd = 1
 
