@@ -209,13 +209,13 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
                 newCl.r_max = r_max
                 calculateMargin(newCl, max_cluster_length, disc_thresh, bp_margin)
                 if debug:
-                    fCliques.write("%s %s\n" %("@Cluster"+str(clusterNum),newCl))
+                    fCliques.write("%s\t%s\n" %("@Cluster"+str(clusterNum),newCl))
                 fClusters.write("%s\t%s\n" %(clusterNum, newCl))
                 fClusterMap.write("%s" %clusterNum)
                 for item in goodFrags:
                     # write all supporting fragments to clique info file as well
                     if debug:
-                        fCliques.write("%s %s %s\n" %(item, fragHash[item].l_bound, fragHash[item].r_bound))
+                        fCliques.write("%s\t%s\t%s\n" %(item, fragHash[item].l_bound, fragHash[item].r_bound))
                     item_s = item
                     usPos = item.find("_")
                     if len(item) > 2 and usPos != -1:

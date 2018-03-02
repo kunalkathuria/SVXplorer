@@ -14,8 +14,6 @@ DEL_THRESH2 = .125
 DEL_THRESH_L = .8
 DUP_THRESH_L = 1.2
 MIN_PILEUP_THRESH = 80
-# to trust pile-up depth in a region, this percentage of bases should return data
-GOOD_REG_THRESH =.8
 CALC_THRESH = 1000000
 
 DEL_CONF_THRESH = .7
@@ -81,7 +79,8 @@ def calculateDELThreshPE(SD):
 
     return PE_DEL_THRESH
 
-def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, covHash):
+def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, covHash, 
+                    GOOD_REG_THRESH):
     bin_size = 100
     if chr_n not in covHash:
         logging.info("Calculating coverage for %s", chr_n)
@@ -145,7 +144,7 @@ def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH):
 
 def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 NH_REGIONS_FILE, DEL_THRESH, DUP_THRESH, splitINS, 
-                PILEUP_THRESH):
+                PILEUP_THRESH, GOOD_REG_THRESH):
     fAV = open(avFile,"r")
     fVM=open(vmFile,"r")
     fUF = open(ufFile,"r")
@@ -210,7 +209,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 if (svtype == "DEL_INS" or svtype == "DEL" or svtype[0:2]== "TD") and int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
                     covLocM, confMiddle = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),
-                            PILEUP_THRESH, fBAM, chrHash, covHash)
+                            PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
 
                     if confMiddle == 1:
                         if svtype[0:2] == "TD" and covLocM < DEL_THRESH: 
@@ -241,7 +240,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     #bp2-3
                     covLoc, confReg = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                         int(lineAV_split[7]), int(lineAV_split[9]),
-                        PILEUP_THRESH, fBAM, chrHash, covHash)
+                        PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
                     if confReg and covLoc < DUP_THRESH_L:
                         bnd = 1
 
@@ -257,7 +256,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     if start > stop:
                         start, stop = stop, start
                     covLoc_23, conf_23 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                            start, stop, PILEUP_THRESH, fBAM, chrHash, covHash)
+                            start, stop, PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
                     #bp1-2
                     start = int(lineAV_split[4])
                     stop = int(lineAV_split[6])
@@ -265,7 +264,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         start, stop = stop, start
                     if lineAV_split[2] == lineAV_split[5]:
                         covLoc_12, conf_12 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                                start, stop, PILEUP_THRESH, fBAM, chrHash, covHash)
+                                start, stop, PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
                     else:
                         convLoc_12, conf_12 = 0,0
 
@@ -339,6 +338,6 @@ if __name__ == "__main__":
     covPUFilter(ARGS.workDir, ARGS.avFile, ARGS.vmFile, ARGS.ufFile, 
                 ARGS.statFile, ARGS.bamFile, ARGS.NH_REGIONS_FILE,
                 ARGS.DEL_THRESH, ARGS.DUP_THRESH, ARGS.splitINS,
-                ARGS.PILEUP_THRESH)
+                ARGS.PILEUP_THRESH, ARGS.GOOD_REG_THRESH)
 
     logging.shutdown()
