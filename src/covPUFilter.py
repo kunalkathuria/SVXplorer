@@ -234,7 +234,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS"
 
-                elif len(svtype) > 2 and and (svtype == "INS" \
+                elif len(svtype) > 2 and (svtype == "INS" \
                     or svtype == "INS_I") and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \
                     int(lineAV_split[9]) and lineAV_split[8] != "-1":
 
