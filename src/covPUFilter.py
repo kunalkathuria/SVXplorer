@@ -28,7 +28,7 @@ SD_S = 14
 SD_L = 24
 
 def formChrHash(NH_REGIONS_FILE):
-    print "Forming pile-up hash table..."
+    logging.info("Forming PU hash table...")
     fo=open(NH_REGIONS_FILE,"r")
     prev_start = -1
     prev_stop = -1
@@ -57,7 +57,7 @@ def formChrHash(NH_REGIONS_FILE):
         prev_start = start
         prev_stop = stop
         prevTID = currentTID
-    print "Done"
+    logging.info("Done forming PU hash table")
 
 def readBamStats(statFile):
     rdl, sd, coverage = -1, -1, -1
@@ -83,7 +83,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     GOOD_REG_THRESH):
     bin_size = 100
     if chr_n not in covHash:
-        logging.info("Calculating coverage for %s", chr_n)
+        logging.debug("Calculating coverage for %s", chr_n)
         counterBase, refLoop, cov_100bp, totalCov = 0,0,0,0
         covList = []
         for pileupcolumn in fBAM.pileup(chr_n):
@@ -100,9 +100,10 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             covHash[chr_n] = covList[len(covList)/2] 
             avgCov = 1.0*totalCov/counterBase
             #change to debug when test done
-            logging.info("Median coverage of Chr %s written as %f; average was %f",
+            logging.debug("Median coverage of Chr %s written as %f; average was %f",
                           chr_n, covHash[chr_n], avgCov)
         else:
+            logging.debug("Warning! No good bases in chromosome %s", chr_n)
             print >> stderr, ("Warning! No good bases in chromosome %s", chr_n)
             covHash[chr_n] = 0
 
