@@ -234,7 +234,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS"
 
-                elif len(svtype) > 2 and lineAV_split[11].find("PE") != -1 and (svtype == "INS" \
+                elif len(svtype) > 2 and and (svtype == "INS" \
                     or svtype == "INS_I") and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \
                     int(lineAV_split[9]) and lineAV_split[8] != "-1":
 
@@ -242,20 +242,16 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     covLoc, confReg = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                         int(lineAV_split[7]), int(lineAV_split[9]),
                         PILEUP_THRESH, fBAM, chrHash, covHash)
-                    # $use following for bp1-2 and code some for INS_C_P below
-                    #if confReg and DEL_THRESH_L < covLoc < DUP_THRESH_L:
-                        #bnd = 1
-                    #elif confReg and covLoc < DEL_THRESH_L:
-                        #bnd = 1
+                    print covLoc, confReg
                     if confReg and covLoc < DUP_THRESH_L:
                         bnd = 1
 
                 elif len(svtype) > 4 and lineAV_split[11].find("PE") != -1 and \
                     svtype[0:5] == "INS_C" and lineAV_split[8] != "-1":
                     del_23 = 0
-                    del_21 = 0
+                    del_12 = 0
                     dup_23 = 0
-                    dup_21 = 0
+                    dup_12 = 0
                     #bp2-3
                     start = int(lineAV_split[7])
                     stop = int(lineAV_split[9])
@@ -281,16 +277,16 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             del_23 =1
                     if conf_12:
                         if covLoc_12 > DUP_THRESH_L:
-                            dup_21 = 1
+                            dup_12 = 1
                         elif covLoc_12 < DEL_THRESH:
-                            del_21 =1
+                            del_12 =1
 
                     confINSBP = 0
                     if (svtype == "INS_C" or svtype == "INS_C_I"):
-                        if dup_23:
+                        if dup_23 and not dup_12:
                             svtype+="_P"
                             confINSBP = 1
-                        elif dup_21:
+                        elif dup_12 and not dup_23:
                             svtype+="_P"
                             confINSBP = 1
                             swap = 1
