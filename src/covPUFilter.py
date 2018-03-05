@@ -150,6 +150,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     fVM=open(vmFile,"r")
     fUF = open(ufFile,"r")
     fAVN = open(workDir+"/allVariants.pu.txt","w")
+    fAVN.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\tstart3\tstop3\t SupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\tSwapBP\tBNDFlag\tSupport\tGT\n")
     logging.info("Writing final bedpe files using coverage information")
     RDL,SD = readBamStats(statFile)
     logging.info("Some stats from BAM. RDL: %d, Sd: %f", 
@@ -172,15 +173,18 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
         formChrHash(NH_REGIONS_FILE)
     else:
         print >> stderr, "Warning! Not using a good regions file for pile-up filter! This can affect some coverage-based results adversely."
+    header = fAV.readline()
     for counter, lineAV in enumerate(fAV):
-        support = 0
-        for entry in fVM:
-            support = len(entry.split()) - 1
-            break
         counter+=1
         lineAV_split = lineAV.split()
         varNum = int(lineAV_split[0])
-
+        support = 0
+        if lineAV_split[13] != "." and lineAV_split[14] != ".":
+            support = int(lineAV_split[13]) + int(lineAV_split[14])
+        elif lineAV_split[13] != ".":
+            support = int(lineAV_split[13])
+        elif lineAV_split[14] != ".":
+            support = int(lineAV_split[14])
         if varNum in uniqueFilterSVs:
             svtype = lineAV_split[1]
 
@@ -206,7 +210,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
             if lineAV_split[11].find("RD") == -1:
                 bnd=0
                 swap = 0
-                GT=""
+                GT="."
                 if (svtype == "DEL_INS" or svtype == "DEL" or svtype[0:2]== "TD") and int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
                     covLocM, confMiddle = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),

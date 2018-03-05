@@ -124,6 +124,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     immutable_objects = []
 
     # save the PE variants
+    headerAV = fAV.readline()
     nSVsPE = formPEHash(fAV, immutable_objects, SVHashPE, slop)
 
     SRFrag = 0
@@ -479,7 +480,9 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         SRVarHash[newAlmtExt] = newVariant2
 
     ## WRITE REVISED PE VARIANTS TO FILE
+    fAVN.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\start3\tstop3\t SupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\n")
     fAV.seek(0)
+    header = fAV.readline()
     for lineVM in fVM:
         lineVM_split = lineVM.split()
         varNumPE = int(lineVM_split[0])
@@ -507,15 +510,18 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                     lineAV_split[9] = str(SRtoPESuppBPs[varNumPE][2])
                     lineAV_split[10] = str(SRtoPESuppBPs[varNumPE][2] + 1)
 
-            lineAVJ = "\t".join(lineAV_split)
-            fAVN.write("%s\n" %lineAVJ)
             break
         lineVMJ = "\t".join(lineVM_split)
         fVMN.write("%s" %lineVMJ)
+        suppCount = 0
         if varNumPE in SRtoPESuppBPs:
             for SRFrag in SRtoPESuppFrags[varNumPE]:
+                suppCount+=1
                 fVMN.write("\t%s" %SRFrag)
         fVMN.write("\n")
+        lineAV_split[14] = str(suppCount)
+        lineAVJ = "\t".join(lineAV_split)
+        fAVN.write("%s\n" %lineAVJ)
 
     ## POSTPROCESS DE NOVO SR VARIANTS AND WRITE TO FILE
     k = 0
@@ -601,14 +607,14 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         output = [k+varNumPE+1, SRVarHash[SRVar].typeSV, SRVar.tid_2, 
                                  SRVarHash[SRVar].bp2, SRVarHash[SRVar].bp2+1, SRVar.tid, 
                                  SRVar.bp, SRVar.bp + 1, SRVarHash[SRVar].bp3tid, SRVarHash[SRVar].bp3, 
-                                 SRVarHash[SRVar].bp3 + 1, "SR", SRVarHash[SRVar].count]
+                                 SRVarHash[SRVar].bp3 + 1, "SR", "0", "0", SRVarHash[SRVar].count]
                         outputN = map(str, output)
                         fAVN.write("%s\n" %("\t".join(outputN)))
                 else:
                         output = [k+varNumPE+1, SRVarHash[SRVar].typeSV, SRVar.tid, SRVar.bp, 
                                  SRVar.bp + 1, SRVar.tid_2, SRVarHash[SRVar].bp2, SRVarHash[SRVar].bp2 + 1,
                                  SRVarHash[SRVar].bp3tid, SRVarHash[SRVar].bp3, SRVarHash[SRVar].bp3
-                                 + 1, "SR", SRVarHash[SRVar].count]
+                                 + 1, "SR", "0", "0", SRVarHash[SRVar].count]
                         outputN = map(str, output)
                         fAVN.write("%s\n" %("\t".join(outputN)))
                 fVMN.write("%s" %(k+varNumPE+1))

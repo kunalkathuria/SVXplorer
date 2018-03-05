@@ -253,15 +253,16 @@ def writeVariants(varList, fpAV, fpCVM, hashedVM, offset):
                 item.bp1_start, item.bp1_end, item.bp2_start, item.bp2_end=\
                     item.bp2_start, item.bp2_end, item.bp1_start, item.bp1_end
 
-        fpAV.write("%s\t%s\n" %(num,item))
+        suppCount = 0
         for elem in item.clusterNums:
             try:
                 for elem2 in hashedVM[elem]:
-                    #print "Writing", elem2, "from cluster", elem
+                    suppCount+=1
                     fpCVM.write("\t%s" %elem2)
             except:
                 print "Exception writing in Variant Map from cluster", elem
                 exit(1)
+        fpAV.write("%s\t%s\t%s\t%s\n" %(num,item,suppCount,"0"))
         fpCVM.write("\n")
 
 def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consolidatedCls, slop, RDL_Factor, RDL):
@@ -1137,6 +1138,7 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
     logging.debug('Finished comparison of clusters')
 
     # write list of complex variants and complex variant map to 2 sep files
+    fVariantsPE.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\start3\tstop3\t SupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\n") 
     hashedVM = {}
     consolidatedCls_C = consolidatedCls_C + consolidatedCls
     consolidatedCls = []

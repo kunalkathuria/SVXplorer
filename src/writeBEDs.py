@@ -38,18 +38,19 @@ def writeBEDs(variantFile, passFile, outname, libINV):
             start3 = int(tokens[9])
             end3 = int(tokens[10])
             support_tag = tokens[11]
-            cl_support = int(tokens[12])
+            cl_support = tokens[12]
+            suppPE = tokens[13]
+            suppSR = tokens[14]
 
             GT = "."
             swap = "0"
             bnd = "0"
             support = "0"
-            if len(tokens) > 13:
-                swap = tokens[13]
-                bnd = tokens[14]
-                support = tokens[15]
-            if len(tokens) > 16:
-                GT = tokens[16]
+            if len(tokens) > 15:
+                swap = tokens[15]
+                bnd = tokens[16]
+                support = tokens[17]
+                GT = tokens[18]
 
             if svtype == "DEL":
                 output = tokens[2:8]
@@ -65,7 +66,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 output = [chrom1, bp1_s, bp1_e, chrom2, bp2_s, bp2_e]
                 name = 'TD_INV'
             elif svtype == "INV" and \
-                 ((libINV and support_tag.find("SR") != -1) or  cl_support == 2):
+                 ((libINV and support_tag.find("SR") != -1) or  cl_support == "2"):
                 output = tokens[2:8]
                 name = 'INV'
             elif svtype in ["Unknown", "INS_POSS", "TD_I", "INV_POSS", "INS_C",
@@ -74,20 +75,26 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 (start3 == -1 or bnd == "1")):
 
                 name = 'BND_2'
+                out3 = "."
                 if (svtype in ["INS", "INS_I"] and bnd == "1"):
                     out1 = [chrom1, start1, end1, chrom2, start2, end2, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype]
+                        ".", GT, support, bnd, svtype, suppPE, suppSR]
                     out2 = [chrom1, start1, end1, chrom3, start3, end3, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype]
+                        ".", GT, support, bnd, svtype, suppPE, suppSR]
                 elif svtype in ["INS_C", "INS_C_I"] or svtype in ["INS_C_P", "INS_C_I_P"]:
                     out1 = [chrom1, start1, end1, chrom2, start2, end2, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype]
+                        ".", GT, support, bnd, svtype, suppPE, suppSR]
                     out2 = [chrom2, start2, end2, chrom3, start3, end3, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype]
+                        ".", GT, support, bnd, svtype, suppPE, suppSR]
+                    if int(cl_support) >= 3:
+                        bnd = "2"
+                        out3 = [chrom1, start1, end1, chrom3, start3, end3,
+                            "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".",
+                            ".", GT, support, bnd, svtype, suppPE, suppSR]
                 else:
                     output = tokens[2:8]
                     name = 'BND'
@@ -116,8 +123,8 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 output.extend([".", ".", "."])
                 output.extend([GT, support, bnd])
 
-            if name == 'BND': output.append(svtype)
-            elif name != 'BND_2': output.append('.')
+            if name == 'BND': output.extend([svtype, suppPE, suppSR])
+            elif name != 'BND_2': output.extend(['.', suppPE, suppSR])
             
             if name != 'BND_2':
                 print >> outfile, "\t".join(map(str, output))
@@ -125,6 +132,9 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 out1[6], out2[6] = 'BND', 'BND'
                 print >> outfile, "\t".join(map(str, out1))
                 print >> outfile, "\t".join(map(str, out2))
+                if out3 != ".": 
+                    out3[6] = 'BND'
+                    print >> outfile, "\t".join(map(str, out3))
 
     if outname != sys.stdout: outfile.close()
 

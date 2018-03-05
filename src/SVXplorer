@@ -101,7 +101,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
             counter+=1
             tokens = line.split()
             precise=tokens[11].find("SR")
-            support="SUPPORT=" + tokens[16] + ";"
+            support="SUPPORT=" + tokens[16] + ";PE=" + tokens[19] + ";SR=" + tokens[20] + ";"  
             chr1 = tokens[0]
             chr1Start = tokens[1]
             chr1End = tokens[2]
