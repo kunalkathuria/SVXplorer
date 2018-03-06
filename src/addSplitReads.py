@@ -226,13 +226,16 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         newAlmt.tid = sr_bp1_tid
         if sr_bp1_tid != sr_bp2_tid:
             newAlmt.tid_2 = sr_bp2_tid
-        if newAlmt in SVHashPE and (SVHashPE[newAlmt].bp2_1 < sr_bp2 < SVHashPE[newAlmt].bp2_2 or \
-            SVHashPE[newAlmt].bp3_1 < sr_bp2 < SVHashPE[newAlmt].bp3_2):
-
+        if newAlmt in SVHashPE and (SVHashPE[newAlmt].bp2_1 < sr_bp2 < SVHashPE[newAlmt].bp2_2):
             varNumPE = SVHashPE[newAlmt].num
             varType = SVHashPE[newAlmt].typeSV
             if varNumPE not in SRtoPESuppBPs:
                 newBp = [sr_bp1, sr_bp2, -1]
+        elif newAlmt in SVHashPE and (SVHashPE[newAlmt].bp3_1 < sr_bp2 < SVHashPE[newAlmt].bp3_2):
+            varNumPE = SVHashPE[newAlmt].num
+            varType = SVHashPE[newAlmt].typeSV
+            if varNumPE not in SRtoPESuppBPs:
+                newBp = [sr_bp1, -1, sr_bp2]
         # if not found, try other side of SR
         else:
             newAlmt = SRAlmt()
@@ -241,13 +244,17 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
             newAlmt.tid_2 = -1
             if sr_bp1_tid != sr_bp2_tid:
                 newAlmt.tid_2 = sr_bp1_tid
-            if newAlmt in SVHashPE and (SVHashPE[newAlmt].bp2_1 < sr_bp1 < SVHashPE[newAlmt].bp2_2 \
-                or SVHashPE[newAlmt].bp3_1 < sr_bp1 < SVHashPE[newAlmt].bp3_2):
-
+            if newAlmt in SVHashPE and (SVHashPE[newAlmt].bp2_1 < sr_bp1 < SVHashPE[newAlmt].bp2_2):
                 varNumPE = SVHashPE[newAlmt].num
                 varType = SVHashPE[newAlmt].typeSV
                 if varNumPE not in SRtoPESuppBPs:
                     newBp = [sr_bp2, sr_bp1, -1]
+            elif newAlmt in SVHashPE and (SVHashPE[newAlmt].bp3_1 < sr_bp1 < SVHashPE[newAlmt].bp3_2):
+                varNumPE = SVHashPE[newAlmt].num
+                varType = SVHashPE[newAlmt].typeSV
+                if varNumPE not in SRtoPESuppBPs:
+                    newBp = [sr_bp2, -1, sr_bp1]
+
         #check DEL
         if varType == 0 and swap==0 and minsr.is_reverse == maxsr.is_reverse:
             match = 1
@@ -261,17 +268,29 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         elif (varType in [3,5] and minsr.is_reverse == maxsr.is_reverse) or \
             (varType in [4,6] and minsr.is_reverse != maxsr.is_reverse):
             match = 1
+            logging.debug("INS match of frag %d with PE cluster %d", SRFrag, varNumPE)
             # Set new bp3 of insertion if unset
-            if varNumPE in SRtoPESuppBPs and SRtoPESuppBPs[varNumPE][2] == -1:
+            if varNumPE in SRtoPESuppBPs and (SRtoPESuppBPs[varNumPE][2] == -1 \
+                or SRtoPESuppBPs[varNumPE][1] == -1):
+
                 SRtoPESupp_bp = SRtoPESuppBPs[varNumPE]
-                if abs(sr_bp1 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp1 - SRtoPESupp_bp[1]) > 2*slop \
-                    and SVHashPE[newAlmt].bp3_1 < sr_bp1 < SVHashPE[newAlmt].bp3_2:
-                    SRtoPESuppBPs[varNumPE][2] = sr_bp1
-                elif abs(sr_bp2 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp2 - SRtoPESupp_bp[1]) > 2*slop and \
-                    SVHashPE[newAlmt].bp3_1 < sr_bp2 < SVHashPE[newAlmt].bp3_2:
-                    SRtoPESuppBPs[varNumPE][2] = sr_bp2
+                if SRtoPESuppBPs[varNumPE][2] == -1:
+                    if abs(sr_bp1 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp1 - SRtoPESupp_bp[1]) > 2*slop \
+                        and SVHashPE[newAlmt].bp3_1 < sr_bp1 < SVHashPE[newAlmt].bp3_2:
+                        SRtoPESuppBPs[varNumPE][2] = sr_bp1
+                    elif abs(sr_bp2 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp2 - SRtoPESupp_bp[1]) > 2*slop and \
+                        SVHashPE[newAlmt].bp3_1 < sr_bp2 < SVHashPE[newAlmt].bp3_2:
+                        SRtoPESuppBPs[varNumPE][2] = sr_bp2
+                elif SRtoPESuppBPs[varNumPE][1] == -1:
+                    if abs(sr_bp1 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp1 - SRtoPESupp_bp[2]) > 2*slop \
+                        and SVHashPE[newAlmt].bp2_1 < sr_bp1 < SVHashPE[newAlmt].bp2_2:
+                        SRtoPESuppBPs[varNumPE][1] = sr_bp1
+                    elif abs(sr_bp2 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp2 - SRtoPESupp_bp[2]) > 2*slop and \
+                        SVHashPE[newAlmt].bp2_1 < sr_bp2 < SVHashPE[newAlmt].bp2_2:
+                        SRtoPESuppBPs[varNumPE][1] = sr_bp2
+
                 # insertion bp2 should be < bp3
-                if varType in [3,4] \
+                if varType in [3,4] and SRtoPESuppBPs[varNumPE][1] != -1 \
                     and SRtoPESuppBPs[varNumPE][2] != -1 and SRtoPESuppBPs[varNumPE][2] < SRtoPESuppBPs[varNumPE][1]:
                     SRtoPESuppBPs[varNumPE][2], SRtoPESuppBPs[varNumPE][1] =\
                         SRtoPESuppBPs[varNumPE][2], SRtoPESuppBPs[varNumPE][1]

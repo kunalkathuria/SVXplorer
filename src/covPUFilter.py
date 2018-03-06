@@ -200,6 +200,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH:
                     continue
             elif lineAV_split == "INS_C" or lineAV_split == "INS_C_I":
+                # if bp3 < bp1 or bp1 < bp3 since unknown
                 if (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH and \
                 0 < int(lineAV_split[7])-int(lineAV_split[3]) < INS_VAR_THRESH) or \
                 (0 < int(lineAV_split[7])-int(lineAV_split[9]) < INS_VAR_THRESH and \

@@ -305,11 +305,11 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             RLOverlap = 1
         if cluster1.rTID == clusterP.rTID and isOverlapping("C", cluster1, clusterP, "RR", slop):
             RROverlap = 1
-        if (LR == "LL" and not LLOverlap) or (LR == "LR" and not LROverlap) \
-            or (LR =="RL" and not RLOverlap) or (LR == "RR" and not RROverlap):
-            continue
-        if not LLOverlap and not LROverlap and not RLOverlap and not RROverlap:
-            continue
+#        if (LR == "LL" and not LLOverlap) or (LR == "LR" and not LROverlap) \
+#            or (LR =="RL" and not RLOverlap) or (LR == "RR" and not RROverlap):
+#            continue
+#        if not LLOverlap and not LROverlap and not RLOverlap and not RROverlap:
+#            continue
 
         # initialize all variables
         graph_c.add_edge(cl1, cl2, 1)
@@ -754,19 +754,19 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
 
         # don't compare if exceeds left-sorted comparison bounds.
         # will appear again for right bound comparison later.
-        if LR == "L" and (elem.bp1TID != cluster1.lTID or abs(elem.bp1_start - cluster1.l_start) \
-            > maxClCombGap) and (elem.bp2TID != cluster1.lTID or abs(elem.bp2_start - cluster1.l_start) \
-            > maxClCombGap) and (elem.bp3TID != cluster1.lTID or abs(elem.bp3_start - cluster1.l_start) \
-            > maxClCombGap):
-            logging.debug('Do not compare to variant: gap exceeds necessary comparison bounds: 1')
-            continue
-        # analogous to above for right -sorted
-        if LR == "R" and (elem.bp1TID != cluster1.rTID or abs(elem.bp1_start - cluster1.r_start) \
-            > maxClCombGap) and (elem.bp2TID != cluster1.rTID or abs(elem.bp2_start - cluster1.r_start) \
-            > maxClCombGap) and (elem.bp3TID != cluster1.rTID or abs(elem.bp3_start - cluster1.r_start) \
-            > maxClCombGap):
-            logging.debug('Do not compare to variant: gap exceeds necessary comparison bounds: 2')
-            continue
+#        if LR == "L" and (elem.bp1TID != cluster1.lTID or abs(elem.bp1_start - cluster1.l_start) \
+#            > maxClCombGap) and (elem.bp2TID != cluster1.lTID or abs(elem.bp2_start - cluster1.l_start) \
+#            > maxClCombGap) and (elem.bp3TID != cluster1.lTID or abs(elem.bp3_start - cluster1.l_start) \
+#            > maxClCombGap):
+#            logging.debug('Do not compare to variant: gap exceeds necessary comparison bounds: 1')
+#            continue
+#        # analogous to above for right -sorted
+#        if LR == "R" and (elem.bp1TID != cluster1.rTID or abs(elem.bp1_start - cluster1.r_start) \
+#            > maxClCombGap) and (elem.bp2TID != cluster1.rTID or abs(elem.bp2_start - cluster1.r_start) \
+#            > maxClCombGap) and (elem.bp3TID != cluster1.rTID or abs(elem.bp3_start - cluster1.r_start) \
+#            > maxClCombGap):
+#            logging.debug('Do not compare to variant: gap exceeds necessary comparison bounds: 2')
+#            continue
         graph_c.add_edge(cl1,v1,1)
 
         # check for this cluster's signature and location match with existing variants
