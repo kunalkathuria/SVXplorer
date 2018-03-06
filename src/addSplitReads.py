@@ -292,7 +292,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 # insertion bp2 should be < bp3
                 if varType in [3,4] and SRtoPESuppBPs[varNumPE][1] != -1 \
                     and SRtoPESuppBPs[varNumPE][2] != -1 and SRtoPESuppBPs[varNumPE][2] < SRtoPESuppBPs[varNumPE][1]:
-                    SRtoPESuppBPs[varNumPE][2], SRtoPESuppBPs[varNumPE][1] =\
+                    SRtoPESuppBPs[varNumPE][1], SRtoPESuppBPs[varNumPE][2] =\
                         SRtoPESuppBPs[varNumPE][2], SRtoPESuppBPs[varNumPE][1]
         # if matches existing PE SV
         if match:
@@ -511,7 +511,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 lineAV_split[11] = lineAV_split[11] + "_SR"
                 lineAV_split[3] = str(SRtoPESuppBPs[varNumPE][0])
                 lineAV_split[4] = str(SRtoPESuppBPs[varNumPE][0] + 1)
-                if len(SRtoPESuppFrags[varNumPE]) > minSRtoPEsupport and SRtoPESuppBPs[varNumPE][2] == -1:
+                if len(SRtoPESuppFrags[varNumPE]) >= minSRtoPEsupport and SRtoPESuppBPs[varNumPE][2] == -1:
                     if int(lineAV_split[6]) < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[7]):
                         lineAV_split[6] = str(SRtoPESuppBPs[varNumPE][1])
                         lineAV_split[7] = str(SRtoPESuppBPs[varNumPE][1] + 1)
@@ -522,10 +522,11 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         and int(lineAV_split[3]) > int(lineAV_split[7]):
                         lineAV_split[3], lineAV_split[6] = lineAV_split[6], lineAV_split[3]
                         lineAV_split[4], lineAV_split[7] = lineAV_split[7], lineAV_split[4]
-                # full insertion matches
-                elif len(SRtoPESuppFrags[varNumPE]) > minSRtoPEsupport:
-                    lineAV_split[6] = str(SRtoPESuppBPs[varNumPE][1])
-                    lineAV_split[7] = str(SRtoPESuppBPs[varNumPE][1] + 1)
+                # insertion matches
+                elif len(SRtoPESuppFrags[varNumPE]) >= minSRtoPEsupport:
+                    if SRtoPESuppBPs[varNumPE][1] != -1:
+                        lineAV_split[6] = str(SRtoPESuppBPs[varNumPE][1])
+                        lineAV_split[7] = str(SRtoPESuppBPs[varNumPE][1] + 1)
                     lineAV_split[9] = str(SRtoPESuppBPs[varNumPE][2])
                     lineAV_split[10] = str(SRtoPESuppBPs[varNumPE][2] + 1)
 
@@ -660,10 +661,10 @@ if __name__ == "__main__":
         help='Exclude-regions file in BED format')
     PARSER.add_argument('-c', default=None, dest='ignoreChr',
         help='File listing chromosomes to exclude from analysis')
-    PARSER.add_argument('-n', default=4, dest='minSizeINS', type=int,
+    PARSER.add_argument('-n', default=10, dest='minSizeINS', type=int,
         help='Minimum size for SR INS calls')
-    PARSER.add_argument('-t', default=3, dest='minSRtoPEsupport', type=int,
-        help='Minimum support for SR-only variants')
+    PARSER.add_argument('-t', default=1, dest='minSRtoPEsupport', type=int,
+        help='Minimum support for PE variants required to update breakpoints')
     ARGS = PARSER.parse_args()
 
     LEVEL = logging.INFO

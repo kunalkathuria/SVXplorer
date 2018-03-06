@@ -325,7 +325,7 @@ if __name__ == '__main__':
     # $$$ add option to print version and exit
     PARSER = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Identify SVs in a sample using paired-end reads')
+        description='Identify SVs in a sample using paired-end reads, split reads and local read depth')
 
     PARSER.add_argument('-d', action='store_true',
                         help='print debug information')

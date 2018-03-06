@@ -41,7 +41,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
             cl_support = tokens[12]
             suppPE = tokens[13]
             suppSR = tokens[14]
-
+            BNDAlt = "."
             GT = "."
             swap = "0"
             bnd = "0"
