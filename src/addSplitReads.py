@@ -90,7 +90,7 @@ def formPEHash(fAV, iObjects, SVHashPE, slop):
         SV_specsPE.typeSV= mapSVtoNum(line_s[1])
         if SV_specsPE.typeSV == -1:
             continue
-        if SV_specsPE.typeSV == 3 or SV_specsPE.typeSV == 4:
+        if SV_specsPE.typeSV in [3,4,5,6]:
             SV_specsPE.bp3_1 = int(line_s[9]) - slop
             SV_specsPE.bp3_2 = int(line_s[10]) + slop
         SV_specsPE.bp2_1 = int(line_s[6]) - slop

@@ -69,7 +69,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                  ((libINV and support_tag.find("SR") != -1) or  cl_support == "2"):
                 output = tokens[2:8]
                 name = 'INV'
-            elif svtype in ["Unknown", "INS_POSS", "TD_I", "INV_POSS", "INS_C",
+            elif svtype in ["BND", "Unknown", "INS_POSS", "TD_I", "INV_POSS", "INS_C",
                             "INS_C_I"] or \
                 (svtype in ["INS", "INS_I", "INS_C_P", "INS_C_I_P"] and \
                 (start3 == -1 or bnd == "1")):

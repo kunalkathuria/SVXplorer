@@ -218,12 +218,12 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
 
                     if confMiddle == 1:
-                        if svtype[0:2] == "TD" and covLocM < DEL_THRESH: 
+                        if svtype[0:2] == "TD" and covLocM > DUP_THRESH: 
 
                             logging.info("TD confirmed using pileup")
                             svtype = "TD"
 
-                        elif svtype[0:2] == "TD" and covLocM < 1.0:
+                        elif svtype[0:2] == "TD" and covLocM < DUP_THRESH_L:
                             svtype = "BND"
 
                         elif svtype[0:3] == "DEL" and covLocM < DEL_THRESH: 
@@ -235,7 +235,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             elif covLocM > 3*DEL_THRESH2:
                                 GT="GT:0/1"
 
-                        elif svtype[0:3] == "DEL" and covLocM > DUP_THRESH_L: #1.0:
+                        elif svtype[0:3] == "DEL" and covLocM > DEL_THRESH_L: #1.0:
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS"
 
