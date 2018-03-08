@@ -1203,6 +1203,12 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
                 store=0
                 newSimpleSV.SVType = "TD"
                 TDArtefacts.append(newSimpleSV)
+            elif clusterC.lTID != clusterC.rTID and clusterC.l_orient == 0 and \
+                clusterC.r_orient == 1:
+                newSimpleSV.SVType = "INS_halfFR"
+            elif clusterC.lTID != clusterC.rTID and clusterC.l_orient == 1 and \
+                clusterC.r_orient == 0:
+                newSimpleSV.SVType = "INS_halfRF"
             else:
                 newSimpleSV.SVType = "Unknown"
             # store if appropriate

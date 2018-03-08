@@ -224,7 +224,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             svtype = "TD"
 
                         elif svtype[0:2] == "TD" and covLocM < DUP_THRESH_L:
-                            svtype = "BND"
+                            # since bp3 = -1, this will be written as a BND event
+                            svtype = "INS_halfRF"
 
                         elif svtype[0:3] == "DEL" and covLocM < DEL_THRESH: 
 
@@ -237,7 +238,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                         elif svtype[0:3] == "DEL" and covLocM > DEL_THRESH_L: #1.0:
                             # since bp3 = -1, this will be written as a BND event
-                            svtype = "INS"
+                            svtype = "INS_halfFR"
 
                 elif len(svtype) > 2 and (svtype == "INS" \
                     or svtype == "INS_I") and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \

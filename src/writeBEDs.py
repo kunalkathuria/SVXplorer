@@ -41,11 +41,12 @@ def writeBEDs(variantFile, passFile, outname, libINV):
             cl_support = tokens[12]
             suppPE = tokens[13]
             suppSR = tokens[14]
-            BNDAlt = "."
+            BNDAlt1, BNDAlt2 = ".","."
             GT = "."
             swap = "0"
             bnd = "0"
             support = "0"
+            GROUPID = "."
             if len(tokens) > 15:
                 swap = tokens[15]
                 bnd = tokens[16]
@@ -69,35 +70,49 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                  ((libINV and support_tag.find("SR") != -1) or  cl_support == "2"):
                 output = tokens[2:8]
                 name = 'INV'
-            elif svtype in ["BND", "Unknown", "INS_POSS", "TD_I", "INV_POSS", "INS_C",
-                            "INS_C_I"] or \
-                (svtype in ["INS", "INS_I", "INS_C_P", "INS_C_I_P"] and \
+            elif svtype in ["BND", "INV", "INS_POSS", "TD_I", "INV_POSS", "INS_C",
+                            "INS_C_I", "INS_halfFR", "INS_halfRF"] or \
+                (svtype in ["INS", "INS_I"] and \
                 (start3 == -1 or bnd == "1")):
 
                 name = 'BND_2'
                 out3 = "."
                 if (svtype in ["INS", "INS_I"] and bnd == "1"):
+                    if svtype != "INS_I":
+                        BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
+                        BNDAlt3, BNDAlt4 = "]p]N", "N[p["
                     out1 = [chrom1, start1, end1, chrom2, start2, end2, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype, suppPE, suppSR]
+                        ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID]
                     out2 = [chrom1, start1, end1, chrom3, start3, end3, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype, suppPE, suppSR]
-                elif svtype in ["INS_C", "INS_C_I"] or svtype in ["INS_C_P", "INS_C_I_P"]:
+                        ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt3, BNDAlt4, GROUPID]
+                elif svtype in ["INS_C", "INS_C_I"]:
+                    GROUPID = "T" + str(counter)
+                    if svtype != "INS_C_I":
+                        BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
+                        BNDAlt3, BNDAlt4 = BNDAlt1, BNDAlt2
                     out1 = [chrom1, start1, end1, chrom2, start2, end2, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype, suppPE, suppSR]
+                        ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID]
                     out2 = [chrom2, start2, end2, chrom3, start3, end3, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype, suppPE, suppSR]
+                        ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt3, BNDAlt4, GROUPID]
                     if int(cl_support) >= 3:
-                        bnd = "2"
+                        BNDAlt5, BNDAlt6 = "]p]N", "N[p["
                         out3 = [chrom1, start1, end1, chrom3, start3, end3,
                             "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".",
-                            ".", GT, support, bnd, svtype, suppPE, suppSR]
+                            ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt5, BNDAlt6, GROUPID]
                 else:
                     output = tokens[2:8]
                     name = 'BND'
+                    if svtype == "INS_halfFR":
+                        BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
+                    elif svtype == "INS_halfRF":
+                        BNDAlt1, BNDAlt2 = "]p]N", "N[p["
+                    elif svtype == "INV":
+                        BNDAlt1, BNDAlt2 = "N]p]", "[p[N"
+
             elif svtype.startswith("INS"):
                 bp1_s, bp1_e = start1, end1
                 bp2_s, bp2_e = start2, end2
@@ -123,17 +138,19 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 output.extend([".", ".", "."])
                 output.extend([GT, support, bnd])
 
-            if name == 'BND': output.extend([svtype, suppPE, suppSR])
-            elif name != 'BND_2': output.extend(['.', suppPE, suppSR])
+            if name == 'BND': 
+                output.extend([svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID])
+            elif name != 'BND_2': 
+                output.extend(['.', suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID])
             
             if name != 'BND_2':
                 print >> outfile, "\t".join(map(str, output))
             else:
-                out1[6], out2[6] = 'BND', 'BND'
+                out1[10], out2[10] = 'BND', 'BND'
                 print >> outfile, "\t".join(map(str, out1))
                 print >> outfile, "\t".join(map(str, out2))
                 if out3 != ".": 
-                    out3[6] = 'BND'
+                    out3[10] = 'BND'
                     print >> outfile, "\t".join(map(str, out3))
 
     if outname != sys.stdout: outfile.close()
