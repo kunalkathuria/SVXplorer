@@ -15,15 +15,9 @@ DEL_THRESH_L = .8
 DUP_THRESH_L = 1.2
 MIN_PILEUP_THRESH = 80
 CALC_THRESH = 1000000
-
-DEL_CONF_THRESH = .7
-UNIV_VAR_THRESH = 100
-INS_VAR_THRESH = 100
-INS_VAR_THRESH_PE = 50
-SR_DEL_THRESH = 80
-MIX_DEL_THRESH = 50
 PE_DEL_THRESH_S = 250
 PE_DEL_THRESH_L = 150
+# empirical calculation of DEL_THRESH b/w 15 and 25 stdev of IL
 SD_S = 14
 SD_L = 24
 
@@ -71,11 +65,12 @@ def readBamStats(statFile):
     return rdl, sd
 
 def calculateDELThreshPE(SD):
+    PE_DEL_LOWEST = 100
     PE_DEL_THRESH=PE_DEL_THRESH_S + int((SD-SD_S)*(PE_DEL_THRESH_L-PE_DEL_THRESH_S)/(SD_L-SD_S))
     if PE_DEL_THRESH > PE_DEL_THRESH_S:
         PE_DEL_THRESH = PE_DEL_THRESH_S
     elif PE_DEL_THRESH < PE_DEL_THRESH_L:
-        PE_DEL_THRESH = UNIV_VAR_THRESH
+        PE_DEL_THRESH = PE_DEL_LOWEST
 
     return PE_DEL_THRESH
 
@@ -128,7 +123,8 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     else:
         return 0, 0
 
-def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH):
+def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH, 
+                  SR_DEL_THRESH, MIX_DEL_THRESH):
     if lineAV_split[1] == "DEL":
         if lineAV_split[11].find("PE") == -1 and lineAV_split[11].find("SR") != -1 and \
             int(lineAV_split[7]) - int(lineAV_split[3]) < SR_DEL_THRESH:
@@ -145,7 +141,13 @@ def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH):
 
 def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 NH_REGIONS_FILE, DEL_THRESH, DUP_THRESH, splitINS, 
-                PILEUP_THRESH, GOOD_REG_THRESH):
+                PILEUP_THRESH, GOOD_REG_THRESH, minVariantSize):
+    
+    UNIV_VAR_THRESH = minVariantSize
+    INS_VAR_THRESH = minVariantSize
+    SR_DEL_THRESH = max(80, minVariantSize)
+    MIX_DEL_THRESH = max(50, minVariantSize)
+
     fAV = open(avFile,"r")
     fVM=open(vmFile,"r")
     fUF = open(ufFile,"r")
@@ -158,8 +160,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
     # calculate min PE size based on insert length standard deviation under empirical model
     # aligner tends to mark concordants as discordants when SD is small unless distr v good, seemingly sharp effects
-    # around sig_IL of 20 and lower for Poisson and other related distributions.
-    PE_DEL_THRESH = calculateDELThreshPE(SD)
+    # around sig_IL of 20 and lower for generally well-behaved distributions. Without rigor, though.
+    PE_DEL_THRESH = max(calculateDELThreshPE(SD),UNIV_VAR_THRESH)
     logging.info("PE deletion threshold is %d", PE_DEL_THRESH)
 
     covHash = {}
@@ -189,22 +191,9 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
             svtype = lineAV_split[1]
 
             ## skip SV if size thresholds not met
-            if svtype.startswith("TD") or svtype.startswith("INV") or svtype.startswith("DEL"):
+            if svtype.startswith("TD") or svtype.startswith("INV") or svtype.startswith("DEL") or\
+                (svtype.startswith("INS_half") and lineAV_split[2] == lineAV_split[5]):
                 if int(lineAV_split[7])-int(lineAV_split[3]) < UNIV_VAR_THRESH:
-                    continue
-            elif svtype.startswith("INS") and svtype not in ["INS_C","INS_C_I"]:
-                if lineAV_split[11].find("PE") != -1 and \
-                0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH_PE:
-                    continue
-                elif lineAV_split[11].find("PE") == -1 and \
-                0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH:
-                    continue
-            elif lineAV_split == "INS_C" or lineAV_split == "INS_C_I":
-                # if bp3 < bp1 or bp1 < bp3 since unknown
-                if (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH and \
-                0 < int(lineAV_split[7])-int(lineAV_split[3]) < INS_VAR_THRESH) or \
-                (0 < int(lineAV_split[7])-int(lineAV_split[9]) < INS_VAR_THRESH and \
-                0 < int(lineAV_split[4])-int(lineAV_split[6]) < INS_VAR_THRESH):
                     continue
 
             ## RUN PILEUP FILTER
@@ -244,11 +233,13 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     or svtype == "INS_I") and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \
                     int(lineAV_split[9]) and lineAV_split[8] != "-1":
 
-                    #bp2-3
+                    # $insert SPLIT_INS here if fits before below
+                    # bp2-3
                     covLoc, confReg = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                         int(lineAV_split[7]), int(lineAV_split[9]),
                         PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
-                    if confReg and covLoc < DUP_THRESH_L:
+                    if (confReg and covLoc < DUP_THRESH_L) or \
+                        (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
                         bnd = 1
 
                 elif len(svtype) > 4 and lineAV_split[11].find("PE") != -1 and \
@@ -286,6 +277,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         elif covLoc_12 < DEL_THRESH:
                             del_12 =1
 
+                    # $ insert SPLIT_INS here if fits
                     confINSBP = 0
                     if (svtype == "INS_C" or svtype == "INS_C_I"):
                         if dup_23 and not dup_12:
@@ -295,11 +287,14 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             svtype+="_P"
                             confINSBP = 1
                             swap = 1
+                    if (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
+                        (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                        bnd = 1
 
             ## write in BED files
             lineAV_split[1] = svtype
             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN,
-                    PE_DEL_THRESH)
+                    PE_DEL_THRESH, SR_DEL_THRESH, MIX_DEL_THRESH)
 
     fAV.close()
     fAVN.close()
@@ -331,6 +326,7 @@ if __name__ == "__main__":
         help='Whether to split accidental complex variants into simple diploid variants based on local coverage')
     PARSER.add_argument('-g', default=1, dest='libINV', type=int,
         help='Liberal INV calling: 1 PE cluster + SR support sufficient')
+    PARSER.add_argument('-s', default=100, dest='minVarSize', type=int, help='minimum size of variants called')
     PARSER.add_argument('-v', default=0, dest='verbose', type=int, help='Verbose output')
     ARGS = PARSER.parse_args()
 
@@ -345,6 +341,6 @@ if __name__ == "__main__":
     covPUFilter(ARGS.workDir, ARGS.avFile, ARGS.vmFile, ARGS.ufFile, 
                 ARGS.statFile, ARGS.bamFile, ARGS.NH_REGIONS_FILE,
                 ARGS.DEL_THRESH, ARGS.DUP_THRESH, ARGS.splitINS,
-                ARGS.PILEUP_THRESH, ARGS.GOOD_REG_THRESH)
+                ARGS.PILEUP_THRESH, ARGS.GOOD_REG_THRESH, ARGS.minVarSize)
 
     logging.shutdown()

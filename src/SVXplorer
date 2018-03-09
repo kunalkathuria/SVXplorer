@@ -244,7 +244,7 @@ def processFragments():
     # 3. clusterCliques.txt in debug mode 
     statFile = "%s/bamStats.txt" % WORKSPACE 
     binFile = "%s/binDist.txt" % WORKSPACE
-    formPEClusters(WORKSPACE, statFile, binFile, MIN_CS, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.s, ARGS.d)
+    formPEClusters(WORKSPACE, statFile, binFile, MIN_CS, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.subsample, ARGS.d)
 
     # collect the clusters that pass requirements -> allClusters.thresh.txt
     data = pd.read_table("%s/allClusters.txt" % WORKSPACE, 
@@ -324,7 +324,7 @@ def processFragments():
     uniqueVariantFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
     covPUFilter(WORKSPACE, allVariantFile, variantMapFile, uniqueVariantFile,
                 statFile, ARGS.samplebam, ARGS.m, DEL_CN_SUPP_THRESH,
-                DUP_CN_SUPP_THRESH, SPLIT_INS, PILEUP_THRESH, GOOD_REG_THRESH)
+                DUP_CN_SUPP_THRESH, SPLIT_INS, PILEUP_THRESH, GOOD_REG_THRESH, ARGS.minVarSize)
 
     # filter and format these results
     filterAndFormat(None, "%s/allVariants.pu.txt" % WORKSPACE, statFile, "pu")
@@ -354,14 +354,14 @@ if __name__ == '__main__':
     PARSER.add_argument('-m', default=None,
                         help='mappable intervals in a BED file')
     PARSER.add_argument('-w', default="svxplorer", help='use dir as workspace')
-
+    PARSER.add_argument('-s', default=100, dest='minVarSize', type=int, help='minimum size of variants called')
 
     PARSER.add_argument('disc', help='bam file of discordant pairs')
     PARSER.add_argument('split', help='bam file of split reads')
     PARSER.add_argument('samplebam', help='bam file of alignments')
 
     # options we do not expect the user to change
-    PARSER.add_argument('-s', action='store_true', help=argparse.SUPPRESS)    
+    PARSER.add_argument('-subsample', action='store_true', help=argparse.SUPPRESS)    
 
     # writeDiscordantFragments
     CALC_THRESH=1000000

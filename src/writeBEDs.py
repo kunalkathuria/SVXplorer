@@ -72,7 +72,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 name = 'INV'
             elif svtype in ["BND", "INV", "INS_POSS", "TD_I", "INV_POSS", "INS_C",
                             "INS_C_I", "INS_halfFR", "INS_halfRF"] or \
-                (svtype in ["INS", "INS_I"] and \
+                (svtype in ["INS", "INS_I", "INS_C_P", "INS_C_I_P"] and \
                 (start3 == -1 or bnd == "1")):
 
                 name = 'BND_2'
@@ -87,7 +87,8 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                     out2 = [chrom1, start1, end1, chrom3, start3, end3, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
                         ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt3, BNDAlt4, GROUPID]
-                elif svtype in ["INS_C", "INS_C_I"]:
+                elif svtype in ["INS_C", "INS_C_I"] or \
+                    (svtype in ["INS_C_P", "INS_C_I_P"] and bnd == "1"):
                     GROUPID = "T" + str(counter)
                     if svtype != "INS_C_I":
                         BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
