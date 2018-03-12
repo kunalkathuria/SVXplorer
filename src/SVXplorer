@@ -73,7 +73,7 @@ def printVCFHeader(f):
 ##INFO=<ID=PROBTYPE, Number=1, Type=String, Description=\"Likely or possible SV Type for BND event\"> 
 ##INFO=<ID=ISINV, Number=1, Type=Flag, Description=\"Whether on inverted or positive strand\">
 ##INFO=<ID=CHR2, Number=1, Type=Integer, Description=\"For BNDs the reference ID of the 'END' breakpoint if different from that of start 'POS'\">
-##INFO=<ID=GROUPID, Number=1, Type=Integer, Description=\"GROUPID correlating 2 translocation or non-tandem-duplication events\">
+##INFO=<ID=GROUPID, Number=1, Type=String, Description=\"GROUPID correlating 2 translocation or non-tandem-duplication events\">
 ##INFO=<ID=SVLEN,Number=.,Type=Integer,Description="Difference in length between REF and ALT alleles">
 ##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">
 ##INFO=<ID=PRECISE,Number=0,Type=Flag,Description="Precise structural variation">
@@ -359,6 +359,7 @@ if __name__ == '__main__':
     PARSER.add_argument('disc', help='bam file of discordant pairs')
     PARSER.add_argument('split', help='bam file of split reads')
     PARSER.add_argument('samplebam', help='bam file of alignments')
+    PARSER.add_argument('reference', help='path to reference genome')
 
     # options we do not expect the user to change
     PARSER.add_argument('--subsample', action='store_true', help=argparse.SUPPRESS)    
@@ -411,6 +412,22 @@ if __name__ == '__main__':
     else:
         LEVEL = logging.INFO
     LOGMODE = 'w'
+
+    # check if BAM and reference match
+    CHROMS = pd.read_table("%s.fai" % ARGS.reference,
+                           usecols=[0], names=['chrom'])
+    CHROMS = CHROMS['chrom'].tolist()
+    bamfile = pysam.AlignmentFile(ARGS.samplebam, "rb")
+    bamsn = [x['SN'] for x in bamfile.header['SQ']]
+    correctbam = True
+    for chrom in bamsn:
+        if chrom not in CHROMS:
+            correctbam = False
+            break
+    if correctbam == False: 
+        print >> stderr, "Error: All chromosomes were not found in the specified reference"
+        exit(1)
+    bamfile.close()
 
     # create the workspace
     createDirResponse = createDirectory(ARGS.w)
