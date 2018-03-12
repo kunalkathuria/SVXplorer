@@ -265,7 +265,8 @@ def writeVariants(varList, fpAV, fpCVM, hashedVM, offset):
         fpAV.write("%s\t%s\t%s\t%s\n" %(num,item,suppCount,"0"))
         fpCVM.write("\n")
 
-def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consolidatedCls, slop, RDL_Factor, RDL):
+def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consolidatedCls, 
+                    slop, RDL_Factor, RDL, as_relative_thresh):
     anyMatch = 0
     cl1 = 'c' + str(cluster1.mapNum)
     logging.debug('Start loop to compare this cluster to all clusters in list')
@@ -721,13 +722,14 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             graph_m.add_edge(cl1,v1,1)
             graph_c.add_edge(cl2,v1,1)
             graph_c.add_edge(cl1,v1,1)
-            #print "Match:", v1, " from", cluster1, "and", clusterP
-
+            logging.debug('Breaking loop after match for primary almts -- rethink for cancer genome')
+            if as_relative_thresh > 1:
+                break
     if anyMatch:
         logging.debug('Adding cluster to claimed list')
         claimedCls.add(cluster1.mapNum)
 
-def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCombGap, slop):
+def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCombGap, slop, as_relative_thresh):
     anyMatch = 0
     cl1 = 'c' + str(cluster1.mapNum)
     logging.debug('Start loop to compare cluster %s to all complex variants in list', cl1)
@@ -1020,10 +1022,12 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 anyMatch = 1
         if match:
             logging.debug('Append cluster %s to complex variant %s', cl1, v1)
-            #print "Cluster", cluster1, "and variant", g, "matched~"
             if cluster1.mapNum not in elem.clusterNums:
                 elem.clusterNums.append(cluster1.mapNum)
             graph_m.add_edge(cl1,v1,1)
+            logging.debug('Breaking loop after match for primary almts -- rethink for cancer genome')
+            if as_relative_thresh > 1:
+                break
     if anyMatch:
         logging.debug('Write cluster %s to claimed list', cl1)
         claimedCls.add(cluster1.mapNum)
@@ -1070,7 +1074,7 @@ def refreshClusterBuffer(clusters, LR, tidListL, tidListR, cluster_L, cluster_R,
     clusters = clusters[counter:]
 
 def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
-                          clusterMapFile, maxClCombGap, slop, refRate):
+                          clusterMapFile, maxClCombGap, slop, refRate, as_relative_thresh):
     variantNum = 1
     RDL_Factor=1.2 # default recommended
     fStat = open(statFile,"r")
@@ -1117,9 +1121,9 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
                           cluster_L, cluster_R, refRate, consolidatedCls_C)
             # may need both L,R cluster comparisons since variant buffer is small
             compareVariant(cluster_L, consolidatedCls, claimedCls, compareGraph,
-                           matchGraph, "L", maxClCombGap, slop)
+                           matchGraph, "L", maxClCombGap, slop, as_relative_thresh)
             compareVariant(cluster_R, consolidatedCls, claimedCls, compareGraph,
-                           matchGraph, "R", maxClCombGap, slop)
+                           matchGraph, "R", maxClCombGap, slop, as_relative_thresh)
 
         # refresh left and right cluster buffers and mutually match
         if len(clusters_LS) > 0:
@@ -1129,14 +1133,14 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
             refreshClusterBuffer(clusters_RS, "R", tidListL, tidListR,
                                  cluster_L, cluster_R, maxClCombGap)
         compareCluster(cluster_L, clusters_LS, claimedCls, compareGraph,
-                       matchGraph, "LL", consolidatedCls, slop, RDL_Factor, RDL)
+                       matchGraph, "LL", consolidatedCls, slop, RDL_Factor, RDL, as_relative_thresh)
         compareCluster(cluster_L, clusters_RS, claimedCls, compareGraph,
-                       matchGraph, "LR", consolidatedCls, slop, RDL_Factor, RDL)
+                       matchGraph, "LR", consolidatedCls, slop, RDL_Factor, RDL, as_relative_thresh)
         clusters_LS.append(cluster_L)
         compareCluster(cluster_R, clusters_LS, claimedCls, compareGraph,
-                       matchGraph, "RL", consolidatedCls, slop, RDL_Factor, RDL)
+                       matchGraph, "RL", consolidatedCls, slop, RDL_Factor, RDL, as_relative_thresh)
         compareCluster(cluster_R, clusters_RS, claimedCls, compareGraph,
-                       matchGraph, "RR", consolidatedCls, slop, RDL_Factor, RDL)
+                       matchGraph, "RR", consolidatedCls, slop, RDL_Factor, RDL, as_relative_thresh)
         clusters_RS.append(cluster_R)
     logging.debug('Finished comparison of clusters')
 
@@ -1263,6 +1267,9 @@ if __name__ == "__main__":
         help='Additional slop added to dynamically calculated cluster breakpoint margins, if desired. Default recommended.')
     PARSER.add_argument('-f', default=5, dest='refRate', type=int,
         help='Parameter controlling size of buffer variant list in cluster consolidation, optimized for speed.')
+    PARSER.add_argument('-a', default=2, dest='as_relative_thresh', type=int,
+        help='Threshold of relative alignment score of given alignment to primary alignment of same name\
+        --set to less than 1 (.95 recommended) if using secondary almts')
     ARGS = PARSER.parse_args()
 
     LEVEL = logging.INFO
@@ -1273,6 +1280,6 @@ if __name__ == "__main__":
                         format='%(asctime)s %(levelname)s %(message)s',
                         datefmt='%m/%d/%Y %I:%M:%S %p')
 
-    consolidatePEClusters(ARGS.workDir, ARGS.statFile, ARGS.clusterFileLS, ARGS.clusterFileRS, ARGS.clusterMapFile, ARGS.maxClCombGap, ARGS.slop, ARGS.refRate)
+    consolidatePEClusters(ARGS.workDir, ARGS.statFile, ARGS.clusterFileLS, ARGS.clusterFileRS, ARGS.clusterMapFile, ARGS.maxClCombGap, ARGS.slop, ARGS.refRate, ARGS.as_relative_thresh)
 
     logging.shutdown()

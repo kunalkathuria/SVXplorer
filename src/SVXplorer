@@ -285,7 +285,7 @@ def processFragments():
     # 3. claimedClusters.txt
     clusterMapFile = "%s/clusterMap.txt" % WORKSPACE
     consolidatePEClusters(WORKSPACE, statFile, clusterFileLS, clusterFileRS,
-                          clusterMapFile, max_cl_comb_gap, SLOP_PE, REF_RATE_PE)
+                          clusterMapFile, max_cl_comb_gap, SLOP_PE, REF_RATE_PE, AS_RELATIVE_THRESH)
 
     # filter and format the results
     variantMapFile = "%s/variantMap.pe.txt" % WORKSPACE
@@ -361,7 +361,7 @@ if __name__ == '__main__':
     PARSER.add_argument('samplebam', help='bam file of alignments')
 
     # options we do not expect the user to change
-    PARSER.add_argument('-subsample', action='store_true', help=argparse.SUPPRESS)    
+    PARSER.add_argument('--subsample', action='store_true', help=argparse.SUPPRESS)    
 
     # writeDiscordantFragments
     CALC_THRESH=1000000
