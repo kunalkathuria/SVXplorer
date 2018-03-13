@@ -6,4 +6,4 @@ WORK_DIR=$3
 
 samtools view -@ $THREADS -F 1294 -b -o $WORK_DIR/disc1.bam $BAMFILE1
 samtools view -@ $THREADS -F 1294 -b -o $WORK_DIR/disc2.bam $BAMFILE2
-samtools merge -nf $WORK_DIR/discordants.bam $WORK_DIR/disc1.bam $WORK_DIR/disc2.bam 
+samtools merge -nf -@ $THREADS $WORK_DIR/discordants.bam $WORK_DIR/disc1.bam $WORK_DIR/disc2.bam 

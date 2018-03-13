@@ -47,6 +47,34 @@ def createDiscordants():
     else:
         assert sortorder == 'queryname'
 
+    # remove almts without left or right partner
+    newDiscFile = "%s/discordants.dedup.ns.bam" % WORKSPACE
+    samfile1 = pysam.AlignmentFile(discfile , 'rb')
+    samfile2 = pysam.AlignmentFile(newDiscFile, 'wb', template = samfile1)
+    almtList = []
+    prev_query_name = None
+    read1_occurred, read2_occurred = 0,0
+    for almt in samfile1:
+        if almt.query_name == prev_query_name or prev_query_name is None:
+            almtList.append(almt)
+        elif almt.query_name != prev_query_name and \
+            read1_occurred == True and read2_occurred == True:
+            for entry in almtList:
+                samfile2.write(entry)
+            almtList = [almt]
+            read1_occurred, read2_occurred = 0,0
+        elif almt.query_name != prev_query_name:
+            almtList = [almt]
+            read1_occurred, read2_occurred = 0,0
+        prev_query_name = almt.query_name
+        if almt.is_read1:
+            read1_occurred = 1
+        elif almt.is_read2:
+            read2_occurred = 1
+    samfile1.close()
+    samfile2.close()
+
+    discfile = newDiscFile
     samfile = pysam.AlignmentFile(discfile, 'rb')
     outfile1 = pysam.AlignmentFile("%s/aln1s.bam" % WORKSPACE, 'wb', template=samfile)
     outfile2 = pysam.AlignmentFile("%s/aln2s.bam" % WORKSPACE, 'wb', template=samfile)
