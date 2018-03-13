@@ -5,7 +5,7 @@ SHELL:=/bin/bash
 install:
 	mkdir -p bin
 	rm -f bin/*
-	cp src/*.py src/SVXplorer src/VERSION bin
+	cp src/*.py src/*.sh src/SVXplorer src/VERSION bin
 
 test:
 	./bin/SVXplorer testCases/discordants.bam testCases/splitters.bam \

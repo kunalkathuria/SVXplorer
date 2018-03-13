@@ -201,8 +201,7 @@ def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
     writeVCFFromBedpe(bedpeFile, vcfFile)
 
 def processFragments():
-    # create two BAM files, one with read1s and another with read2s from 
-    # fragments that are discordant
+    # create discordant fragments
     createDiscordants()
 
     # write the discordant fragments in a simple format. This should create:
