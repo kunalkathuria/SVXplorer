@@ -71,6 +71,10 @@ def createDiscordants():
             read1_occurred = 1
         elif almt.is_read2:
             read2_occurred = 1
+    if read1_occurred == True and read2_occurred == True:
+        for entry in almtList:
+            samfile2.write(entry)
+        almtList = []
     samfile1.close()
     samfile2.close()
 
