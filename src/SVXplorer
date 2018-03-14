@@ -48,50 +48,61 @@ def createDiscordants():
         logging.info('Finished name sorting the discordant file')
 
     # remove almts without left or right partner
-    newDiscFile = "%s/discordants.dedup.ns.bam" % WORKSPACE
+    logging.info('Started writing the discordant reads')
+    discFile1 = "%s/aln1s.bam" % WORKSPACE
+    discFile2 = "%s/aln2s.bam" % WORKSPACE
     samfile1 = pysam.AlignmentFile(discfile , 'rb')
-    samfile2 = pysam.AlignmentFile(newDiscFile, 'wb', template = samfile1)
+    samfileF = pysam.AlignmentFile(discFile1, 'wb', template = samfile1)
+    samfileS = pysam.AlignmentFile(discFile2, 'wb', template = samfile1)
     almtList = []
     prev_query_name = None
     read1_occurred, read2_occurred = 0,0
     for almt in samfile1:
-        if almt.query_name == prev_query_name or prev_query_name is None:
+        if almt.query_name[:-2] == prev_query_name or prev_query_name is None:
             almtList.append(almt)
-        elif almt.query_name != prev_query_name and \
+        elif almt.query_name[:-2] != prev_query_name and \
             read1_occurred == True and read2_occurred == True:
             for entry in almtList:
-                samfile2.write(entry)
+                if entry.query_name.endswith("/1"):
+                    samfileF.write(entry)
+                elif entry.query_name.endswith("/2"):
+                    samfileS.write(entry)
             almtList = [almt]
             read1_occurred, read2_occurred = 0,0
-        elif almt.query_name != prev_query_name:
+        elif almt.query_name[:-2] != prev_query_name:
             almtList = [almt]
             read1_occurred, read2_occurred = 0,0
-        prev_query_name = almt.query_name
-        if almt.is_read1:
+        prev_query_name = almt.query_name[:-2]
+        if almt.query_name.endswith("/1"):
             read1_occurred = 1
-        elif almt.is_read2:
+        elif almt.query_name.endswith("/2"):
             read2_occurred = 1
     if read1_occurred == True and read2_occurred == True:
         for entry in almtList:
-            samfile2.write(entry)
+            if entry.query_name.endswith("/1"):
+                samfileF.write(entry)
+            elif entry.query_name.endswith("/2"):
+                samfileS.write(entry)
+
         almtList = []
     samfile1.close()
-    samfile2.close()
+    samfileF.close()
+    samfileR.close()
 
-    discfile = newDiscFile
-    samfile = pysam.AlignmentFile(discfile, 'rb')
-    outfile1 = pysam.AlignmentFile("%s/aln1s.bam" % WORKSPACE, 'wb', template=samfile)
-    outfile2 = pysam.AlignmentFile("%s/aln2s.bam" % WORKSPACE, 'wb', template=samfile)
-    logging.info('Started writing the discordant reads')
-
-    for alignment in samfile:
-        if alignment.is_read1:
-            outfile1.write(alignment)
-        else:
-            outfile2.write(alignment)
-    samfile.close()
-    outfile1.close()
-    outfile2.close()
+#    discfile = newDiscFile
+#    samfile = pysam.AlignmentFile(discfile, 'rb')
+#    outfile1 = pysam.AlignmentFile("%s/aln1s.bam" % WORKSPACE, 'wb', template=samfile)
+#    outfile2 = pysam.AlignmentFile("%s/aln2s.bam" % WORKSPACE, 'wb', template=samfile)
+#    logging.info('Started writing the discordant reads')
+#
+#    for alignment in samfile:
+#        if alignment.is_read1:
+#            outfile1.write(alignment)
+#        else:
+#            outfile2.write(alignment)
+#    samfile.close()
+#    outfile1.close()
+#    outfile2.close()
     logging.info('Finished writing the discordant reads')
 
     logging.info('Finished writing the BAM files')
