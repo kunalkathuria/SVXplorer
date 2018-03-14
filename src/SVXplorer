@@ -39,13 +39,13 @@ def createDiscordants():
     samfile.close()
 
     discfile = ARGS.disc
-    if sortorder == 'coordinate':
+    print "Sort order:", sortorder
+    if sortorder != 'queryname':
         discfile = "%s/discordants.ns.bam" % WORKSPACE
         logging.info('Started name sorting the discordant file')
-        pysam.sort("-n", "-O", "bam", "-T", "xxx", "-o", discfile, ARGS.disc)
+        pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", \
+                    "-@", str(ARGS.threads), "-o", discfile, ARGS.disc)
         logging.info('Finished name sorting the discordant file')
-    else:
-        assert sortorder == 'queryname'
 
     # remove almts without left or right partner
     newDiscFile = "%s/discordants.dedup.ns.bam" % WORKSPACE
@@ -382,7 +382,7 @@ if __name__ == '__main__':
                         help='mappable intervals in a BED file')
     PARSER.add_argument('-w', default="svxplorer", help='use dir as workspace')
     PARSER.add_argument('-s', default=100, dest='minVarSize', type=int, help='minimum size of variants called')
-
+    PARSER.add_argument('-t', default=1, dest='threads', type=int, help='number of threads for samtools')
     PARSER.add_argument('disc', help='bam file of discordant pairs')
     PARSER.add_argument('split', help='bam file of split reads')
     PARSER.add_argument('samplebam', help='bam file of alignments')
@@ -395,7 +395,7 @@ if __name__ == '__main__':
     CALC_THRESH=1000000
     MAP_THRESH=1
     # useful for secondary alignments
-    PE_ALMT_COMB_THRESH=20
+    PE_ALMT_COMB_THRESH=10 #20
     NMATCH_RELATIVE_THRESH=0
     NMATCH_PCT_THRESH=0
     AS_RELATIVE_THRESH=2

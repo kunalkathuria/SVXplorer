@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-THREADS=32
+THREADS=$4
 BAMFILE1=$1
 BAMFILE2=$2
 WORK_DIR=$3
