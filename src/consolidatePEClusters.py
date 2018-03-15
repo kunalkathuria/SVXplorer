@@ -172,7 +172,7 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
                     newVariant.bp1_orient
     # if chr where overlap occurs also is the site for 1 of the other mates/half clusters
     elif (LR == "RR" or LR == "LL") and newVariant.bp1TID == newVariant.bp2TID and \
-        newVariant.bp2TID != newVariant.bp3TID:
+        newVariant.bp1TID != newVariant.bp3TID:
         if cluster1.lTID == cluster1.rTID and \
             not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
             return 0
@@ -201,7 +201,7 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
             newVariant.bp3_orient, newVariant.bp2_orient = newVariant.bp2_orient,\
                 newVariant.bp3_orient
     elif  (LR == "RR" or LR == "LL") and newVariant.bp1TID == newVariant.bp3TID and \
-        newVariant.bp3TID != newVariant.bp2TID:
+        newVariant.bp1TID != newVariant.bp2TID:
         if cluster1.lTID == cluster1.rTID and \
             not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
             return 0

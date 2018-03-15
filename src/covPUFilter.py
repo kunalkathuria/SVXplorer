@@ -124,8 +124,15 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
         return 0, 0
 
 def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH, 
-                  SR_DEL_THRESH, MIX_DEL_THRESH):
-    if lineAV_split[1] == "DEL":
+                  SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH):
+   
+    svtype = lineAV_split[1]
+    if svtype.startswith("TD") or svtype.startswith("INV") or svtype.startswith("DEL") or\
+        (svtype.startswith("INS_half") and lineAV_split[2] == lineAV_split[5]):
+        if int(lineAV_split[7])-int(lineAV_split[3]) < UNIV_VAR_THRESH:
+            return
+
+    if svtype == "DEL":
         if lineAV_split[11].find("PE") == -1 and lineAV_split[11].find("SR") != -1 and \
             int(lineAV_split[7]) - int(lineAV_split[3]) < SR_DEL_THRESH:
             return
@@ -135,7 +142,7 @@ def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
         elif lineAV_split[11].find("SR") != -1 and lineAV_split[11].find("PE") != -1 and \
             int(lineAV_split[7]) - int(lineAV_split[3]) < MIX_DEL_THRESH:
             return
-
+    
     lineAV_split.extend([str(swap),str(bnd),str(support),GT])
     fAVN.write("%s\n" %("\t".join(lineAV_split)))
 
@@ -201,7 +208,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 bnd=0
                 swap = 0
                 GT="."
-                if (svtype == "DEL_INS" or svtype == "DEL" or svtype[0:2]== "TD") and int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
+                if (svtype == "DEL_INS" or svtype == "DEL" or svtype[0:2]== "TD") and \
+                    int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
                     covLocM, confMiddle = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),
                             PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
@@ -229,42 +237,45 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS_halfFR"
 
-                elif len(svtype) > 2 and (svtype == "INS" \
-                    or svtype == "INS_I") and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \
-                    int(lineAV_split[9]) and lineAV_split[8] != "-1":
+                elif svtype in ["INS", "INS_I"] or svtype.startswith("INS_C"):
 
-                    # $insert SPLIT_INS here if fits before below
-                    # bp2-3
-                    covLoc, confReg = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                        int(lineAV_split[7]), int(lineAV_split[9]),
-                        PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
-                    if (confReg and covLoc < DUP_THRESH_L) or \
-                        (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
-                        bnd = 1
-
-                elif len(svtype) > 4 and lineAV_split[11].find("PE") != -1 and \
-                    svtype[0:5] == "INS_C" and lineAV_split[8] != "-1":
-                    del_23 = 0
-                    del_12 = 0
-                    dup_23 = 0
-                    dup_12 = 0
+                    del_23, del_12, del_13, dup_23, dup_12, dup_13 = 0, 0, 0, 0, 0, 0
+                    swap_12, swap_13 = 0,0
                     #bp2-3
+                    #use inner bounds for all
                     start = int(lineAV_split[7])
                     stop = int(lineAV_split[9])
+                    #this should not occur
                     if start > stop:
                         start, stop = stop, start
                     covLoc_23, conf_23 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                             start, stop, PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
-                    #bp1-2
+
+                    #bp1-2 ("12" will here refer to 1, the paste bp, and the closest of the other 2)
                     start = int(lineAV_split[4])
                     stop = int(lineAV_split[6])
                     if start > stop:
-                        start, stop = stop, start
+                        swap_12 = 1
+                        start = int(lineAV_split[10])
+                        stop = int(lineAV_split[3])
                     if lineAV_split[2] == lineAV_split[5]:
                         covLoc_12, conf_12 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                                 start, stop, PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
                     else:
                         convLoc_12, conf_12 = 0,0
+                   
+                    #bp1-3 ("13" will here refer to 1, the paste bp, and the farther of the other 2)
+                    start = int(lineAV_split[4])
+                    stop = int(lineAV_split[9])
+                    if start > stop:
+                        swap_13 = 1
+                        start = int(lineAV_split[7])
+                        stop = int(lineAV_split[3])
+                    if lineAV_split[2] == lineAV_split[5]:
+                        covLoc_13, conf_13 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
+                                start, stop, PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
+                    else:
+                        convLoc_13, conf_13 = 0,0
 
                     if conf_23:
                         if covLoc_23 > DUP_THRESH_L:
@@ -276,25 +287,232 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             dup_12 = 1
                         elif covLoc_12 < DEL_THRESH:
                             del_12 =1
+                    if conf_13:
+                        if covLoc_13 > DUP_THRESH_L:
+                            dup_13 = 1
+                        elif covLoc_13 < DEL_THRESH:
+                            del_13 =1
+                    
+                    if svtype in ["INS", "INS_I"] and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \
+                        int(lineAV_split[9]) and lineAV_split[8] != "-1":
 
-                    # $ insert SPLIT_INS here if fits
-                    confINSBP = 0
-                    if (svtype == "INS_C" or svtype == "INS_C_I"):
-                        if dup_23 and not dup_12:
-                            svtype+="_P"
-                            confINSBP = 1
-                        elif dup_12 and not dup_23:
-                            svtype+="_P"
-                            confINSBP = 1
-                            swap = 1
-                    if (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
-                        (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
-                        bnd = 1
+                        if lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
+                            #1-2 is del
+                            lineAV_split[1] = "DEL"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_12:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            #1-3 is TD
+                            lineAV_split[1] = "TD"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_13:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            else:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                        elif lineAV_split[2] == lineAV_split[5] and del_12:
+                            #1-2 is del
+                            lineAV_split[1] = "DEL"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_12:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                            #1-3 is bnd
+                            lineAV_split[1] = "BND"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_13:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            else:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                        
+                        # bp2-3
+                        elif (conf_23 and covLoc_23 < DUP_THRESH_L) \
+                            or (conf_12 and not (DEL_THRESH_L < covLoc_12 < DUP_THRESH_L)) or\
+                            (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                            bnd = 1
+
+                    elif svtype.startswith("INS_C") and lineAV_split[11].find("PE") != -1 and \
+                        lineAV_split[8] != "-1":
+
+                        if lineAV_split[2] == lineAV_split[5] and del_12 and del_23:
+                            
+                            #1-2 is del
+                            lineAV_split[1] = "DEL"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_12:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            #2-3 is DEL
+                            lineAV_split[1] = "DEL"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                                                lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                            #1-3 is bnd
+                            
+                            lineAV_split[1] = "BND"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_13:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            else:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                        elif lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
+                           
+                            #1-2 is del
+                            lineAV_split[1] = "DEL"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_12:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            #1-3 is TD
+                            lineAV_split[1] = "TD"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_13:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            else:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                            #2-3 is bnd
+                            lineAV_split[1] = "BND"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                                                lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                        elif lineAV_split[2] == lineAV_split[5] and del_23 and dup_13:
+
+                            #1-2 is bnd
+                            lineAV_split[1] = "BND"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_12:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            #1-3 is TD
+                            lineAV_split[1] = "TD"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_13:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            else:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                            #2-3 is del
+                            lineAV_split[1] = "DEL"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                                                lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                        elif lineAV_split[2] == lineAV_split[5] and del_12:
+
+                            #1-2 is del
+                            lineAV_split[1] = "DEL"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_12:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            #1-3 is bnd
+                            lineAV_split[1] = "BND"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_13:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            else:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                            #2-3 is bnd
+                            lineAV_split[1] = "BND"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                                                lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                        elif del_23:
+
+                            #1-2 is bnd
+                            lineAV_split[1] = "BND"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_12:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            #1-3 is bnd
+                            lineAV_split[1] = "BND"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            if swap_13:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                            else:
+                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                            #2-3 is del
+                            lineAV_split[1] = "DEL"
+                            lineAV_split[8:10] = ["-1", "-1", "-1"]
+                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                                                lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                        elif (svtype == "INS_C" or svtype == "INS_C_I"):
+                            if dup_23 and not dup_12:
+                                svtype+="_P"
+                            elif dup_12 and not dup_23:
+                                svtype+="_P"
+                                swap = 1
+                        elif (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
+                            ((conf_12 and not (DEL_THRESH_L < covLoc_12 < DUP_THRESH_L)) or \
+                            (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH)):
+                            bnd = 1
 
             ## write in BED files
             lineAV_split[1] = svtype
             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN,
-                    PE_DEL_THRESH, SR_DEL_THRESH, MIX_DEL_THRESH)
+                    PE_DEL_THRESH, SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
     fAV.close()
     fAVN.close()

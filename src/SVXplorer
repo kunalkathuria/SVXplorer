@@ -42,7 +42,8 @@ def createDiscordants():
     if sortorder == 'coordinate':
         discfile = "%s/discordants.ns.bam" % WORKSPACE
         logging.info('Started name sorting the discordant file')
-        pysam.sort("-n", "-O", "bam", "-T", "xxx", "-o", discfile, ARGS.disc)
+        pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", "-o", 
+                    discfile, ARGS.disc)
         logging.info('Finished name sorting the discordant file')
     else:
         assert sortorder == 'queryname'
