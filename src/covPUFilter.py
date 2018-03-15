@@ -142,7 +142,10 @@ def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
         elif lineAV_split[11].find("SR") != -1 and lineAV_split[11].find("PE") != -1 and \
             int(lineAV_split[7]) - int(lineAV_split[3]) < MIX_DEL_THRESH:
             return
-    
+
+    # correct SPLIT_INS fields just in case
+    if  svtype.startswith("TD") or  svtype.startswith("DEL") or  svtype.startswith("BND"):
+        lineAV_split[8:11] = ["-1", "-1", "-1"]
     lineAV_split.extend([str(swap),str(bnd),str(support),GT])
     fAVN.write("%s\n" %("\t".join(lineAV_split)))
 
@@ -299,7 +302,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         if lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
                             #1-2 is del
                             lineAV_split[1] = "DEL"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_12:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -307,7 +309,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is TD
                             lineAV_split[1] = "TD"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_13:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -316,11 +317,10 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                                     lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
+                            continue
                         elif lineAV_split[2] == lineAV_split[5] and del_12:
                             #1-2 is del
                             lineAV_split[1] = "DEL"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_12:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -329,7 +329,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                             #1-3 is bnd
                             lineAV_split[1] = "BND"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_13:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -338,7 +337,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                                     lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                        
+                            continue 
                         # bp2-3
                         elif (conf_23 and covLoc_23 < DUP_THRESH_L) \
                             or (conf_12 and not (DEL_THRESH_L < covLoc_12 < DUP_THRESH_L)) or\
@@ -352,7 +351,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             
                             #1-2 is del
                             lineAV_split[1] = "DEL"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_12:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -360,16 +358,13 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #2-3 is DEL
                             lineAV_split[1] = "DEL"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
                             #1-3 is bnd
-                            
                             lineAV_split[1] = "BND"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_13:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -378,12 +373,11 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                                     lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
+                            continue
                         elif lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
                            
                             #1-2 is del
                             lineAV_split[1] = "DEL"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_12:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -391,7 +385,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is TD
                             lineAV_split[1] = "TD"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_13:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -403,17 +396,15 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                             #2-3 is bnd
                             lineAV_split[1] = "BND"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
+                            continue
                         elif lineAV_split[2] == lineAV_split[5] and del_23 and dup_13:
 
                             #1-2 is bnd
                             lineAV_split[1] = "BND"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_12:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -421,7 +412,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is TD
                             lineAV_split[1] = "TD"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_13:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -433,17 +423,15 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                             #2-3 is del
                             lineAV_split[1] = "DEL"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
+                            continue
                         elif lineAV_split[2] == lineAV_split[5] and del_12:
 
                             #1-2 is del
                             lineAV_split[1] = "DEL"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_12:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -451,7 +439,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is bnd
                             lineAV_split[1] = "BND"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_13:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -463,16 +450,15 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                             #2-3 is bnd
                             lineAV_split[1] = "BND"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            continue
                         elif del_23:
 
                             #1-2 is bnd
                             lineAV_split[1] = "BND"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_12:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -480,7 +466,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is bnd
                             lineAV_split[1] = "BND"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             if swap_13:
                                 lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
@@ -492,12 +477,11 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                             #2-3 is del
                             lineAV_split[1] = "DEL"
-                            lineAV_split[8:10] = ["-1", "-1", "-1"]
                             lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
+                            continue
                         elif (svtype == "INS_C" or svtype == "INS_C_I"):
                             if dup_23 and not dup_12:
                                 svtype+="_P"
