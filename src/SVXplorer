@@ -87,7 +87,7 @@ def createDiscordants():
         almtList = []
     samfile1.close()
     samfileF.close()
-    samfileR.close()
+    samfileS.close()
 
 #    discfile = newDiscFile
 #    samfile = pysam.AlignmentFile(discfile, 'rb')
