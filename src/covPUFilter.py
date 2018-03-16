@@ -342,7 +342,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             continue 
                         # bp2-3
                         elif (conf_23 and covLoc_23 < DUP_THRESH_L) \
-                            or (conf_12 and not (DEL_THRESH_L < covLoc_12 < DUP_THRESH_L)) or\
+                            or (conf_12 and not (DEL_THRESH < covLoc_12 < DUP_THRESH)) or\
                             (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
                             bnd = 1
 
