@@ -492,8 +492,9 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
     if ignoreChr is not None:
         with open(ignoreChr, 'r') as f:
             for line in f:
-                ignoreTIDs.add(line.strip().split()[0])
-        logging.info("Chromosomes", ignoreTIDs, "will be ignored.")
+                chrI = line.strip().split()
+                ignoreTIDs.add(chrI)
+                logging.info("Chromosome", chrI, "will be ignored.")
 
     ignoreBuffer = 0*rdl
     if ignoreBED is not None:
