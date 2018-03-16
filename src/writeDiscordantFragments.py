@@ -181,8 +181,8 @@ class alignedFragment(object):
     def __init__(self):
         # whether lBound is start or end of left-aligned read (in reference)
         # depends on orientation of read in reference
-        self.lBound = None
-        self.rBound = None
+        self.lBound = -1
+        self.rBound = -1
         self.cType = None #orientation, e.g. "01" represents "FR" etc.
         self.cMapType = None #0 if both reads map, 1 if one read maps only
         self.lTID = None
@@ -501,7 +501,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
         formExcludeHash(chrHash, ignoreBuffer, ignoreBED, chromosome_lengths)
 
     # read discordant alignments and write all possible discordant pairs to file.
-    with open("%s/allDiscordants.us.txt" % workDir, "w") as both_align, open("%s/allDiscordants.up.us.txt" % workDir, "w") as one_align:
+    with open("%s/allDiscordants.us.txt" % workDir, "w") as almtFile:
         currentFrag = 1
         logging.info('Started reading discordant pairs')
         for (q1, aln1s),(q2, aln2s) in izip(readNextReadAlignments(readAlmts1), readNextReadAlignments(readAlmts2)):
@@ -521,9 +521,9 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
                     nMatch_relative_thresh, as_relative_thresh, map_thresh,
                     permutation_thresh, ignoreBED, ignoreTIDs)
             for item in dList1:
-                print >> both_align, "%s\t%s" %(currentFrag, item)
+                print >> almtFile, "%s\t%s" %(currentFrag, item)
             for item in dList2:
-                print >> one_align, "%s\t%s" %(currentFrag, item)
+                print >> almtFile, "%s\t%s" %(currentFrag, item)
             currentFrag += 1
         logging.info('Finished reading discordant pairs')
 

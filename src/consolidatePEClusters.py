@@ -294,22 +294,21 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 
         # determine which sides of clusters overlap
         logging.debug('Determining signature of 2-cluster overlap: left with left (LL) etc.')
-        LLOverlap=0
-        LROverlap=0
-        RLOverlap=0
-        RROverlap=0
-        if cluster1.lTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "LL", slop):
-            LLOverlap = 1
-        if cluster1.lTID == clusterP.rTID and isOverlapping("C", cluster1, clusterP, "LR", slop):
-            LROverlap = 1
-        if cluster1.rTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "RL", slop):
-            RLOverlap = 1
-        if cluster1.rTID == clusterP.rTID and isOverlapping("C", cluster1, clusterP, "RR", slop):
-            RROverlap = 1
-#        if (LR == "LL" and not LLOverlap) or (LR == "LR" and not LROverlap) \
-#            or (LR =="RL" and not RLOverlap) or (LR == "RR" and not RROverlap):
-#            continue
-        if not LLOverlap and not LROverlap and not RLOverlap and not RROverlap:
+        LLOverlap, LLOverlap2, LROverlap, RLOverlap, RROverlap = 0, 0, 0, 0, 0
+
+        if cluster1.rTID != "None" and clusterP.rTID != "None":
+            if cluster1.lTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "LL", slop):
+                LLOverlap = 1
+            if cluster1.lTID == clusterP.rTID and isOverlapping("C", cluster1, clusterP, "LR", slop):
+                LROverlap = 1
+            if cluster1.rTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "RL", slop):
+                RLOverlap = 1
+            if cluster1.rTID == clusterP.rTID and isOverlapping("C", cluster1, clusterP, "RR", slop):
+                RROverlap = 1
+        elif cluster1.rTID == "None" and clusterP.rTID == "None" and \
+            cluster1.lTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "LL", slop):
+            LLOverlap2 = 1
+        if not LLOverlap and not LROverlap and not RLOverlap and not RROverlap and not LLOverlap2:
             logging.debug('Continue as no overlap between any breakpoints')
             continue
 
@@ -319,11 +318,11 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
         newVariant = consCluster()
         newVariant.SVType = None
 
-        if cluster1.r_orient == 2 and clusterP.r_orient == 2 and LLOverlap \
+        if cluster1.r_orient == 2 and clusterP.r_orient == 2 and LLOverlap2 \
             and cluster1.l_orient != clusterP.l_orient:
             logging.debug('Tagged as De Novo INS')
 
-            newVariant.SVType = "INS_U"
+            newVariant.SVType = "DN_INS"
             newSVFlag=1
             newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LL")
             newVariant.bp1TID = cluster1.lTID
@@ -1181,9 +1180,9 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
             newSimpleSV.bp2_end = clusterC.r_end
             newSimpleSV.count = 1
             newSimpleSV.clusterNums.append(clusterC.mapNum)
-            # In case did not match with other half cluster for INS_U (de novo INS)
+            # In case did not match with other half cluster for DN_INS (de novo INS)
             if clusterC.r_orient == "2":
-                newSimpleSV.SVType = "INS_U"
+                newSimpleSV.SVType = "DN_INS"
                 newSimpleSV.bp2_start = newSimpleSV.bp1_start
                 newSimpleSV.bp2_end = newSimpleSV.bp1_end
             elif clusterC.l_orient == 1 and clusterC.r_orient == 0 and \
@@ -1232,12 +1231,9 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
                abs(elem.bp2_end-TD.bp1_end) < disc_thresh:
                 storeTD = 0
                 break
+        # store as de novo INS if was not due to existing TD    
         if storeTD:
-            consolidatedCls_C.append(elem)
-        else:
-            newSimpleSV.SVType = "INS_U"
-            newSimpleSV.bp1_end = newSimpleSV.bp2_end # set "both" breakpts same
-            newSimpleSV.bp2_start = newSimpleSV.bp1_start
+            newSimpleSV.SVType = "DN_INS"
             consolidatedCls_C.append(elem)
 
     logging.debug('Started writing unclaimed variants')

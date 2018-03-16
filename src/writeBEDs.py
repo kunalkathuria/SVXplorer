@@ -53,6 +53,9 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 support = tokens[17]
                 GT = tokens[18]
 
+            if svtype == "DN_INS":
+                output = tokens[2:8]
+                name = "DN_INS"
             if svtype == "DEL":
                 output = tokens[2:8]
                 name = 'DEL'

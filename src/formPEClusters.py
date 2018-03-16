@@ -47,7 +47,32 @@ def readDistHash(fp, IL_BinDistHash):
         total_entries+= ls1
     return total_entries
 
+def calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty):
+        
+    if dist_penalty <= dist_end:
+        if dist_end == mean_IL:
+            if abs(f2_lPos-f1_lPos)+2*rdl-dist_end <= 0:
+                distPen = 1
+            else:
+                distPen = 0
+        distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_end - mean_IL)
+    else:
+        distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_penalty - dist_end)
+    if distPen > 1:
+        distPen = 1
+    return distPen
+
 def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_type, dist_penalty, dist_end, rdl, IL_BinDistHash, mean_IL):
+    # first handle one-mapped-read cases
+    if f1_rPos == -1 and f2_rPos == -1:
+        # calculate weight component 1
+        weight = calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty)
+        return weight
+    elif f1_rPos == -1 and f2_rPos != -1:
+        return 0
+    elif f1_rPos != -1 and f2_rPos == -1:
+        return 0
+
     # calculate difference in insert lengths between the 2 almts
     bin_size = 10
     if c_type == "01" or c_type == "10":
@@ -56,17 +81,12 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
         ildist = abs(bin_size*int((f2_lPos - f1_lPos + f2_rPos - f1_rPos)/(1.0*bin_size)))
 
     # calculate weight component 1
-    if dist_penalty <= dist_end:
-        distpen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_end - mean_IL)
-    else:
-        distpen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_penalty - dist_end)
-    if distpen > 1:
-        distpen = 1
+    distPen = calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty)
 
     # multiply to weight component 2 to get final weight
     # RF clusters from TDs need not have overlapping almts
-    if ildist in IL_BinDistHash and distpen > 0 and (c_type == "10" or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
-        weight = distpen*IL_BinDistHash[abs(ildist)]/(1.0*IL_BinTotalEntries)
+    if ildist in IL_BinDistHash and distPen > 0 and (c_type == "10" or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
+        weight = distPen*IL_BinDistHash[abs(ildist)]/(1.0*IL_BinTotalEntries)
     else:
         weight = 0
     return weight
@@ -79,7 +99,11 @@ def calculateMargin(clusterC, max_cluster_length, disc_thresh, bp_margin):
     r_orient = int(clusterC.cType[1])
     cl_margin_l = max_cluster_length - (clusterC.lmax - clusterC.l_min)
     cl_margin_r = max_cluster_length - (clusterC.r_max - clusterC.r_min)
-    cl_margin = min(cl_margin_l, cl_margin_r)
+    if r_orient != 2:
+        cl_margin = min(cl_margin_l, cl_margin_r)
+    else:
+        cl_margin = cl_margin_l
+
     cl_margin = int(cl_margin)
     #SR support for low support PE clusters may be significant
     # but only if lying close -- so, lower margin
@@ -95,19 +119,19 @@ def calculateMargin(clusterC, max_cluster_length, disc_thresh, bp_margin):
     if l_orient == 0:
         clusterC.l_end = clusterC.l_bound + cl_margin
         clusterC.l_start = clusterC.l_bound - reverse_margin
-    else:
+    elif l_orient == 1:
         clusterC.l_start = clusterC.l_bound - cl_margin
         clusterC.l_end = clusterC.l_bound + reverse_margin
     if r_orient == 0:
         clusterC.r_end = clusterC.r_bound + cl_margin
         clusterC.r_start = clusterC.r_bound - reverse_margin
-    else:
+    elif r_orient == 1:
         clusterC.r_start = clusterC.r_bound - cl_margin
         clusterC.r_end = clusterC.r_bound + reverse_margin
     if clusterC.l_start < 0:
         clusterC.l_start = 0
     #if diff chr, "right" almt pos can also be 0
-    if clusterC.r_start < 0:
+    if r_orient != 2 and clusterC.r_start < 0:
         clusterC.r_start = 0
         clusterC.r_end = max(clusterC.r_start + 1, clusterC.r_end)
 

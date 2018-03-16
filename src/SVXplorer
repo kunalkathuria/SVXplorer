@@ -143,6 +143,8 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", BNDAlt1, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter + 1) + ";" + GROUPID + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", BNDAlt2, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter) + ";" + GROUPID + support + precise)
                 counter+= 1
+            elif name == "DN_INS":
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INS>",".","PASS", "SVTYPE=INS;CIPOS=0," + cipos + ";CM=DE NOVO INS;" + support + precise)
             elif name == "DEL":
                  print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise)
             elif name == "TD" or name == "TD_INV":
@@ -227,16 +229,6 @@ def processFragments():
                                 'mapq': np.int16})
     data = data.sort_values(by = ['lchr', 'rchr', 'lpos', 'rpos'])
     data.to_csv("%s/allDiscordants.txt" % WORKSPACE, header=None, index=None, sep='\t')
-
-    # sort the allDiscordants.up.us.txt file -> allDiscordants.up.txt
-    data = pd.read_table("%s/allDiscordants.up.us.txt" % WORKSPACE,
-                         names=['index', 'lchr', 'lpos', 'rchr', 'rpos', 
-                                'orient', 'small', 'mapq'],
-                         dtype={'index':np.int32, 'lchr':np.str, 'lpos':np.int32,
-                                'rchr':np.str, 'rpos':np.str, 'orient':np.str,
-                                'mapq': np.int16})
-    data = data.sort_values(by = ['lchr', 'lpos'])
-    data.to_csv("%s/allDiscordants.up.txt" % WORKSPACE, header=None, index=None, sep='\t')
     logging.info('Finished sorting the discordants')
 
     # form PE clusters from those discordant fragments. Creates
