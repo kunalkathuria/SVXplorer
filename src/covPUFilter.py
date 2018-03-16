@@ -147,7 +147,6 @@ def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
     # correct SPLIT_INS fields just in case
     if  svtype.startswith("TD") or  svtype.startswith("DEL") or  svtype.startswith("BND"):
         lineAV_split_T[8:11] = ["-1", "-1", "-1"]
-    print "Writing", lineAV_split_T
     lineAV_split_T.extend([str(swap),str(bnd),str(support),GT])
     fAVN.write("%s\n" %("\t".join(lineAV_split_T)))
 
