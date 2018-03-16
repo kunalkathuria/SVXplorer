@@ -127,6 +127,7 @@ def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                   SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH):
    
     svtype = lineAV_split[1]
+    lineAV_split_T = list(lineAV_split)
     if svtype.startswith("TD") or svtype.startswith("INV") or svtype.startswith("DEL") or\
         (svtype.startswith("INS_half") and lineAV_split[2] == lineAV_split[5]):
         if int(lineAV_split[7])-int(lineAV_split[3]) < UNIV_VAR_THRESH:
@@ -145,9 +146,10 @@ def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
 
     # correct SPLIT_INS fields just in case
     if  svtype.startswith("TD") or  svtype.startswith("DEL") or  svtype.startswith("BND"):
-        lineAV_split[8:11] = ["-1", "-1", "-1"]
-    lineAV_split.extend([str(swap),str(bnd),str(support),GT])
-    fAVN.write("%s\n" %("\t".join(lineAV_split)))
+        lineAV_split_T[8:11] = ["-1", "-1", "-1"]
+    print "Writing", lineAV_split_T
+    lineAV_split_T.extend([str(swap),str(bnd),str(support),GT])
+    fAVN.write("%s\n" %("\t".join(lineAV_split_T)))
 
 def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 NH_REGIONS_FILE, DEL_THRESH, DUP_THRESH, splitINS, 
@@ -295,47 +297,48 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             dup_13 = 1
                         elif covLoc_13 < DEL_THRESH:
                             del_13 =1
-                    
+
+                    lineAV_split1 = list(lineAV_split)
                     if svtype in ["INS", "INS_I"] and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \
                         int(lineAV_split[9]) and lineAV_split[8] != "-1":
-
+                        
                         if lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
                             #1-2 is del
-                            lineAV_split[1] = "DEL"
+                            lineAV_split1[1] = "DEL"
                             if swap_12:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is TD
-                            lineAV_split[1] = "TD"
+                            lineAV_split1[1] = "TD"
                             if swap_13:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
                             else:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
                                                     lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             continue
                         elif lineAV_split[2] == lineAV_split[5] and del_12:
                             #1-2 is del
-                            lineAV_split[1] = "DEL"
+                            lineAV_split1[1] = "DEL"
                             if swap_12:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
                             #1-3 is bnd
-                            lineAV_split[1] = "BND"
+                            lineAV_split1[1] = "BND"
                             if swap_13:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
                             else:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
                                                     lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             continue 
                         # bp2-3
@@ -348,138 +351,136 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         lineAV_split[8] != "-1":
 
                         if lineAV_split[2] == lineAV_split[5] and del_12 and del_23:
-                            
                             #1-2 is del
-                            lineAV_split[1] = "DEL"
+                            lineAV_split1[1] = "DEL"
                             if swap_12:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #2-3 is DEL
-                            lineAV_split[1] = "DEL"
-                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                            lineAV_split1[1] = "DEL"
+                            lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
                             #1-3 is bnd
-                            lineAV_split[1] = "BND"
-                            if swap_13:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
-                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            else:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
-                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            if int(lineAV_split[12]) >= 3:
+                                lineAV_split1[1] = "BND"
+                                if swap_13:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                else:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                        lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             continue
                         elif lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
-                           
                             #1-2 is del
-                            lineAV_split[1] = "DEL"
+                            lineAV_split1[1] = "DEL"
                             if swap_12:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is TD
-                            lineAV_split[1] = "TD"
+                            lineAV_split1[1] = "TD"
                             if swap_13:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
                             else:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
                                                     lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
                             #2-3 is bnd
-                            lineAV_split[1] = "BND"
-                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                            lineAV_split1[1] = "BND"
+                            lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             continue
                         elif lineAV_split[2] == lineAV_split[5] and del_23 and dup_13:
-
                             #1-2 is bnd
-                            lineAV_split[1] = "BND"
+                            lineAV_split1[1] = "BND"
                             if swap_12:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is TD
                             lineAV_split[1] = "TD"
                             if swap_13:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
                             else:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
                                                     lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
                             #2-3 is del
-                            lineAV_split[1] = "DEL"
-                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                            lineAV_split1[1] = "DEL"
+                            lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             continue
                         elif lineAV_split[2] == lineAV_split[5] and del_12:
-
                             #1-2 is del
-                            lineAV_split[1] = "DEL"
+                            lineAV_split1[1] = "DEL"
                             if swap_12:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is bnd
-                            lineAV_split[1] = "BND"
-                            if swap_13:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
-                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            else:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
-                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            if int(lineAV_split[12]) >= 3:
+                                lineAV_split1[1] = "BND"
+                                if swap_13:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                else:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                        lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
                             #2-3 is bnd
-                            lineAV_split[1] = "BND"
-                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                            lineAV_split1[1] = "BND"
+                            lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             continue
                         elif del_23:
-
                             #1-2 is bnd
-                            lineAV_split[1] = "BND"
+                            lineAV_split1[1] = "BND"
                             if swap_12:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                     lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             #1-3 is bnd
-                            lineAV_split[1] = "BND"
-                            if swap_13:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
-                                                    lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                            else:
-                                lineAV_split[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
-                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                          SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                            if int(lineAV_split[12]) >= 3:
+                                lineAV_split1[1] = "BND"
+                                if swap_13:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                else:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                        lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
                             #2-3 is del
-                            lineAV_split[1] = "DEL"
-                            lineAV_split[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                            lineAV_split1[1] = "DEL"
+                            lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                 lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                            writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                            writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                           SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                             continue
                         elif (svtype == "INS_C" or svtype == "INS_C_I"):
