@@ -84,6 +84,10 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                     if svtype != "INS_I":
                         BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
                         BNDAlt3, BNDAlt4 = "]p]N", "N[p["
+                    else:
+                        BNDAlt1, BNDAlt2 = "[p[N", "N]p]"
+                        BNDAlt3, BNDAlt4 = "N]p]", "[p[N"
+
                     out1 = [chrom1, start1, end1, chrom2, start2, end2, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
                         ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID]
@@ -96,6 +100,10 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                     if svtype != "INS_C_I":
                         BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
                         BNDAlt3, BNDAlt4 = BNDAlt1, BNDAlt2
+                    else:
+                        BNDAlt1, BNDAlt2 = "[p[N", "N]p]"
+                        BNDAlt3, BNDAlt4 = BNDAlt1, BNDAlt2
+
                     out1 = [chrom1, start1, end1, chrom2, start2, end2, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
                         ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID]
@@ -103,7 +111,10 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
                         ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt3, BNDAlt4, GROUPID]
                     if int(cl_support) >= 3:
-                        BNDAlt5, BNDAlt6 = "]p]N", "N[p["
+                        if svtype != "INS_C_I":
+                            BNDAlt5, BNDAlt6 = "]p]N", "N[p["
+                        else:
+                            BNDAlt5, BNDAlt6 = "N]p]", "[p[N"
                         out3 = [chrom1, start1, end1, chrom3, start3, end3,
                             "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".",
                             ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt5, BNDAlt6, GROUPID]
