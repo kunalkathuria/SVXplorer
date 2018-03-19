@@ -51,7 +51,6 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
     varNum = []
     fVM=open(variantMapFile,"r")
     fAV=open(allVariantFile,"r")
-    fUS=open(workDir+"/variants.uniqueSupport.txt","w")
     fUF=open(workDir+"/variants.uniqueFilter.txt","w")
     formMQSet(mapThresh, mqSet, allDiscordantsFile)
 
@@ -96,13 +95,9 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
         if (item >= disjThresh) or (item >= 1 and pickV[g] == 2):
             fUF.write("%s\n" %varNum[g])
             nSVs+=1
-        #make list of variants with unique support till threshold was reached
-        if varNum[g] < rdVarIndex:
-            fUS.write("%s %s\n" %(varNum[g], disjointness[g]))
 
     fVM.close()
     fAV.close()
-    fUS.close()
     fUF.close()
     return nSVs
 
