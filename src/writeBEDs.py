@@ -99,10 +99,9 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                     GROUPID = "T" + str(counter)
                     if svtype != "INS_C_I":
                         BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
-                        BNDAlt3, BNDAlt4 = BNDAlt1, BNDAlt2
                     else:
                         BNDAlt1, BNDAlt2 = "[p[N", "N]p]"
-                        BNDAlt3, BNDAlt4 = BNDAlt1, BNDAlt2
+                    BNDAlt3, BNDAlt4 = "N[p[", "]p]N" 
 
                     out1 = [chrom1, start1, end1, chrom2, start2, end2, 
                         "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
