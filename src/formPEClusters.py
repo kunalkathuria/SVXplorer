@@ -162,6 +162,7 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
         if len(connected_comp) >= min_cluster_size and not preserveComp:
             cliquesCC = nx.find_cliques(connected_comp)
             max_clique_list.extend(list(cliquesCC))
+            logging.debug("Removed %d nodes from graph after forming cliques", len(connected_comp))
             fragGraph.remove_nodes_from(connected_comp)
         elif len(connected_comp) < min_cluster_size and not preserveComp:
             fragGraph.remove_nodes_from(connected_comp)
@@ -345,7 +346,7 @@ def refreshFragList(fragList, almt, wt_isUncalculated, fragmentGraph, fragHash,
                 logging.debug('Deleted %d elems from list', newClusterBlock)
                 newClusterBlock = len(fragList)-1
 
-    return fragList, clusterNum, newClusterBlock
+    return fragList, clusterNum, newClusterBlock, fragHash
 
 def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
                    disc_enhancer, bp_margin, subsample, debug):
@@ -371,7 +372,6 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
 
     edge_weight_thresh = -1
     wt_isUncalculated = 1
-    newClusterBlock = 0
     IL_BinDistHash = {}
     fragList = []
     fBin=open(IL_BinFile,"r")
@@ -441,7 +441,7 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
         wt_isUncalculated, edge_weight_thresh = processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights, wt_calc_thresh, wt_isUncalculated, edgeStore, fragmentGraph, edge_weight_thresh, dist_penalty, dist_end, rdl, IL_BinDistHash,mean_IL,wtThresh_perc, debug)
 
         # refresh fragment list
-        fragList, clusterNum, newClusterBlock = refreshFragList(fragList, almt, wt_isUncalculated, fragmentGraph, fragHash, fCliques,  fClusters, fClusterMap, max_cluster_length, clusterNum, newClusterBlock, mean_IL, disc_thresh, bp_margin, debug, min_cluster_size)
+        fragList, clusterNum, newClusterBlock, fragHash = refreshFragList(fragList, almt, wt_isUncalculated, fragmentGraph, fragHash, fCliques,  fClusters, fClusterMap, max_cluster_length, clusterNum, newClusterBlock, mean_IL, disc_thresh, bp_margin, debug, min_cluster_size)
     logging.info('Finished PE cluster formation')
 
     # write remaining nodes/almts to file
