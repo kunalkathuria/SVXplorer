@@ -333,8 +333,6 @@ def refreshFragList(fragList, almt, wt_isUncalculated, fragmentGraph, fragHash,
                 clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, [], clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
                 fragmentGraph.clear()
                 fragmentGraph.add_node(fragList[0].fragNum)
-                fragHash = {}
-                fragHash[fragList[0].fragNum] = fragList[0]
         elif almt.lTID == fragList[newClusterBlock].lTID and \
                 (almt.l_bound - fragList[newClusterBlock].l_bound) > 2*max_cluster_length:
             if not wt_isUncalculated:

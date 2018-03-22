@@ -343,7 +343,7 @@ if __name__ == '__main__':
     PARSER.add_argument('-i', default=None, 
                         help='ignore regions in this BED file')
     PARSER.add_argument('-c', default=None,
-                        help='ignore the chromosomes')
+                        help='ignore the chromosomes in this list; prefix "*" to ignore all chromosomes starting with a particular string')
     PARSER.add_argument('-m', default=None,
                         help='mappable intervals in a BED file')
     PARSER.add_argument('-w', default="svxplorer", help='use dir as workspace')

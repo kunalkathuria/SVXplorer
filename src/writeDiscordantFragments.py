@@ -226,7 +226,7 @@ def findTotalNMatches(al):
 
 def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                    nMatchPct_thresh, nMatch_relative_thresh, as_relative_thresh,
-                   map_thresh, permutation_thresh, ignoreBED, ignoreTIDList):
+                   map_thresh, permutation_thresh, ignoreBED, ignoreTIDList, ignoreTIDAll):
     """ Analyze all discordant alignment pairs, filter them and write to file those that pass in alignedFragment() format
     Inputs:
         aln1s: list of left alignments with same query name
@@ -284,6 +284,15 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                 return dList1, dList2
 
             if al1_reference_name in ignoreTIDList or al2_reference_name in ignoreTIDList:
+                continue
+
+            skip = 0
+            for chrI in ignoreTIDAll:
+                if al1_reference_name.startswith(chrI) or al2_reference_name.startswith(chrI):
+                    break
+                    skip = 1
+            if skip:
+                logging.debug("Ignoring almt combination %s and %s as occurs as * entry in ignoreTIDs", al1_reference_name, al2_reference_name)
                 continue
 
             if ignoreBED is not None and ignoreRead(al1_reference_name, al1_reference_start, al2_reference_name, al2_reference_start, chrHash):
@@ -481,6 +490,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
                              nMatch_relative_thresh, as_relative_thresh,
                              map_thresh):
     ignoreTIDs = set()
+    ignoreTIDAll = set()
     chrHash = {}
 
     # calculate some basic stats
@@ -493,8 +503,12 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
         with open(ignoreChr, 'r') as f:
             for line in f:
                 chrI = line.strip()
-                ignoreTIDs.add(chrI)
-                logging.info("Chromosome", chrI, "will be ignored.")
+                if not chrI.startswith("*"):
+                    ignoreTIDs.add(chrI)
+                    logging.info("Chromosome", chrI, "will be ignored.")
+                else:
+                    ignoreTIDAll.add(chrI[1:])
+                    logging.info("Chr names starting with %s will be ignored", chrI[1:])
 
     ignoreBuffer = 0*rdl
     if ignoreBED is not None:
@@ -520,7 +534,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
             dList1, dList2 = formDiscordant(aln1s, aln2s, disc_thresh,
                     disc_thresh_neg, mean_IL, chrHash, nMatchPct_thresh,
                     nMatch_relative_thresh, as_relative_thresh, map_thresh,
-                    permutation_thresh, ignoreBED, ignoreTIDs)
+                    permutation_thresh, ignoreBED, ignoreTIDs, ignoreTIDAll)
             for item in dList1:
                 print >> almtFile, "%s\t%s" %(currentFrag, item)
             for item in dList2:
