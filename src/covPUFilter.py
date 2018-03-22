@@ -23,7 +23,7 @@ covHash = {}
 SD_S = 14
 SD_L = 24
 
-def formChrHash(NH_REGIONS_FILE):
+def formChrHash(NH_REGIONS_FILE, RDL):
     global chrHash
     logging.info("Forming PU hash table...")
     fo=open(NH_REGIONS_FILE,"r")
@@ -188,7 +188,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
     fBAM = pysam.AlignmentFile(bamFile, "rb" )
     if NH_REGIONS_FILE is not None:
-        formChrHash(NH_REGIONS_FILE)
+        formChrHash(NH_REGIONS_FILE, RDL)
     else:
         print >> stderr, "Warning! Not using a good regions file for pile-up filter! This can affect some coverage-based results adversely."
     header = fAV.readline()
