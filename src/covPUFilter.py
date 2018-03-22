@@ -9,7 +9,7 @@ from bitarray import bitarray
 import argparse
 import logging
 
-# global constants
+# global variables
 DEL_THRESH2 = .125
 DEL_THRESH_L = .8
 DUP_THRESH_L = 1.2
@@ -17,11 +17,14 @@ MIN_PILEUP_THRESH = 80
 CALC_THRESH = 1000000
 PE_DEL_THRESH_S = 250
 PE_DEL_THRESH_L = 150
+chrHash = {}
+covHash = {}
 # empirical calculation of DEL_THRESH b/w 15 and 25 stdev of IL
 SD_S = 14
 SD_L = 24
 
 def formChrHash(NH_REGIONS_FILE):
+    global chrHash
     logging.info("Forming PU hash table...")
     fo=open(NH_REGIONS_FILE,"r")
     prev_start = -1
@@ -74,8 +77,9 @@ def calculateDELThreshPE(SD):
 
     return PE_DEL_THRESH
 
-def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, covHash, 
+def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, 
                     GOOD_REG_THRESH):
+    global covHash
     bin_size = 100
     if chr_n not in covHash:
         logging.debug("Calculating coverage for %s", chr_n)
@@ -175,9 +179,10 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     PE_DEL_THRESH = max(calculateDELThreshPE(SD),UNIV_VAR_THRESH)
     logging.info("PE deletion threshold is %d", PE_DEL_THRESH)
 
-    covHash = {}
     uniqueFilterSVs = set()
-    chrHash = {}
+    global chrHash
+    global covHash
+
     for line in fUF:
         uniqueFilterSVs.add(int(line))
 
@@ -217,7 +222,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
                     covLocM, confMiddle = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),
-                            PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
+                            PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH)
 
                     if confMiddle == 1:
                         if svtype[0:2] == "TD" and covLocM > DUP_THRESH: 
@@ -254,7 +259,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     if start > stop:
                         start, stop = stop, start
                     covLoc_23, conf_23 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                            start, stop, PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
+                            start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH)
 
                     #bp1-2 ("12" will here refer to 1, the paste bp, and the closest of the other 2)
                     start = int(lineAV_split[4])
@@ -265,7 +270,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         stop = int(lineAV_split[3])
                     if lineAV_split[2] == lineAV_split[5]:
                         covLoc_12, conf_12 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                                start, stop, PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
+                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH)
                     else:
                         convLoc_12, conf_12 = 0,0
                    
@@ -278,7 +283,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         stop = int(lineAV_split[3])
                     if lineAV_split[2] == lineAV_split[5]:
                         covLoc_13, conf_13 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                                start, stop, PILEUP_THRESH, fBAM, chrHash, covHash, GOOD_REG_THRESH)
+                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH)
                     else:
                         convLoc_13, conf_13 = 0,0
 

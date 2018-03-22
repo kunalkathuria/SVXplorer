@@ -513,7 +513,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
     ignoreBuffer = 0*rdl
     if ignoreBED is not None:
         logging.info("Regions in %s will be ignored", ignoreBED)
-        formExcludeHash(chrHash, ignoreBuffer, ignoreBED, chromosome_lengths)
+        chrHash = formExcludeHash(chrHash, ignoreBuffer, ignoreBED, chromosome_lengths)
 
     # read discordant alignments and write all possible discordant pairs to file.
     with open("%s/allDiscordants.us.txt" % workDir, "w") as almtFile:

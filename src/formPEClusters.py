@@ -6,6 +6,9 @@ import networkx as nx
 import argparse as ap
 import logging
 
+#global variables
+IL_BinDistHash = {}
+
 class cluster(object):
     # cluster of aligned fragments
     def __init__(self):
@@ -39,7 +42,8 @@ def readBamStats(statFile):
     stats = map(float,stats)
     return stats[0], stats[1], stats[5], stats[6], stats[7]
 
-def readDistHash(fp, IL_BinDistHash):
+def readDistHash(fp):
+    global IL_BinDistHash
     total_entries = 0
     for line in fp:
         ls1 = float(line.split()[1])
@@ -370,10 +374,10 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
 
     edge_weight_thresh = -1
     wt_isUncalculated = 1
-    IL_BinDistHash = {}
+    global IL_BinDistHash
     fragList = []
     fBin=open(IL_BinFile,"r")
-    IL_BinTotalEntries = readDistHash(fBin, IL_BinDistHash)
+    IL_BinTotalEntries = readDistHash(fBin)
     fragHash = {}
     secCounter = {}
     fragmentGraph = nx.Graph()

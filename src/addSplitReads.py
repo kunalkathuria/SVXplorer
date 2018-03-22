@@ -9,6 +9,9 @@ import logging
 
 from shared import formExcludeHash, ignoreRead, readChromosomeLengths
 
+#global variables
+SVHashPE = {}
+
 class newSRVar(object):
     def __init__(self):
         self.l_orient = -1
@@ -81,8 +84,9 @@ def mapSVtoNum(SV_type):
     else:
         return -1
 
-def formPEHash(fAV, iObjects, SVHashPE, slop):
+def formPEHash(fAV, iObjects, slop):
     logging.info('Started reading the PE variants')
+    global SVHashPE
     for line in fAV:
         line_s = line.split()
         SV_specsPE = PEVarDetails()
@@ -118,14 +122,14 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     fAVN = open(workDir+"/allVariants.pe_sr.txt","w")
     fVMN = open(workDir+"/variantMap.pe_sr.txt","w")
     riskINV = True
-    SVHashPE = {}
+    global SVHashPE
     SRVarHash = {}
     # preserve list of complex hash objects
     immutable_objects = []
 
     # save the PE variants
     headerAV = fAV.readline()
-    nSVsPE = formPEHash(fAV, immutable_objects, SVHashPE, slop)
+    nSVsPE = formPEHash(fAV, immutable_objects, slop)
 
     SRFrag = 0
     SRtoPESuppFrags = [[] for _ in range(1+nSVsPE)]
@@ -149,7 +153,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     chrHash = {}
     if ignoreBED is not None:
         logging.info("Regions in %s will be ignored", ignoreBED)
-        formExcludeHash(chrHash, 0, ignoreBED, chromosome_lengths)
+        chrHash = formExcludeHash(chrHash, 0, ignoreBED, chromosome_lengths)
 
     # all split reads should be mapped, unique alignments
     while True:

@@ -26,6 +26,7 @@ def formExcludeHash(chrHash, ignoreBuffer, ignoreBED, lengths):
             chrHash[currentTID] = np.zeros(lengths[currentTID])
         chrHash[currentTID][int(line_s[1])-ignoreBuffer:int(line_s[2])+ignoreBuffer] = 1
         prevTID = currentTID
+    return chrHash
 
 def ignoreRead(chr_l, loc_l, chr_r, loc_r, chrHash):
     """Check if a fragment aligned in particular location is to be excluded from analysis

@@ -210,7 +210,6 @@ def processFragments():
 
     # write the discordant fragments in a simple format. This should create:
     # 1. allDiscordants.us.txt : fragments that are discordant (unsorted)
-    # 2. allDiscordants.up.us.txt : fragments where only one end maps (unsorted).
     readAlmts1 = "%s/aln1s.bam" % WORKSPACE
     readAlmts2 = "%s/aln2s.bam" % WORKSPACE
     writeDiscordantFragments(WORKSPACE, readAlmts1, readAlmts2, ARGS.samplebam,
@@ -298,7 +297,7 @@ def processFragments():
     if sortorder == 'coordinate':
         splitfile = "%s/splitters.ns.bam" % WORKSPACE
         logging.info('Started name sorting the splitters file')
-        pysam.sort("-n", "-O", "bam", "-T", "xxx", "-o", splitfile, ARGS.split)
+        pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", "-o", splitfile, ARGS.split)
         logging.info('Finished name sorting the splitters file')
 
     # now add the split read information to the system. Write the files 
