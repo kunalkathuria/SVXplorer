@@ -59,7 +59,8 @@ def calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty):
                 distPen = 1
             else:
                 distPen = 0
-        distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_end - mean_IL)
+        else:
+            distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_end - mean_IL)
     else:
         distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_penalty - dist_end)
     if distPen > 1:

@@ -227,7 +227,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     if confMiddle == 1:
                         if svtype[0:2] == "TD" and covLocM > DUP_THRESH: 
 
-                            logging.info("TD confirmed using pileup")
+                            logging.debug("TD confirmed using pileup")
                             svtype = "TD"
 
                         elif svtype[0:2] == "TD" and covLocM < DUP_THRESH_L:
@@ -236,7 +236,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                         elif svtype[0:3] == "DEL" and covLocM < DEL_THRESH: 
 
-                            logging.info("DEL confirmed using pileup")
+                            logging.debug("DEL confirmed using pileup")
                             svtype = "DEL"
                             if covLocM < DEL_THRESH2:
                                 GT="GT:1/1"
