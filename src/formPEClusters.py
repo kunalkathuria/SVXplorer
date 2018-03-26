@@ -309,7 +309,7 @@ def processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights,
                 logging.debug("Edge weight threshold calculated to be %f at percentile %f", edge_weight_thresh, wtThresh_perc)
                 # $$$ for now I am setting this to be zero in consultation with
                 # Kunal. I should remove all vestiges of this later (31 Jan)
-                edge_weight_thresh = 0.0
+                edge_weight_thresh = 0.00
                 for frag1,frag2,edge_weight in edgeStore:
                     if edge_weight > edge_weight_thresh and frag1 != frag2:
                         fragmentGraph.add_edge(frag1, frag2)
