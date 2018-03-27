@@ -316,7 +316,7 @@ def processFragments():
     uniqueVariantFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
     covPUFilter(WORKSPACE, allVariantFile, variantMapFile, uniqueVariantFile,
                 statFile, ARGS.samplebam, ARGS.m, DEL_CN_SUPP_THRESH,
-                DUP_CN_SUPP_THRESH, SPLIT_INS, PILEUP_THRESH, GOOD_REG_THRESH, ARGS.minVarSize, SPLIT_INS)
+                DUP_CN_SUPP_THRESH, SPLIT_INS, PILEUP_THRESH, GOOD_REG_THRESH, ARGS.minVarSize)
 
     # filter and format these results
     filterAndFormat(None, "%s/allVariants.pu.txt" % WORKSPACE, statFile, "pu")
@@ -392,7 +392,6 @@ if __name__ == '__main__':
     # covPUFilter
     DEL_CN_SUPP_THRESH=.6 
     DUP_CN_SUPP_THRESH=1.4
-    SPLIT_INS=0
     PILEUP_THRESH=500.0
     GOOD_REG_THRESH=.8
     SPLIT_INS=True
