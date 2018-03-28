@@ -20,10 +20,11 @@ DISC_PERC = .9985
 DISC_PERC_NEG = .0001
 #min almt score required to use concordant almt in calculating BAM statistics
 AS_CALC_THRESH = .999
-# $$$ why this?
 BIG_NUM = 100000
 # %ile of (concordant) IL dist. where the IL value is considered too large
-PENALTY_PERC = .999999
+PENALTY_PERC = .9995
+# %tile of IL dist. to start distance penalty assessment
+DIST_END_PERC = .99
 
 def calcMeanSig(bamfile1, workDir, calc_thresh):
     """Calculate mean & std of insert-length dist. (and other stats listed below)
@@ -84,7 +85,7 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
 
     IL_list = sorted(IL_list_us)
     try:
-        dist_end = IL_list[int(DISC_PERC*len(IL_list)) - 1]
+        dist_end = IL_list[int(DIST_END_PERC*len(IL_list)) - 1]
         dist_penalty = IL_list[int(PENALTY_PERC*len(IL_list)) - 1]
         disc_thresh_neg = IL_list[int(DISC_PERC_NEG*len(IL_list)) - 1] - meanIL
     except:
