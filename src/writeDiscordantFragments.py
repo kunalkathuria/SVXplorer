@@ -92,7 +92,7 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
         sys.stderr.write("Please check value of DISC_PERC (discordancy percentile for IL).")
         exit(1)
 
-    disc_thresh = dist_end - meanIL
+    disc_thresh = IL_list[int(DISC_PERC*len(IL_list)) - 1] - meanIL
     bamfile.close()
 
     binSize = 10

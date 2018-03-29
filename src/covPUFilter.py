@@ -40,17 +40,17 @@ def formChrHash(NH_REGIONS_FILE, RDL):
             #bed file is 1-based
             for y in range(1,start):
                 chrHash[currentTID].append(0)
-        for x in range(start, stop):
-            chrHash[currentTID].append(1)
         # make hash table of unreliable regions if greater than RDL (almt would be doubtful there)
         if prev_stop != -1 and currentTID == prevTID:
             addBit = 1
             if start - prev_stop > RDL:
                 addBit = 0
-                for x in range(prev_stop, start):
-                    if currentTID not in chrHash:
-                        chrHash[currentTID] = bitarray()
-                    chrHash[currentTID].append(addBit)
+            for x in range(prev_stop, start):
+                if currentTID not in chrHash:
+                    chrHash[currentTID] = bitarray()
+                chrHash[currentTID].append(addBit)
+        for x in range(start, stop):
+            chrHash[currentTID].append(1)
         prev_start = start
         prev_stop = stop
         prevTID = currentTID
