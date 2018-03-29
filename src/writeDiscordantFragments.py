@@ -290,8 +290,8 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
             skip = 0
             for chrI in ignoreTIDAll:
                 if al1_reference_name.startswith(chrI) or al2_reference_name.startswith(chrI):
-                    break
                     skip = 1
+                    break
             if skip:
                 logging.debug("Ignoring almt combination %s and %s as occurs as * entry in ignoreTIDs", al1_reference_name, al2_reference_name)
                 continue
