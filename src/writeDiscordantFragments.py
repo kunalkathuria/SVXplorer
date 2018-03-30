@@ -22,7 +22,7 @@ DISC_PERC_NEG = .0001
 AS_CALC_THRESH = .999
 BIG_NUM = 100000
 # %ile of (concordant) IL dist. where the IL value is considered too large
-PENALTY_PERC = .9995
+PENALTY_PERC = .99995
 # %tile of IL dist. to start distance penalty assessment
 DIST_END_PERC = .99
 

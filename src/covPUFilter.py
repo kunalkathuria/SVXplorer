@@ -22,6 +22,7 @@ covHash = {}
 # empirical calculation of DEL_THRESH b/w 15 and 25 stdev of IL
 SD_S = 14
 SD_L = 24
+MIN_SPLIT_INS_COV = 7
 
 def formChrHash(NH_REGIONS_FILE, RDL):
     global chrHash
@@ -61,11 +62,13 @@ def readBamStats(statFile):
     with open(statFile, 'r') as fStat:
         for i,line in enumerate(fStat):
             if i == 0:
-                rdl=float(line[:-1])
-            elif i==2:
-                sd=float(line[:-1])
+                rdl = float(line[:-1])
+            elif i == 2:
+                sd = float(line[:-1])
+            elif i == 3:
+                coverage = float(line[:-1])
                 break
-    return rdl, sd
+    return rdl, sd, coverage
 
 def calculateDELThreshPE(SD):
     PE_DEL_LOWEST = 100
@@ -169,7 +172,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     fAVN = open(workDir+"/allVariants.pu.txt","w")
     fAVN.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\tstart3\tstop3\t SupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\tSwapBP\tBNDFlag\tSupport\tGT\n")
     logging.info("Writing final bedpe files using coverage information")
-    RDL,SD = readBamStats(statFile)
+    RDL,SD,COV = readBamStats(statFile)
     logging.info("Some stats from BAM. RDL: %d, Sd: %f", 
                   RDL, SD)
 
@@ -306,7 +309,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     lineAV_split1 = list(lineAV_split)
                     if svtype in ["INS", "INS_I"] and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \
                         int(lineAV_split[9]) and lineAV_split[8] != "-1":
-                        if splitINS == True:    
+                        if splitINS == True and COV > MIN_SPLIT_INS_COV:    
                             logging.debug("Split INS is true: %s", lineAV)
                             if lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
                                 #1-2 is del
@@ -359,7 +362,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     elif svtype.startswith("INS_C") and lineAV_split[11].find("PE") != -1 and \
                         lineAV_split[8] != "-1":
 
-                        if splitINS == True:    
+                        if splitINS == True and COV > MIN_SPLIT_INS_COV:    
                             logging.debug("Split INS is true -- INS_C: %s", lineAV)
                             if lineAV_split[2] == lineAV_split[5] and del_12 and del_23:
                                 logging.debug("Split INS_C 1")
