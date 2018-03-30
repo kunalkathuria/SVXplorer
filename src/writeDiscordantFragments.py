@@ -285,6 +285,7 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                 return dList1, dList2
 
             if al1_reference_name in ignoreTIDList or al2_reference_name in ignoreTIDList:
+                logging.info("Ignoring almt combination %s and %s", al1_reference_name, al2_reference_name)
                 continue
 
             skip = 0
@@ -293,7 +294,7 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                     skip = 1
                     break
             if skip:
-                logging.debug("Ignoring almt combination %s and %s as occurs as * entry in ignoreTIDs", al1_reference_name, al2_reference_name)
+                logging.info("Ignoring almt combination %s and %s as occurs as * entry in ignoreTIDs", al1_reference_name, al2_reference_name)
                 continue
 
             if ignoreBED is not None and ignoreRead(al1_reference_name, al1_reference_start, al2_reference_name, al2_reference_start, chrHash):
@@ -503,7 +504,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
     if ignoreChr is not None:
         with open(ignoreChr, 'r') as f:
             for line in f:
-                chrI = line.strip()
+                chrI = line.strip().split()[0]
                 if not chrI.startswith("*"):
                     ignoreTIDs.add(chrI)
                     logging.info("Chromosome %s will be ignored.", chrI)
