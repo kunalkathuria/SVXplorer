@@ -311,37 +311,16 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         int(lineAV_split[9]) and lineAV_split[8] != "-1":
                         if splitINS == True and COV > MIN_SPLIT_INS_COV:    
                             logging.debug("Split INS is true: %s", lineAV)
-                            if lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
-                                #1-2 is del
+                            if lineAV_split[2] == lineAV_split[5] and del_12:
+                                #1-2 is bnd for now
                                 logging.debug("Split INS 1")
-                                lineAV_split1[1] = "DEL"
+                                lineAV_split1[1] = "BND"
                                 if swap_12:
                                     lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                         lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
                                 writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                               SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                #1-3 is TD
-                                lineAV_split1[1] = "TD"
-                                if swap_13:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
-                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                else:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
-                                                        lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                continue
-                            elif lineAV_split[2] == lineAV_split[5] and del_12:
-                                #1-2 is del
-                                logging.debug("Split INS 2")
-                                lineAV_split1[1] = "DEL"
-                                if swap_12:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
-                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
-                                #1-3 is bnd
+                                #1-3 is bnd for now
                                 lineAV_split1[1] = "BND"
                                 if swap_13:
                                     lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
@@ -364,23 +343,23 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                         if splitINS == True and COV > MIN_SPLIT_INS_COV:    
                             logging.debug("Split INS is true -- INS_C: %s", lineAV)
-                            if lineAV_split[2] == lineAV_split[5] and del_12 and del_23:
+                            if lineAV_split[2] == lineAV_split[5] and (del_12 or del_23):
                                 logging.debug("Split INS_C 1")
-                                #1-2 is del
-                                lineAV_split1[1] = "DEL"
+                                #1-2 is bnd for now
+                                lineAV_split1[1] = "BND"
                                 if swap_12:
                                     lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
                                                         lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
                                 writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                               SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                #2-3 is DEL
-                                lineAV_split1[1] = "DEL"
+                                #2-3 is bnd for now
+                                lineAV_split1[1] = "BND"
                                 lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
                                                     lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                                 writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                               SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
-                                #1-3 is bnd
+                                #1-3 is bnd for now
                                 if int(lineAV_split[12]) >= 3:
                                     lineAV_split1[1] = "BND"
                                     if swap_13:
@@ -391,116 +370,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                                             lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
                                     writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                                   SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                continue
-                            elif lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
-                                logging.debug("Split INS_C 2")
-                                #1-2 is del
-                                lineAV_split1[1] = "DEL"
-                                if swap_12:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
-                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                #1-3 is TD
-                                lineAV_split1[1] = "TD"
-                                if swap_13:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
-                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                else:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
-                                                        lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
-                                #2-3 is bnd
-                                lineAV_split1[1] = "BND"
-                                lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
-                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                continue
-                            elif lineAV_split[2] == lineAV_split[5] and del_23 and dup_13:
-                                logging.debug("Split INS_C 3")
-                                #1-2 is bnd
-                                lineAV_split1[1] = "BND"
-                                if swap_12:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
-                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                #1-3 is TD
-                                lineAV_split[1] = "TD"
-                                if swap_13:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
-                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                else:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
-                                                        lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
-                                #2-3 is del
-                                lineAV_split1[1] = "DEL"
-                                lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
-                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                continue
-                            elif lineAV_split[2] == lineAV_split[5] and del_12:
-                                logging.debug("Split INS_C 4")
-                                #1-2 is del
-                                lineAV_split1[1] = "DEL"
-                                if swap_12:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
-                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                #1-3 is bnd
-                                if int(lineAV_split[12]) >= 3:
-                                    lineAV_split1[1] = "BND"
-                                    if swap_13:
-                                        lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
-                                                            lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                    else:
-                                        lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
-                                                            lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                                    writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                                  SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
-                                #2-3 is bnd
-                                lineAV_split1[1] = "BND"
-                                lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
-                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                continue
-                            elif del_23:
-                                logging.debug("Split INS_C 5")
-                                #1-2 is bnd
-                                lineAV_split1[1] = "BND"
-                                if swap_12:
-                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
-                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-                                #1-3 is bnd
-                                if int(lineAV_split[12]) >= 3:
-                                    lineAV_split1[1] = "BND"
-                                    if swap_13:
-                                        lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
-                                                            lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
-                                    else:
-                                        lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
-                                                            lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                                    writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                                  SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
-
-                                #2-3 is del
-                                lineAV_split1[1] = "DEL"
-                                lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
-                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
-                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
-                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                                 continue
                         if (svtype == "INS_C" or svtype == "INS_C_I"):
                             if dup_23 and not dup_12:
