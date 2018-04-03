@@ -193,7 +193,7 @@ class alignedFragment(object):
 
     def __str__(self):
         return "%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.lTID, self.lBound, self.rTID,
-                                         self.rBound, self.cType, self.discSmall,                                         self.mapQual)
+                                         self.rBound, self.cType, self.discSmall, self.mapQual)
 
 def findTotalNMatches(al):
     """ Calculate how many bases in alignment match reference, given cigar string
