@@ -191,6 +191,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
     fBAM = pysam.AlignmentFile(bamFile, "rb" )
     if NH_REGIONS_FILE is not None:
+        logging.info("Using BED file %s in cov PU", NH_REGIONS_FILE)
         formChrHash(NH_REGIONS_FILE, RDL)
     else:
         print >> stderr, "Warning! Not using a good regions file for pile-up filter! This can affect some coverage-based results adversely."
