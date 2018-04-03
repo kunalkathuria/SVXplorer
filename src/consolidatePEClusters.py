@@ -1144,7 +1144,7 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
     logging.debug('Finished comparison of clusters')
 
     # write list of complex variants and complex variant map to 2 sep files
-    fVariantsPE.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\start3\tstop3\t SupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\n") 
+    fVariantsPE.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\tstart3\tstop3\t SupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\n") 
     hashedVM = {}
     consolidatedCls_C = consolidatedCls_C + consolidatedCls
     consolidatedCls = []
