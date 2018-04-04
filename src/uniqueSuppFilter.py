@@ -30,7 +30,7 @@ def formMQSet(mapThresh, mqSet, allDiscordantsFile):
 
 def calculateSVThresh(SVType, SVSupp, complex_thresh, sr_thresh, pe_thresh, 
                       mix_thresh):
-    if SVType == "INV" or SVType.find("INS") != -1:
+    if SVType == "INV" or SVType.startswith("INS"):
         disjThresh = complex_thresh
     elif SVSupp.find("PE") == -1 and SVSupp.find("SR") != -1:
         disjThresh = sr_thresh
@@ -146,6 +146,7 @@ def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile,
         pe_thresh = pe_thresh_min
     if sr_thresh < sr_thresh_min:
         sr_thresh = sr_thresh_min
+    sr_thresh, pe_thresh = 4,4
     logging.info("sr, pe threshes, covg are: %d, %d, %d", sr_thresh, pe_thresh, covg)
 
     nInputVariants = readVariantMap(variantMapFile, allFrags)

@@ -276,8 +276,10 @@ def processFragments():
     # 2. variantMap.pe.txt
     # 3. claimedClusters.txt
     clusterMapFile = "%s/clusterMap.txt" % WORKSPACE
+    logging.info("Starting consolidation of PE clusters.")
     consolidatePEClusters(WORKSPACE, statFile, clusterFileLS, clusterFileRS,
                           clusterMapFile, max_cl_comb_gap, SLOP_PE, REF_RATE_PE, AS_RELATIVE_THRESH)
+    logging.info("Done with consolidating clusters.")
 
     # filter and format the results
     variantMapFile = "%s/variantMap.pe.txt" % WORKSPACE
@@ -306,6 +308,7 @@ def processFragments():
     addSplitReads(WORKSPACE, variantMapFile, allVariantFile, splitfile,
                   SLOP_SR, REF_RATE_SR, MIN_VS_SR, MQ_SR, ARGS.c,
                   MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i)
+    logging.info("Done incorporating split reads.")
 
     # filter and format these results
     filterAndFormat("%s/variantMap.pe_sr.txt" % WORKSPACE, 
