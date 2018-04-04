@@ -20,6 +20,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
     if outname != sys.stdout: outfile = open(outname, 'w')
 
     with open(variantFile, 'r') as fAV:
+        header = fAV.readline()
         for counter, lineAV in enumerate(fAV):
             tokens = lineAV.split()
 

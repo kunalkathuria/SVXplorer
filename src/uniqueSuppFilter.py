@@ -53,7 +53,7 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
     fAV=open(allVariantFile,"r")
     fUF=open(workDir+"/variants.uniqueFilter.txt","w")
     formMQSet(mapThresh, mqSet, allDiscordantsFile)
-
+    header = fAV.readline()
     logging.info("Applying uniqueness filter.")
     nFragOccrns = Counter(fragmentList)
     # obtain disjointness count
