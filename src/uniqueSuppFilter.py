@@ -83,6 +83,7 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
             if disjointness[counter] == disjThresh:
                 break
     fAV.seek(0)
+    header = fAV.readline()
     for g,item in enumerate(disjointness):
         # not stored in memory
         for line in fAV:
