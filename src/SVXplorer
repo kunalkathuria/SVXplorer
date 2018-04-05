@@ -449,7 +449,7 @@ if __name__ == '__main__':
                         filemode=LOGMODE)
 
     WORKSPACE = "%s/workspace" % ARGS.w
-    logging.info("Using MAP_THRESH, MAP_THRESH_U, MIN_CS, SPLIT_INS: %s, %s, %s", MAP_THRESH, MAP_THRESH_U, MIN_CS, SPLIT_INS)
+    logging.info("Using MAP_THRESH, MAP_THRESH_U, MIN_CS, SPLIT_INS: %s, %s, %s, %s", MAP_THRESH, MAP_THRESH_U, MIN_CS, SPLIT_INS)
 
     # process PE and SR information
     processFragments()
