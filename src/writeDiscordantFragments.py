@@ -285,7 +285,7 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                 return dList1, dList2
 
             if al1_reference_name in ignoreTIDList or al2_reference_name in ignoreTIDList:
-                logging.info("Ignoring almt combination %s and %s", al1_reference_name, al2_reference_name)
+                logging.debug("Ignoring almt combination %s and %s", al1_reference_name, al2_reference_name)
                 continue
 
             skip = 0

@@ -10,8 +10,8 @@ function compareTools() {
             nDels1="$(echo $nDels | cut -d " " -f1)"            
             nDels="$(wc -l file2)"
             nDels2="$(echo $nDels | cut -d " " -f1)"
-            echo $nDels1, $nDels2
-            #echo "Dels:", $($delOvlap / $nDels1), $($delOvlap / $nDels2)
+            echo "Dels:" "$(bc<<<"scale=4; $delOvlap/$nDels1")"
+            echo $nDels1 $nDels2
 
             # duplication overlap
             cat $1/DUP.vcf.bedpe | awk '$6-$2 > 100' | cut -f1-6 > file1
@@ -21,7 +21,8 @@ function compareTools() {
             nDups1="$(echo $nDups | cut -d " " -f1)"
             nDups="$(wc -l file2)"
             nDups2="$(echo $nDups | cut -d " " -f1)"
-            #echo "Dups:", $($dupOvlap / $nDups1), $($dupOvlap / $nDups2)
+            echo "Dups:" "$(bc<<<"scale=4; $dupOvlap/$nDups1")"
+            echo $nDups1 $nDups2
 
             # inversion overlap
             cat $1/INV.vcf.bedpe | awk '$6-$2 > 100' | cut -f1-6 > file1
@@ -31,12 +32,15 @@ function compareTools() {
             nInvs1="$(echo $nInvs | cut -d " " -f1)"
             nInvs="$(wc -l file2)"
             nInvs2="$(echo $nInvs | cut -d " " -f1)"
-            #echo "Invs:", $($invOvlap / $nDels1), $($invOvlap / $nDels2)
+            echo "Invs:" "$(bc<<<"scale=4; $invOvlap/$nInvs1")"
+            echo $nInvs1 $nInvs2
 
             nSVs=$(( $delOvlap + $dupOvlap + $invOvlap ))
-            nCalls=$(( $nDels1 + $nDups1 + $nInvs1 ))
-            finalOlap="$(bc<<<"scale=4; $nSVs/$nCalls")"
+            nCalls1=$(( $nDels1 + $nDups1 + $nInvs1 ))
+            nCalls2=$(( $nDels2 + $nDups2 + $nInvs2 ))
+            finalOlap="$(bc<<<"scale=4; $nSVs/$nCalls1")"
             echo "Final:" $finalOlap
+            echo $nCalls1 $nCalls2
 }
  
 tools=($1 $2 $3 $4)
