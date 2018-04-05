@@ -21,7 +21,9 @@ if __name__=="__main__":
                 eflag =line_split[7].find(";END")
                 if eflag == -1:
                     eflag =line_split[7].find("END")
-                if eflag != -1:
+                    short_str = line_split[7][eflag:]
+                    end = int(short_str[4: 1 + short_str[1:].find(";")])
+                else:
                     short_str = line_split[7][eflag:]
                     end = int(short_str[5: 1 + short_str[1:].find(";")])
                 start = int(line_split[1])
