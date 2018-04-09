@@ -308,8 +308,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             del_13 =1
 
                     lineAV_split1 = list(lineAV_split)
-                    if svtype in ["INS", "INS_I"] and int(lineAV_split[7]) + MIN_PILEUP_THRESH < \
-                        int(lineAV_split[9]) and lineAV_split[8] != "-1":
+                    if svtype in ["INS", "INS_I"] and lineAV_split[8] != "-1":
 
                         # bp2-3
                         #diploid deletion + copy-paste in 2-3 region possible, so use DEL_THRESH below not DUP_THRESH

@@ -27,7 +27,7 @@ function compareTools() {
             if [ "$5" = "DUP" ]
             then
                 echo -e -n "$(bc<<<"scale=4; $dupOvlap/$nDups1")    "
-                #echo $nDups1 $nDups2
+                echo $nDups1 $nDups2
             fi
 
             # inversion overlap
@@ -56,7 +56,6 @@ function compareTools() {
 }
 
 tools=($1 $2 $3 $4)
-echo "        ERR    SRR5    SRR3"
 #echo -e "\t ${1##*\/}/ERR \t ${1##*\/}/SRR5 \t ${1##*\/}/SRR3 \t ${2##*\/}/ERR \t ${2##*\/}/SRR5 \t ${2##*\/}/SRR3 \t ${3##*\/}/ERR \t ${3##*\/}/SRR5 \t ${3##*\/}/SRR3 \t ${4##*\/}/ERR \t ${4##*\/}/SRR5 \t ${4##*\/}/SRR3"
 for i in "${tools[@]}"
 do
@@ -65,21 +64,50 @@ do
         if [ "$i" != "." ] && [ "$j" != "." ]
         then
             # make sure DUP:TANDEM is selected if tool provides label
-            echo -n -e "${i##*\/} ERR   "
+            echo -n -e "${i##*\/} ERR\t"
+            echo -n -e "${j##*\/} ERR\t"  
             compareTools ${i}/ERR ${j}/ERR $5 $6 $7
+            echo -n -e "\n"
+
+            echo -n -e "${i##*\/} ERR\t"
+            echo -n -e "${j##*\/} SRR5\t"
             compareTools ${i}/ERR ${j}/SRR5 $5 $6 $7
-            compareTools ${i}/ERR ${j}/SRR3 $5 $6 $7  
-            echo -e ${j##*\/}
-            echo -n -e "${i##*\/} SRR5   "
+            echo -n -e "\n"
+
+            echo -n -e "${i##*\/} ERR\t"
+            echo -n -e "${j##*\/} SRR3\t"
+            compareTools ${i}/ERR ${j}/SRR3 $5 $6 $7
+            echo -n -e "\n"
+
+            echo -n -e "${i##*\/} SRR5\t"
+            echo -n -e "${j##*\/} ERR\t"
             compareTools ${i}/SRR5 ${j}/ERR $5 $6 $7
+            echo -n -e "\n"
+
+            echo -n -e "${i##*\/} SRR5\t"
+            echo -n -e "${j##*\/} SRR5\t"
             compareTools ${i}/SRR5 ${j}/SRR5 $5 $6 $7
+            echo -n -e "\n"
+
+            echo -n -e "${i##*\/} SRR5\t"
+            echo -n -e "${j##*\/} SRR3\t"
             compareTools ${i}/SRR5 ${j}/SRR3 $5 $6 $7
-            echo -e ${j##*\/}
-            echo -n -e "${i##*\/} SRR3   "
+            echo -n -e "\n"
+
+            echo -n -e "${i##*\/} SRR3\t"
+            echo -n -e "${j##*\/} ERR\t"
             compareTools ${i}/SRR3 ${j}/ERR $5 $6 $7
+            echo -n -e "\n"
+
+            echo -n -e "${i##*\/} SRR3\t"
+            echo -n -e "${j##*\/} SRR5\t"
             compareTools ${i}/SRR3 ${j}/SRR5 $5 $6 $7
+            echo -n -e "\n"
+
+            echo -n -e "${i##*\/} SRR3\t"
+            echo -n -e "${j##*\/} SRR3\t"
             compareTools ${i}/SRR3 ${j}/SRR3 $5 $6 $7
-            echo -e ${j##*\/}
+            echo -n -e "\n"
         fi
         echo -n -e "\n"
     done
