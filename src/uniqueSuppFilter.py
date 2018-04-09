@@ -147,7 +147,6 @@ def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile,
         pe_thresh = pe_thresh_min
     if sr_thresh < sr_thresh_min:
         sr_thresh = sr_thresh_min
-    sr_thresh, pe_thresh = 4,4
     logging.info("sr, pe threshes, covg are: %d, %d, %d", sr_thresh, pe_thresh, covg)
 
     nInputVariants = readVariantMap(variantMapFile, allFrags)
