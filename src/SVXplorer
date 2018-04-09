@@ -149,6 +149,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
                  print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise)
             elif name == "TD" or name == "TD_INV":
                 isinv=""
+                svlen = str(abs(int(chr2Start) - int(chr1End)))
                 if name=="TD_INV":
                     isinv="ISINV"
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + support + precise)
@@ -156,7 +157,8 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 ciend = int(chr2End) - int(chr2Start)
                 pos = int((int(chr1Start) + int(chr1End))/2.0)
                 end = int((int(chr2Start) + int(chr2End))/2.0)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, pos, counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + str(end) + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";" + support + precise)
+                svlen = str(abs(end - pos))
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, pos, counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + str(end) + ";SVLEN=" + svlen + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";" + support + precise)
             elif name in ["INS","INS_I","INS_C_P","INS_C_I_P"]:
                 if name in ["INS","INS_I"]:
                     field1 = "DUP"
@@ -165,7 +167,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 else:
                     field1 = "DEL"
                     CM = "CutPasteInsertion"
-                svlen=str(int(chr1End)-int(chr1Start))
+                svlen = str(abs(int(chr1End)-int(chr1Start)))
                 cipos = int(chr2End)-int(chr2Start)
                 isinv=""
                 if name=="INS_I":
