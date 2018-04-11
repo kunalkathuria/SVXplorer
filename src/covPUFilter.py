@@ -13,6 +13,8 @@ import logging
 DEL_THRESH2 = .125
 DEL_THRESH_L = .8
 DUP_THRESH_L = 1.2
+DEL_THRESH_H = .25
+DUP_THRESH_H = 1.75
 MIN_PILEUP_THRESH = 80
 CALC_THRESH = 1000000
 PE_DEL_THRESH_S = 250
@@ -159,7 +161,7 @@ def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
 
 def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 NH_REGIONS_FILE, DEL_THRESH, DUP_THRESH, splitINS, 
-                PILEUP_THRESH, GOOD_REG_THRESH, minVariantSize):
+                PILEUP_THRESH, GOOD_REG_THRESH, minVariantSize, haploid):
     
     UNIV_VAR_THRESH = minVariantSize
     INS_VAR_THRESH = minVariantSize
@@ -175,7 +177,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     RDL,SD,COV = readBamStats(statFile)
     logging.info("Some stats from BAM. RDL: %d, Sd: %f", 
                   RDL, SD)
-
+    logging.info("DEL_H, DEL_L, DEL, DUP_H, DUP_L, DUP thresholds; HAPLOID: %s, %s, %s, %s, %s, %s; %s", DEL_THRESH_H, DEL_THRESH_L, DEL_THRESH, DUP_THRESH_H, DUP_THRESH_L, DUP_THRESH, haploid)
     # calculate min PE size based on insert length standard deviation under empirical model
     # aligner tends to mark concordants as discordants when SD is small unless distr v good, seemingly sharp effects
     # around sig_IL of 20 and lower for generally well-behaved distributions. Without rigor, though.
@@ -191,7 +193,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
     fBAM = pysam.AlignmentFile(bamFile, "rb" )
     if NH_REGIONS_FILE is not None:
-        logging.info("Using BED file %s in cov PU", NH_REGIONS_FILE)
+        logging.info("Using good regions BED file: %s", NH_REGIONS_FILE)
         formChrHash(NH_REGIONS_FILE, RDL)
     else:
         print >> stderr, "Warning! Not using a good regions file for pile-up filter! This can affect some coverage-based results adversely."
@@ -255,17 +257,17 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                     del_23, del_12, del_13, dup_23, dup_12, dup_13 = 0, 0, 0, 0, 0, 0
                     swap_12, swap_13 = 0,0
-                    #bp2-3
-                    #use inner bounds for all
+                    # bp2-3
+                    # use inner bounds for all
                     start = int(lineAV_split[7])
                     stop = int(lineAV_split[9])
-                    #this should not occur
+                    # this should not occur
                     if start > stop:
                         start, stop = stop, start
                     covLoc_23, conf_23 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                             start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH)
 
-                    #bp1-2 ("12" will here refer to 1, the paste bp, and the closest of the other 2)
+                    # bp1-2 ("12" will here refer to 1, the paste bp, and the closest of the other 2)
                     start = int(lineAV_split[4])
                     stop = int(lineAV_split[6])
                     if start > stop:
@@ -278,7 +280,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     else:
                         convLoc_12, conf_12 = 0,0
                    
-                    #bp1-3 ("13" will here refer to 1, the paste bp, and the farther of the other 2)
+                    # bp1-3 ("13" will here refer to 1, the paste bp, and the farther of the other 2)
                     start = int(lineAV_split[4])
                     stop = int(lineAV_split[9])
                     if start > stop:
@@ -291,29 +293,88 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     else:
                         convLoc_13, conf_13 = 0,0
 
+                    # del_ab is the driving force for splitting insertions below, 
+                    # so keep it stringent given possibility of diploid deletion in same region
+                    if haploid:
+                        DEL_THRESH_SPLIT = DEL_THRESH
+                    else:
+                        DEL_THRESH_SPLIT = DEL_THRESH_H
+
                     if conf_23:
                         if covLoc_23 > DUP_THRESH_L:
                             dup_23 = 1
-                        elif covLoc_23 < DEL_THRESH:
-                            del_23 =1
+                        elif covLoc_23 < DEL_THRESH_SPLIT:
+                            del_23 = 1
                     if conf_12:
                         if covLoc_12 > DUP_THRESH_L:
                             dup_12 = 1
-                        elif covLoc_12 < DEL_THRESH:
-                            del_12 =1
+                        elif covLoc_12 < DEL_THRESH_SPLIT:
+                            del_12 = 1
                     if conf_13:
                         if covLoc_13 > DUP_THRESH_L:
                             dup_13 = 1
-                        elif covLoc_13 < DEL_THRESH:
-                            del_13 =1
+                        elif covLoc_13 < DEL_THRESH_SPLIT:
+                            del_13 = 1
 
                     lineAV_split1 = list(lineAV_split)
                     if svtype in ["INS", "INS_I"] and lineAV_split[8] != "-1":
+                        if splitINS == True and COV > MIN_SPLIT_INS_COV:    
+                            logging.debug("Split INS is true: %s", lineAV)
+                            if lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
+                                #1-2 is del
+                                logging.debug("Split INS 1")
+                                lineAV_split1[1] = "DEL"
+                                if swap_12:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                                #1-3 is TD
+                                lineAV_split1[1] = "TD"
+                                if swap_13:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                else:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                        lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                                continue
+                            elif lineAV_split[2] == lineAV_split[5] and del_12:
+                                #1-2 is del
+                                logging.debug("Split INS 2")
+                                lineAV_split1[1] = "DEL"
+                                if swap_12:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                                #1-3 is bnd
+                                lineAV_split1[1] = "BND"
+                                if swap_13:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                else:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                        lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                                continue
 
                         # bp2-3
-                        #diploid deletion + copy-paste in 2-3 region possible, so use DEL_THRESH below not DUP_THRESH
-                        if (conf_23 and covLoc_23 < DEL_THRESH) \
-                            or (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                        if haploid:
+                            THRESH_23 = DUP_THRESH_L
+                            THRESH_12_A = DEL_THRESH
+                            THRESH_12_B = DUP_THRESH
+                        else:
+                            THRESH_23 = DEL_THRESH_L
+                            THRESH_12_A = DEL_THRESH_H
+                            THRESH_12_B = DUP_THRESH_H
+
+                        if (conf_23 and covLoc_23 < THRESH_23) \
+                            or (conf_12 and not (THRESH_12_A < covLoc_12 < THRESH_12_B)) or\
+                            (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
                             bnd = 1
 
                     elif svtype.startswith("INS_C") and lineAV_split[11].find("PE") != -1 and \
@@ -321,7 +382,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                         if splitINS == True and COV > MIN_SPLIT_INS_COV:    
                             logging.debug("Split INS is true -- INS_C: %s", lineAV)
-                            
                             if lineAV_split[2] == lineAV_split[5] and del_12 and del_23:
                                 logging.debug("Split INS_C 1")
                                 #1-2 is del
@@ -350,7 +410,33 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                     writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                                   SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                                 continue
-                            
+                            elif lineAV_split[2] == lineAV_split[5] and del_12 and dup_13:
+                                logging.debug("Split INS_C 2")
+                                #1-2 is del
+                                lineAV_split1[1] = "DEL"
+                                if swap_12:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                                #1-3 is TD
+                                lineAV_split1[1] = "TD"
+                                if swap_13:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                else:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                        lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                                #2-3 is bnd
+                                lineAV_split1[1] = "BND"
+                                lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                                continue
                             elif lineAV_split[2] == lineAV_split[5] and del_23 and dup_13:
                                 logging.debug("Split INS_C 3")
                                 #1-2 is bnd
@@ -378,7 +464,34 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                 writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                               SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                                 continue
-                            
+                            elif lineAV_split[2] == lineAV_split[5] and del_12:
+                                logging.debug("Split INS_C 4")
+                                #1-2 is del
+                                lineAV_split1[1] = "DEL"
+                                if swap_12:
+                                    lineAV_split1[2:8] = lineAV_split[2], lineAV_split[9], lineAV_split[10], \
+                                                        lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                                #1-3 is bnd
+                                if int(lineAV_split[12]) >= 3:
+                                    lineAV_split1[1] = "BND"
+                                    if swap_13:
+                                        lineAV_split1[2:8] = lineAV_split[2], lineAV_split[6], lineAV_split[7], \
+                                                            lineAV_split[2],  lineAV_split[3],  lineAV_split[4]
+                                    else:
+                                        lineAV_split1[2:8] = lineAV_split[2], lineAV_split[3], lineAV_split[4], \
+                                                            lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                                    writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                                  SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+
+                                #2-3 is bnd
+                                lineAV_split1[1] = "BND"
+                                lineAV_split1[2:8] = lineAV_split[5], lineAV_split[6], lineAV_split[7], \
+                                                    lineAV_split[8],  lineAV_split[9],  lineAV_split[10]
+                                writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
+                                              SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                                continue
                             elif del_23:
                                 logging.debug("Split INS_C 5")
                                 #1-2 is bnd
@@ -407,6 +520,16 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                 writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                               SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                                 continue
+                        
+                        if haploid:
+                            THRESH_23 = DEL_THRESH
+                            THRESH_12_A = DEL_THRESH
+                            THRESH_12_B = DUP_THRESH
+                        else:
+                            THRESH_23 = DEL_THRESH_H
+                            THRESH_12_A = DEL_THRESH_H
+                            THRESH_12_B = DUP_THRESH_H
+
                         if (svtype == "INS_C" or svtype == "INS_C_I"):
                             if dup_23 and not dup_12:
                                 svtype+="_P"
@@ -414,7 +537,9 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                 svtype+="_P"
                                 swap = 1
                         elif (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
-                            (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                            ((conf_23 and covLoc_23 < THRESH_23) or \
+                            (conf_12 and not (THRESH_12_A < covLoc_12 < THRESH_12_B)) or \
+                            (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH)):
                             bnd = 1
 
             ## write in BED files

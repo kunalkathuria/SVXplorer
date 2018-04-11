@@ -321,7 +321,7 @@ def processFragments():
     uniqueVariantFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
     covPUFilter(WORKSPACE, allVariantFile, variantMapFile, uniqueVariantFile,
                 statFile, ARGS.samplebam, ARGS.m, DEL_CN_SUPP_THRESH,
-                DUP_CN_SUPP_THRESH, SPLIT_INS, PILEUP_THRESH, GOOD_REG_THRESH, ARGS.minVarSize)
+                DUP_CN_SUPP_THRESH, SPLIT_INS, PILEUP_THRESH, GOOD_REG_THRESH, ARGS.minVarSize, ARGS.haploid)
 
     # filter and format these results
     filterAndFormat(None, "%s/allVariants.pu.txt" % WORKSPACE, statFile, "pu")
@@ -357,6 +357,7 @@ if __name__ == '__main__':
     PARSER.add_argument('split', help='bam file of split reads')
     PARSER.add_argument('samplebam', help='bam file of alignments')
     PARSER.add_argument('reference', help='path to reference genome')
+    PARSER.add_argument('--haploid', action='store_true', help='target is haploid')
 
     # options we do not expect the user to change
     PARSER.add_argument('--subsample', action='store_true', help=argparse.SUPPRESS)    
@@ -403,7 +404,9 @@ if __name__ == '__main__':
     #setting to false as this may be risky for diploid variants like cut-paste and del in same region
 
     ARGS = PARSER.parse_args()
-
+    if ARGS.haploid:
+        SPLIT_INS = True
+        
     # start logging
     if ARGS.d:
         LEVEL = logging.DEBUG
