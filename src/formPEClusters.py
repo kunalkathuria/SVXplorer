@@ -5,9 +5,18 @@ import pysam
 import networkx as nx
 import argparse as ap
 import logging
+from sklearn.cluster import KMeans
 
 #global variables
 IL_BinDistHash = {}
+
+class fragment(object):
+    def __init__(self):
+        self.lpos = None
+        self.rpos = None
+        self.mq = None
+    def __str__(self):
+        return "%s\t%s\t%s\t" %(self.lpos, self.rpos, self.mq)
 
 class cluster(object):
     # cluster of aligned fragments
@@ -182,20 +191,49 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
 
     # process and write clusters from cliques
     for clique in max_clique_list_s:
-        pickedFrags = {}
-        clique0 = clique[0]
-        lTID = fragHash[clique0].lTID
-        rTID = fragHash[clique0].rTID
-        lbp = fragHash[clique0].l_bound
-        rbp = fragHash[clique0].r_bound
-        l_min = fragHash[clique0].l_bound
-        lmax = fragHash[clique0].l_bound + 1
-        r_min = fragHash[clique0].r_bound
-        r_max = fragHash[clique0].r_bound + 1
-        goodFrags = []
-        count = 0
         if len(clique) >= min_cluster_size:
+            cliqueRev = clique
+            sample = []
             for item in clique:
+                if sample == []:
+                    sample = [[fragHash[item].l_bound, fragHash[item].r_bound]]
+                else:
+                    sample.append([fragHash[item].l_bound, fragHash[item].r_bound])
+
+            kmeans = KMeans(n_clusters=2)
+            kmeans = kmeans.fit(sample)
+            label = kmeans.predict(sample)
+            label = list(label)
+            count0 = label.count(0)
+            count1 = len(label) - count0
+
+            if 1.0*count1/count0 < (1/6.) or 1.0*count0/count1 < (1/6.):
+                if count0 < count1:
+                    removeBit = 0
+                else:
+                    removeBit = 1
+
+                removeList = set()
+                for k,item in enumerate(clique):
+                    if label[k] == removeBit:
+                        removeList.add(k)
+
+                cliqueRev = [v for i, v in enumerate(clique) if i not in removeList]
+
+            pickedFrags = {}
+            clique0 = cliqueRev[0]
+            lTID = fragHash[clique0].lTID
+            rTID = fragHash[clique0].rTID
+            lbp = fragHash[clique0].l_bound
+            rbp = fragHash[clique0].r_bound
+            l_min = fragHash[clique0].l_bound
+            lmax = fragHash[clique0].l_bound + 1
+            r_min = fragHash[clique0].r_bound
+            r_max = fragHash[clique0].r_bound + 1
+            goodFrags = []
+            count = 0
+
+            for item in cliqueRev:
                 # do not put diff almts of same *fragment* in same cluster
                 usPos = item.find("_")
                 if usPos != -1:
