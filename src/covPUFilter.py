@@ -15,8 +15,8 @@ DEL_THRESH_L = .8
 DUP_THRESH_L = 1.2
 MIN_PILEUP_THRESH = 80
 CALC_THRESH = 1000000
-PE_DEL_THRESH_S = 250
-PE_DEL_THRESH_L = 150
+PE_DEL_THRESH_S = 102 #$remove model if unnecessary
+PE_DEL_THRESH_L = 100
 chrHash = {}
 covHash = {}
 # empirical calculation of DEL_THRESH b/w 15 and 25 stdev of IL
@@ -81,7 +81,7 @@ def calculateDELThreshPE(SD):
     return PE_DEL_THRESH
 
 def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, 
-                    GOOD_REG_THRESH):
+                    GOOD_REG_THRESH, outerBPs):
     global covHash
     bin_size = 100
     if chr_n not in covHash:
@@ -99,8 +99,8 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             if counterBase > CALC_THRESH:
                 break
         if len(covList) > 0:
-            covHash[chr_n] = covList[len(covList)/2] 
             avgCov = 1.0*totalCov/counterBase
+            covHash[chr_n] = avgCov #covList[len(covList)/2]
             #change to debug when test done
             logging.debug("Median coverage of Chr %s written as %f; average was %f",
                           chr_n, covHash[chr_n], avgCov)
@@ -109,8 +109,15 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             print >> stderr, ("Note: unable to calculate coverage in chromosome %s", chr_n)
             covHash[chr_n] = 0
 
-    gap = bpSecond - bpFirst
-    start = .25*gap + bpFirst
+    if bpSecond - bpFirst < 1.25*MIN_PILEUP_THRESH:
+        bpFirstL = outerBPs[0]
+        bpSecondL = outerBPs[1]
+    else:
+        bpFirstL = bpFirst
+        bpSecondL = bpSecond
+
+    gap = bpSecondL - bpFirstL
+    start = .25*gap + bpFirstL
     stop = min(start+.5*gap,start +3*PILEUP_THRESH)
     covLoc, counter, confRegion = 0,0,0
     if stop > start:
@@ -226,7 +233,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
                     covLocM, confMiddle = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),
-                            PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH)
+                            PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[3]), int(lineAV_split[7])])
 
                     if confMiddle == 1:
                         if svtype[0:2] == "TD" and covLocM > DUP_THRESH: 
@@ -247,7 +254,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             elif covLocM > 3*DEL_THRESH2:
                                 GT="GT:0/1"
 
-                        elif svtype[0:3] == "DEL" and covLocM > DEL_THRESH_L: #1.0:
+                        elif svtype[0:3] == "DEL" and covLocM > 1.0:
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS_halfFR"
 
@@ -259,35 +266,36 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     #use inner bounds for all
                     start = int(lineAV_split[7])
                     stop = int(lineAV_split[9])
-                    #this should not occur
-                    if start > stop:
-                        start, stop = stop, start
                     covLoc_23, conf_23 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                            start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH)
+                            start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[6]), int(lineAV_split[10])])
 
                     #bp1-2 ("12" will here refer to 1, the paste bp, and the closest of the other 2)
                     start = int(lineAV_split[4])
                     stop = int(lineAV_split[6])
+                    outerBPs = [int(lineAV_split[3]), int(lineAV_split[7])]
                     if start > stop:
                         swap_12 = 1
                         start = int(lineAV_split[10])
                         stop = int(lineAV_split[3])
+                        outerBPs = [int(lineAV_split[9]), int(lineAV_split[4])]
                     if lineAV_split[2] == lineAV_split[5]:
                         covLoc_12, conf_12 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH)
+                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs)
                     else:
                         convLoc_12, conf_12 = 0,0
                    
                     #bp1-3 ("13" will here refer to 1, the paste bp, and the farther of the other 2)
                     start = int(lineAV_split[4])
                     stop = int(lineAV_split[9])
+                    outerBPs = [int(lineAV_split[3]), int(lineAV_split[10])]
                     if start > stop:
                         swap_13 = 1
                         start = int(lineAV_split[7])
                         stop = int(lineAV_split[3])
+                        outerBPs = [int(lineAV_split[6]), int(lineAV_split[4])]
                     if lineAV_split[2] == lineAV_split[5]:
                         covLoc_13, conf_13 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH)
+                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs)
                     else:
                         convLoc_13, conf_13 = 0,0
 

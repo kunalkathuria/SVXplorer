@@ -155,8 +155,6 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
         if lBP_end <  newVariant.bp1_start < newVariant.bp1_end < rBP_start:
             if newVariant.SVType == "INS":
                 newVariant.SVType = "INS_C"
-            elif newVariant.SVType == "INS_I":
-                newVariant.SVType = "INS_C_I"
             newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, \
                 newVariant.bp2_end = newVariant.bp2_start, newVariant.bp2_end, \
                 newVariant.bp1_start, newVariant.bp1_end
@@ -183,8 +181,6 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
         # breakpoint locations are confirmed
         if newVariant.SVType == "INS":
             newVariant.SVType = "INS_C_P"
-        elif newVariant.SVType == "INS_I":
-            newVariant.SVType = "INS_C_I_P"
         # swap bp1 and bp3, as bp1 is paste location by convention
         newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, \
             newVariant.bp3_end = newVariant.bp3_start, newVariant.bp3_end, \
@@ -211,8 +207,6 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
         logging.debug('Orientation matches for INS_C')
         if newVariant.SVType == "INS":
             newVariant.SVType = "INS_C_P"
-        elif newVariant.SVType == "INS_I":
-            newVariant.SVType = "INS_C_I_P"
         # swap bp1 and bp2, as bp1 is paste location by convention
         newVariant.bp1TID, newVariant.bp2TID = newVariant.bp2TID, newVariant.bp1TID
         newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, \
@@ -242,8 +236,7 @@ def writeVariants(varList, fpAV, fpCVM, hashedVM, offset):
     for g, item in enumerate(varList):
         num = offset + 1 + g
         fpCVM.write("%s" %(num))
-        if item.SVType == "INS" or item.SVType == "INS_I" or \
-            item.SVType == "INS_C_P" or item.SVType == "INS_C_I_P":
+        if item.SVType == "INS" or item.SVType == "INS_C_P":
                 # just to be safe, but should be ensured anyway
                 if item.bp2TID == item.bp3TID and item.bp3_start < item.bp2_start:
                     item.bp2_start, item.bp2_end, item.bp3_start, item.bp3_end=\
@@ -343,15 +336,13 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
         elif LROverlap and RROverlap and not LLOverlap and not RLOverlap and cluster1.isSmall \
             and not clusterP.isSmall:
             logging.debug('Tagged as Small INS')
-            # strictly, this should be TD_I_I but we are grouping them into INS_I
-            if clusterP.l_orient == clusterP.r_orient:
-                newVariant.SVType = "INS_I"
-            elif not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID) \
-                or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                newVariant.SVType = "INS"
-            else:
-                # TD or INS
-                newVariant.SVType = "TD_I"
+            if clusterP.l_orient != clusterP.r_orient:
+                if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID) \
+                    or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                    newVariant.SVType = "INS"
+                else:
+                    # TD or INS
+                    newVariant.SVType = "TD_I"
             newSVFlag=1
             # only bp_1 numbering is crucial
             # not nec--can make more precise by evaluating which of 3 bp pairs yields least bp width
@@ -364,13 +355,12 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
         elif RLOverlap and RROverlap and not LLOverlap and not LROverlap and \
             clusterP.isSmall and not cluster1.isSmall:
 
-            if cluster1.l_orient == cluster1.r_orient:
-                newVariant.SVType = "INS_I"
-            elif not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
-                or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                newVariant.SVType = "INS"
-            else:
-                newVariant.SVType = "TD_I"
+            if cluster1.l_orient != cluster1.r_orient:
+                if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
+                    or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                    newVariant.SVType = "INS"
+                else:
+                    newVariant.SVType = "TD_I"
             newSVFlag=1
             newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
             newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
@@ -382,13 +372,12 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
         elif LLOverlap and RLOverlap and not LROverlap and not RROverlap and \
             cluster1.isSmall and not clusterP.isSmall:
 
-            if clusterP.l_orient == clusterP.r_orient:
-                newVariant.SVType = "INS_I"
-            elif not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
-                or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                newVariant.SVType = "INS"
-            else:
-                newVariant.SVType = "TD_I"
+            if clusterP.l_orient != clusterP.r_orient:
+                if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
+                    or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                    newVariant.SVType = "INS"
+                else:
+                    newVariant.SVType = "TD_I"
             newSVFlag=1
             newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
             newVariant.bp2_start, newVariant.bp2_end = clusterP.r_start, clusterP.r_end
@@ -400,13 +389,12 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
         elif LLOverlap and LROverlap and not RLOverlap and not RROverlap and \
             clusterP.isSmall and not cluster1.isSmall:
 
-            if cluster1.l_orient == cluster1.r_orient:
-                newVariant.SVType = "INS_I"
-            elif not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
-                or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                newVariant.SVType = "INS"
-            else:
-                newVariant.SVType = "TD_I"
+            if cluster1.l_orient != cluster1.r_orient:
+                if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
+                   or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                    newVariant.SVType = "INS"
+                else:
+                    newVariant.SVType = "TD_I"
             newSVFlag=1
             newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
             newVariant.bp2_start, newVariant.bp2_end = cluster1.r_start, cluster1.r_end
@@ -427,12 +415,10 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             if clusterP.lTID == clusterP.rTID and not (cluster1.l_end < clusterP.r_end - RDL_Factor*RDL):
                 logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
                 continue
-            if cluster1.l_orient == cluster1.r_orient and clusterP.l_orient == clusterP.r_orient:
-                newVariant.SVType = "INS_I"
-            elif cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
+            if cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
                 newVariant.SVType = "INS"
                 
-            if newVariant.SVType == "INS" or newVariant.SVType == "INS_I":
+            if newVariant.SVType == "INS":
                 if cluster1.rTID == clusterP.rTID and cluster1.r_end < clusterP.r_start and \
                     not (cluster1.r_orient == 1 and clusterP.r_orient == 0):
                     logging.debug("Orientation mismatch for INS/INS_C:1")
@@ -467,12 +453,10 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             if clusterP.lTID == clusterP.rTID and not (cluster1.r_start > clusterP.l_start + RDL_Factor*RDL):
                 logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
                 continue
-            if cluster1.l_orient == cluster1.r_orient and clusterP.l_orient == clusterP.r_orient:
-                newVariant.SVType = "INS_I"
-            elif cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
+            if cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
                 newVariant.SVType = "INS"
                 
-            if newVariant.SVType == "INS" or newVariant.SVType == "INS_I":
+            if newVariant.SVType == "INS": 
                 if cluster1.lTID == clusterP.lTID and cluster1.l_end < clusterP.l_start and \
                     not (cluster1.l_orient == 1 and clusterP.l_orient == 0):
                     logging.debug("Orientation mismatch for INS/INS_C:1")
@@ -522,16 +506,9 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                 = cluster1.lTID, cluster1.rTID, clusterP.lTID
             newVariant.bp2_orient, newVariant.bp3_orient = cluster1.r_orient, clusterP.l_orient
             newSVFlag = 1
-            # one mate same orientation, other opposite, then inverted cut insertion
-            if (cluster1.l_orient == cluster1.r_orient and clusterP.l_orient != clusterP.r_orient) \
-                or (clusterP.r_orient == clusterP.l_orient and cluster1.l_orient != cluster1.r_orient):
-                newVariant.SVType = "INS_C_I"
-            #regular insertion if both mates show inversion
-            if newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID \
-                and cluster1.l_orient == cluster1.r_orient and clusterP.r_orient == clusterP.l_orient:
-                newVariant.SVType = "INS_I"
             # as always if paste location is on diff chr, it is regular INS
-            elif newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID:
+            if newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID \
+                and cluster1.l_orient != cluster1.r_orient and clusterP.r_orient != clusterP.l_orient:
                 newVariant.SVType = "INS"
             else:
                 logging.debug('Large INS check 3: check for cut-paste')
@@ -549,8 +526,6 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                     # breakpoint locations are confirmed
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
-                    elif newVariant.SVType == "INS_C_I":
-                        newVariant.SVType = "INS_C_I_P"
 
                     # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
                     newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end=\
@@ -568,8 +543,6 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                     logging.debug('Orientation matches for INS_C')
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
-                    elif newVariant.SVType == "INS_C_I":
-                        newVariant.SVType = "INS_C_I_P"
 
                     # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
                     newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end=\
@@ -577,20 +550,19 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                     newVariant.bp1TID, newVariant.bp2TID = newVariant.bp2TID, newVariant.bp1TID
                     newVariant.bp1_orient, newVariant.bp2_orient = newVariant.bp2_orient, newVariant.bp1_orient
 
-            if (newVariant.SVType == "INS" or newVariant.SVType == "INS_I") and \
+            if newVariant.SVType == "INS" and \
                 cluster1.rTID == clusterP.lTID and cluster1.r_end < clusterP.l_start and \
                 not (cluster1.r_orient == 1 and clusterP.l_orient == 0):
                 logging.debug("Orientation mismatch for INS/INS_C:1")
                 continue
-            elif (newVariant.SVType == "INS" or newVariant.SVType == "INS_I") and \
+            elif newVariant.SVType == "INS" and \
                 cluster1.rTID == clusterP.lTID and clusterP.l_end < cluster1.r_start and \
                 not (clusterP.l_orient == 1 and cluster1.r_orient == 0):
                 logging.debug("Orientation mismatch for INS/INS_C:2")
                 continue
 
             # make bp2 < bp3 for C_p and regular INS: this is conventional and consistent
-            if (newVariant.SVType == "INS_C_P" or newVariant.SVType == "INS_C_I_P" or \
-                newVariant.SVType == "INS" or newVariant.SVType == "INS_I") and \
+            if (newVariant.SVType == "INS_C_P" or newVariant.SVType == "INS") and \
                 newVariant.bp2_start > newVariant.bp3_start:
 
                 newVariant.bp2_start, newVariant.bp2_end, newVariant.bp3_start,\
@@ -624,16 +596,9 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                 = cluster1.rTID, cluster1.lTID, clusterP.rTID
             newVariant.bp2_orient, newVariant.bp3_orient = cluster1.l_orient, clusterP.r_orient
             newSVFlag = 1
-            # one mate same orientation, other opposite, then inverted cut insertion
-            if (cluster1.l_orient == cluster1.r_orient and clusterP.l_orient != clusterP.r_orient) \
-                or (clusterP.r_orient == clusterP.l_orient and cluster1.l_orient != cluster1.r_orient):
-                newVariant.SVType = "INS_C_I"
-            #regular insertion if both mates show inversion
-            if newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID \
-                and cluster1.l_orient == cluster1.r_orient and clusterP.r_orient == clusterP.l_orient:
-                newVariant.SVType = "INS_I"
             # as always if paste location is on diff chr, it is regular INS
-            elif newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID:
+            if newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID \
+                and cluster1.l_orient != cluster1.r_orient and clusterP.r_orient != clusterP.l_orient:
                 newVariant.SVType = "INS"
             else:
                 formCutPasteINS(newVariant, cluster1, clusterP, "RL")
@@ -650,8 +615,6 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                     # breakpoint locations are confirmed
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
-                    elif newVariant.SVType == "INS_C_I":
-                        newVariant.SVType = "INS_C_I_P"
 
                     # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
                     newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end=\
@@ -670,8 +633,6 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
 
                     if newVariant.SVType == "INS_C":
                         newVariant.SVType = "INS_C_P"
-                    elif newVariant.SVType == "INS_C_I":
-                        newVariant.SVType = "INS_C_I_P"
                     logging.debug('%d %d %d %d', newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end)
                     # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
                     newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end=\
@@ -679,20 +640,19 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                     newVariant.bp1TID, newVariant.bp2TID = newVariant.bp2TID, newVariant.bp1TID
                     newVariant.bp1_orient, newVariant.bp2_orient = newVariant.bp2_orient, newVariant.bp1_orient
 
-            if (newVariant.SVType == "INS" or newVariant.SVType == "INS_I") and \
+            if newVariant.SVType == "INS" and \
                 cluster1.lTID == clusterP.rTID and cluster1.l_end < clusterP.r_start and \
                 not (cluster1.l_orient == 1 and clusterP.r_orient == 0):
                 logging.debug("Orientation mismatch for INS/INS_C:1")
                 continue
-            elif (newVariant.SVType == "INS" or newVariant.SVType == "INS_I") and \
+            elif newVariant.SVType == "INS" and \
                 cluster1.lTID == clusterP.rTID and clusterP.r_end < cluster1.l_start and \
                 not (clusterP.r_orient == 1 and cluster1.l_orient == 0):
                 logging.debug("Orientation mismatch for INS/INS_C:2")
                 continue
 
             # make bp2 < bp3: this is conventional and consistent
-            if (newVariant.SVType == "INS_C_P" or newVariant.SVType == "INS_C_I_P" or \
-                newVariant.SVType == "INS" or newVariant.SVType == "INS_I") and \
+            if (newVariant.SVType == "INS_C_P" or newVariant.SVType == "INS") and \
                 newVariant.bp2_start > newVariant.bp3_start:
                 logging.debug('bp2 > bp3')
                 newVariant.bp2_start, newVariant.bp2_end, newVariant.bp3_start,\
@@ -702,7 +662,7 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
                     newVariant.bp3_orient
 
         # if clusters matched to form new SV
-        if newSVFlag:
+        if newSVFlag and newVariant.SVType != None:
             newVariant.clusterNums.append(cluster1.mapNum)
             newVariant.clusterNums.append(clusterP.mapNum)
             # should never occur after start, so okay to refresh variant buffer
@@ -837,8 +797,7 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                     elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
                     elem.bp3TID = cluster1.lTID
                     elem.SVType = "INS_C"
-        elif elem.SVType == "INS_C" or elem.SVType == "INS_C_I" or \
-            elem.SVType == "INS_C_P" or elem.SVType == "INS_C_I_P":
+        elif elem.SVType == "INS_C" or elem.SVType == "INS_C_P":
             logging.debug('Check conditions for match: cluster against variant for INS_C family')
 
             if cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp3TID and elem.bp1_orient != -1 \
@@ -898,11 +857,9 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 anyMatch = 1
                 if elem.SVType == "INS_C":
                     elem.SVType = "INS_C_P"
-                elif elem.SVType =="INS_C_I":
-                    elem.SVType = "INS_C_I_P"
                 elem.complete = 1
                 #print "INS_C_P 3", elem.count
-            elif not (elem.SVType == "INS_C_P" or elem.SVType == "INS_C_I_P") and \
+            elif (not elem.SVType == "INS_C_P") and \
                 isOverlapping("V", cluster1, elem, "L3", slop) and cluster1.lTID == elem.bp3TID and \
                 isOverlapping("V", cluster1, elem, "R3", slop) and cluster1.rTID == elem.bp3TID and \
                 cluster1.l_orient != cluster1.r_orient:
@@ -919,8 +876,6 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 elem.complete = 1
                 if elem.SVType == "INS_C":
                     elem.SVType = "INS_C_P"
-                elif elem.SVType =="INS_C_I":
-                    elem.SVType = "INS_C_I_P"
         elif elem.SVType == "TD":
             logging.debug('Check conditions for match: cluster against variant for TD')            
             if cluster1.isSmall and (isOverlapping("V", cluster1, elem, "L1", slop) and \
@@ -931,7 +886,7 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 elem.count+=1
                 anyMatch = 1
                 elem.complete = 1
-        elif elem.SVType == "INS" or elem.SVType == "INS_I":
+        elif elem.SVType == "INS":
             logging.debug('Check conditions for match: cluster against variant for INS')        
             # 2-bp-thus-far INS's
             if elem.bp3_start == -1:
@@ -948,8 +903,6 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                     elem.bp3TID = cluster1.rTID
                     if elem.SVType == "INS":
                         elem.SVType = "INS_C"
-                    elif elem.SVType == "INS_I":
-                        elem.SVType = "INS_C_I"
                 elif cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
                     cluster1.rTID == elem.bp2TID and (cluster1.lTID != elem.bp1TID or \
                     not isOverlapping("V", cluster1, elem, "L1", slop)) and \
@@ -963,24 +916,21 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                     elem.bp3TID = cluster1.lTID
                     if elem.SVType == "INS":
                         elem.SVType = "INS_C"
-                    elif elem.SVType == "INS_I":
-                        elem.SVType = "INS_C_I"
                 elif (cluster1.lTID == elem.bp1TID and isOverlapping("V", cluster1, elem, "L1", slop)\
                     and elem.bp1_hasAlmtF and cluster1.l_orient == 1)\
                     or (cluster1.rTID == elem.bp1TID and isOverlapping("V", cluster1, elem, "R1", slop)\
                     and elem.bp1_hasAlmtR and cluster1.l_orient == 0):
 
-                    if (elem.SVType == "INS" and cluster1.l_orient != cluster1.r_orient) or\
-                        (elem.SVType == "INS_I" and cluster1.l_orient == cluster1.r_orient):
-                            match = 1
-                            elem.count+=1
-                            anyMatch = 1
-                            if elem.bp1_hasAlmtF and cluster1.l_orient == 1:
-                                elem.bp3_start, elem.bp3_end = cluster1.r_start, cluster1.r_end
-                                elem.bp3TID = cluster1.rTID
-                            elif elem.bp1_hasAlmtR and cluster1.l_orient == 0:
-                                elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
-                                elem.bp3TID = cluster1.lTID
+                    if elem.SVType == "INS" and cluster1.l_orient != cluster1.r_orient:
+                        match = 1
+                        elem.count+=1
+                        anyMatch = 1
+                        if elem.bp1_hasAlmtF and cluster1.l_orient == 1:
+                            elem.bp3_start, elem.bp3_end = cluster1.r_start, cluster1.r_end
+                            elem.bp3TID = cluster1.rTID
+                        elif elem.bp1_hasAlmtR and cluster1.l_orient == 0:
+                            elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
+                            elem.bp3TID = cluster1.lTID
             elif elem.bp2TID == cluster1.lTID == cluster1.rTID and isOverlapping("V", cluster1, \
                 elem, "L2", slop) and isOverlapping("V", cluster1, elem, "R3", slop) and \
                 cluster1.l_orient != elem.bp2_orient and cluster1.r_orient != elem.bp3_orient:
@@ -991,26 +941,11 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                     #print "INS -> INS_C 1", elem.count
                     # breakpoints are confirmed for translocation only if INS involves 2 diff chr
                     if elem.bp1TID == elem.bp2TID:
-                        if elem.SVType == "INS_I" and cluster1.l_orient == cluster1.r_orient:
-                            elem.SVType = "INS_C_I_P"
-                            # swap bp1, bp3; then bp2, bp3 for both ustream and dstream
-                            elem.bp1_start, elem.bp1_end, elem.bp3_start, elem.bp3_end=\
-                                elem.bp3_start, elem.bp3_end, elem.bp1_start, elem.bp1_end
-                            elem.bp1TID, elem.bp3TID = elem.bp3TID, elem.bp1TID
-                            elem.bp1_orient, elem.bp3_orient = elem.bp3_orient, elem.bp1_orient
-                            elem.bp2_start, elem.bp2_end, elem.bp3_start, elem.bp3_end=\
-                                elem.bp3_start, elem.bp3_end, elem.bp2_start, elem.bp2_end
-                            elem.bp2TID, elem.bp3TID = elem.bp3TID, elem.bp2TID
-                            elem.bp2_orient, elem.bp3_orient = elem.bp3_orient, elem.bp2_orient
-                        elif cluster1.l_orient == 0 and cluster1.r_orient == 1:
+                        if cluster1.l_orient == 0 and cluster1.r_orient == 1:
                             if elem.SVType == "INS":
                                 elem.SVType = "INS_C"
-                            if elem.SVType == "INS_I":
-                                elem.SVType = "INS_C_I_P"
                     else:
-                        if elem.SVType == "INS_I":
-                            elem.SVType = "INS_C_I_P"
-                        elif elem.SVType == "INS":
+                        if elem.SVType == "INS":
                             elem.SVType = "INS_C_P"
             # small cluster check
             elif cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp1TID and \

@@ -9,6 +9,7 @@ from sklearn.cluster import KMeans
 
 #global variables
 IL_BinDistHash = {}
+SR_GRACE_MARGIN = 40
 
 class fragment(object):
     def __init__(self):
@@ -69,9 +70,9 @@ def calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty):
             else:
                 distPen = 0
         else:
-            distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_end - mean_IL)
+            distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl- SR_GRACE_MARGIN -dist_end)*1.0/(dist_end - mean_IL)
     else:
-        distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_penalty - dist_end)
+        distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl- SR_GRACE_MARGIN -dist_end)*1.0/(dist_penalty - dist_end)
     if distPen > 1:
         distPen = 1
     return distPen
@@ -94,6 +95,11 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
     elif c_type == "00" or c_type == "11":
         ildist = abs(bin_size*int((f2_lPos - f1_lPos + f2_rPos - f1_rPos)/(1.0*bin_size)))
 
+    #larger IL distance for liberal approach
+    if ildist > SR_GRACE_MARGIN:
+        ildist_L = ildist - abs(bin_size*int(SR_GRACE_MARGIN/(1.0*bin_size)))
+    else:
+        ildist_L = ildist
     # calculate weight component 1
     distPen = calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty)
 
@@ -101,6 +107,8 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
     # RF clusters from TDs need not have overlapping almts
     if ildist in IL_BinDistHash and distPen > 0 and (c_type == "10" or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
         weight = distPen*IL_BinDistHash[abs(ildist)]/(1.0*IL_BinTotalEntries)
+    elif ildist_L in IL_BinDistHash and distPen > 0 and (c_type == "10" or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
+        weight = distPen*IL_BinDistHash[abs(ildist_L)]/(1.0*IL_BinTotalEntries)
     else:
         weight = 0
     return weight
@@ -123,9 +131,9 @@ def calculateMargin(clusterC, max_cluster_length, disc_thresh, bp_margin):
     # but only if lying close -- so, lower margin
     if clusterC.count <= marginChangeThresh:
         cl_margin = min(changeMargin,cl_margin)
-    if cl_margin <= bp_margin:
+    if cl_margin < 2*bp_margin:
         # use small margin
-        cl_margin = bp_margin
+        cl_margin = 2*bp_margin
     # small margin on other side of "alignment tip"
     reverse_margin = bp_margin
 

@@ -362,7 +362,7 @@ if __name__ == '__main__':
     PARSER.add_argument('--subsample', action='store_true', help=argparse.SUPPRESS)    
 
     # writeDiscordantFragments
-    CALC_THRESH=1000000
+    CALC_THRESH=7500000
     MAP_THRESH=1
     # useful for secondary alignments
     PE_ALMT_COMB_THRESH=20
