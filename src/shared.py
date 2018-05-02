@@ -17,15 +17,13 @@ def formExcludeHash(chrHash, ignoreBuffer, ignoreBED, lengths):
     Outputs:
         None
     """
-    prevTID = "*" # invalid value
     fo=open(ignoreBED, "r")
     for line in fo:
         line_s = line.split()
         currentTID = line_s[0]
-        if currentTID != prevTID:
+        if currentTID not in chrHash:
             chrHash[currentTID] = np.zeros(lengths[currentTID])
         chrHash[currentTID][int(line_s[1])-ignoreBuffer:int(line_s[2])+ignoreBuffer] = 1
-        prevTID = currentTID
     return chrHash
 
 def ignoreRead(chr_l, loc_l, chr_r, loc_r, chrHash):

@@ -5,14 +5,16 @@
 from sys import stderr
 import pysam
 from collections import Counter
-from bitarray import bitarray
+import numpy as np
 import argparse
 import logging
+from shared import readChromosomeLengths
 
 # global variables
 DEL_THRESH2 = .125
 DEL_THRESH_L = .8
 DUP_THRESH_L = 1.2
+DEL_THRESH_S = .7
 MIN_PILEUP_THRESH = 80
 CALC_THRESH = 1000000
 PE_DEL_THRESH_S = 102 #$remove model if unnecessary
@@ -24,7 +26,7 @@ SD_S = 14
 SD_L = 24
 MIN_SPLIT_INS_COV = 7
 
-def formChrHash(NH_REGIONS_FILE, RDL):
+def formChrHash(NH_REGIONS_FILE, RDL, chrLengths):
     global chrHash
     logging.info("Forming PU hash table...")
     fo=open(NH_REGIONS_FILE,"r")
@@ -37,21 +39,14 @@ def formChrHash(NH_REGIONS_FILE, RDL):
         stop = int(line_s[2])+1
         if currentTID not in chrHash:
             prev_stop = -1
-            chrHash[currentTID] = bitarray()
+            chrHash[currentTID] = np.zeros(chrLengths[currentTID])
             #bed file is 1-based
-            for y in range(1,start):
-                chrHash[currentTID].append(0)
         # make hash table of unreliable regions if greater than RDL (almt would be doubtful there)
         if prev_stop != -1 and currentTID == prevTID:
-            addBit = 1
-            if start - prev_stop > RDL:
-                addBit = 0
-            for x in range(prev_stop, start):
-                if currentTID not in chrHash:
-                    chrHash[currentTID] = bitarray()
-                chrHash[currentTID].append(addBit)
-        for x in range(start, stop):
-            chrHash[currentTID].append(1)
+            if start - prev_stop <= RDL:
+                chrHash[currentTID][prev_stop:start] = 1
+
+        chrHash[currentTID][start:stop] = 1
         prev_start = start
         prev_stop = stop
         prevTID = currentTID
@@ -89,24 +84,26 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
         counterBase, refLoop, cov_100bp, totalCov = 0,0,0,0
         covList = []
         for pileupcolumn in fBAM.pileup(chr_n):
-            cov_100bp += pileupcolumn.n
-            totalCov += pileupcolumn.n
-            counterBase += 1
-            refLoop += 1
-            if refLoop == bin_size:
-                covList.append(1.0*cov_100bp/refLoop)
-                cov_100bp, refLoop = 0,0
-            if counterBase > CALC_THRESH:
-                break
+            if NH_REGIONS_FILE is None or \
+            (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
+                cov_100bp += pileupcolumn.n
+                totalCov += pileupcolumn.n
+                counterBase += 1
+                refLoop += 1
+                if refLoop == bin_size:
+                    covList.append(1.0*cov_100bp/refLoop)
+                    cov_100bp, refLoop = 0,0
+                if counterBase > CALC_THRESH:
+                    break
         if len(covList) > 0:
             avgCov = 1.0*totalCov/counterBase
-            covHash[chr_n] = avgCov #covList[len(covList)/2]
+            covHash[chr_n] = covList[len(covList)/2] #avgCov
             #change to debug when test done
             logging.debug("Median coverage of Chr %s written as %f; average was %f",
                           chr_n, covHash[chr_n], avgCov)
         else:
             logging.debug("Unable to calculate coverage in chromosome %s", chr_n)
-            print >> stderr, ("Note: unable to calculate coverage in chromosome %s", chr_n)
+            print >> stderr, "Note: unable to calculate coverage in chromosome", chr_n
             covHash[chr_n] = 0
 
     if bpSecond - bpFirst < 1.25*MIN_PILEUP_THRESH:
@@ -118,7 +115,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
 
     gap = bpSecondL - bpFirstL
     start = .25*gap + bpFirstL
-    stop = min(start+.5*gap,start +3*PILEUP_THRESH)
+    stop = start + .5*gap #min(start+.5*gap,start +3*PILEUP_THRESH)
     covLoc, counter, confRegion = 0,0,0
     if stop > start:
         for pileupcolumn in fBAM.pileup(chr_n, start, stop):
@@ -127,7 +124,32 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                 covLoc = covLoc + pileupcolumn.n
                 counter+=1
                 if counter > PILEUP_THRESH:
-                    break
+                    break               
+        # add sides also if not enough statistics in middle
+        if counter < PILEUP_THRESH/10 and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
+            gbCount = counter 
+            counter = 0
+            start, stop = bpFirstL, bpFirstL + .25*gap
+            for pileupcolumn in fBAM.pileup(chr_n, start, stop):
+                if NH_REGIONS_FILE is None or \
+                (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
+                    covLoc = covLoc + pileupcolumn.n
+                    counter+=1
+                    if counter > PILEUP_THRESH:
+                        break
+            gbCount+= counter
+            counter = 0
+            start, stop = bpSecondL - .25*gap, bpSecondL
+            for pileupcolumn in fBAM.pileup(chr_n, start, stop):
+                if NH_REGIONS_FILE is None or \
+                (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
+                    covLoc = covLoc + pileupcolumn.n
+                    counter+=1
+                    if counter > PILEUP_THRESH:
+                        break
+            gbCount+= counter
+            counter = gbCount
+
         if (counter > MIN_PILEUP_THRESH and (counter > GOOD_REG_THRESH*(stop-start) or counter > PILEUP_THRESH)):
             confRegion = 1
             covLoc = (1.0*covLoc)/(1.0*counter)
@@ -199,11 +221,14 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     fBAM = pysam.AlignmentFile(bamFile, "rb" )
     if NH_REGIONS_FILE is not None:
         logging.info("Using BED file %s in cov PU", NH_REGIONS_FILE)
-        formChrHash(NH_REGIONS_FILE, RDL)
+        chrLengths = readChromosomeLengths(bamFile)
+        formChrHash(NH_REGIONS_FILE, RDL, chrLengths)
     else:
         print >> stderr, "Warning! Not using a good regions file for pile-up filter! This can affect some coverage-based results adversely."
     header = fAV.readline()
     for counter, lineAV in enumerate(fAV):
+        if counter % 250 == 0:
+            logging.info("Variant %s written.", counter)
         counter+=1
         lineAV_split = lineAV.split()
         varNum = int(lineAV_split[0])
@@ -254,7 +279,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             elif covLocM > 3*DEL_THRESH2:
                                 GT="GT:0/1"
 
-                        elif svtype[0:3] == "DEL" and covLocM > 1.0:
+                        elif svtype[0:3] == "DEL" and covLocM > DEL_THRESH_S:
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS_halfFR"
 
