@@ -231,16 +231,16 @@ def processFragments():
 #    data = data.sort_values(by = ['lchr', 'rchr', 'lpos', 'rpos'])
 #    data.to_csv("%s/allDiscordants.txt" % WORKSPACE, header=None, index=None, sep='\t')
 #    logging.info('Finished sorting the discordants')
-#
-#    # form PE clusters from those discordant fragments. Creates
-#    # 1. allClusters.txt
-#    # 2. clusterMap.txt
-#    # 3. clusterCliques.txt in debug mode 
+
+    # form PE clusters from those discordant fragments. Creates
+    # 1. allClusters.txt
+    # 2. clusterMap.txt
+    # 3. clusterCliques.txt in debug mode 
     statFile = "%s/bamStats.txt" % WORKSPACE 
     binFile = "%s/binDist.txt" % WORKSPACE
 #    formPEClusters(WORKSPACE, statFile, binFile, MIN_CS, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.subsample, ARGS.d)
-#
-#    # collect the clusters that pass requirements -> allClusters.thresh.txt
+
+    # collect the clusters that pass requirements -> allClusters.thresh.txt
 #    data = pd.read_table("%s/allClusters.postClean.txt" % WORKSPACE, 
 #                         names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
 #                                'rchr', 'rpos', 'rend', 'small'],
@@ -284,8 +284,8 @@ def processFragments():
 #    logging.info("Done with consolidating clusters.")
 #
 #    # filter and format the results
-#    variantMapFile = "%s/variantMap.pe.txt" % WORKSPACE
-#    allVariantFile = "%s/allVariants.pe.txt" % WORKSPACE
+    variantMapFile = "%s/variantMap.pe.txt" % WORKSPACE
+    allVariantFile = "%s/allVariants.pe.txt" % WORKSPACE
 #    filterAndFormat(variantMapFile, allVariantFile, statFile, "pe")
 #
 #    # name sort the BAM file if it is not name-sorted. 
@@ -298,22 +298,22 @@ def processFragments():
 #    samfile.close()
 #
 #    #splitfile = ARGS.split
-#    splitfile = "%s/splitters.ns.bam" % WORKSPACE
+    splitfile = "%s/splitters.test.ns.bam" % WORKSPACE
 #    if sortorder == 'coordinate':
 #        splitfile = "%s/splitters.ns.bam" % WORKSPACE
 #        logging.info('Started name sorting the splitters file')
 #        pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", "-o", splitfile, ARGS.split)
 #        logging.info('Finished name sorting the splitters file')
-#
-#    # now add the split read information to the system. Write the files 
-#    # 1. variantMap.pe_sr.txt
-#    # 2. allVariants.pe_sr.txt
-#    addSplitReads(WORKSPACE, variantMapFile, allVariantFile, splitfile,
-#                  SLOP_SR, REF_RATE_SR, MIN_VS_SR, MQ_SR, ARGS.c,
-#                  MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i)
-#    logging.info("Done incorporating split reads.")
-#
-#    # filter and format these results
+
+    # now add the split read information to the system. Write the files 
+    # 1. variantMap.pe_sr.txt
+    # 2. allVariants.pe_sr.txt
+    addSplitReads(WORKSPACE, variantMapFile, allVariantFile, splitfile,
+                  SLOP_SR, REF_RATE_SR, MIN_VS_SR, MQ_SR, ARGS.c,
+                  MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i)
+    logging.info("Done incorporating split reads.")
+
+    # filter and format these results
     filterAndFormat("%s/variantMap.pe_sr.txt" % WORKSPACE, 
                     "%s/allVariants.pe_sr.txt" % WORKSPACE, statFile, "pe_sr")
 

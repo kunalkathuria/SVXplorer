@@ -168,7 +168,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
             break
         varType = -1
         if sr1.qname == sr2.qname:
-            #print sr1, sr2
+            print sr1, sr2
             SRFrag-=1
             sr_bp1 = sr1.reference_start
             sr_bp2 = sr2.reference_start
@@ -183,6 +183,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                ignoreRead(sr_bp1_tid, sr_bp1, sr_bp2_tid, sr_bp2, chrHash) or \
                ignoreRead(sr_bp1_tid, sr_bp1, sr_bp2_tid, sr_bp2, uncleanRHash) or \
                (sr_bp1_tid == bp1TID and sr_bp2_tid == bp2TID and abs(sr_bp1 - bp1Prev) < refRate and abs(sr_bp2 - bp2Prev) < refRate):
+                    print "Ignoring", sr1.reference_name
                     continue
 
             bp1Prev = sr_bp1
@@ -264,12 +265,16 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 if varNumPE not in SRtoPESuppBPs:
                     newBp = [sr_bp2, -1, sr_bp1]
 
+        print "varType, swap:", varType, swap, sr_bp1, sr_bp2, newAlmt in SVHashPE
+        if newAlmt in SVHashPE:
+            print "Almt mapped in:", SVHashPE[newAlmt]
         #check DEL
         if varType == 0 and swap==0 and minsr.is_reverse == maxsr.is_reverse:
             match = 1
         #check TD
         elif varType == 1 and swap==1 and minsr.is_reverse == maxsr.is_reverse:
             match = 1
+            print "TD match"
         #check INV
         elif varType == 2 and swap==0 and minsr.is_reverse != maxsr.is_reverse:
             match = 1

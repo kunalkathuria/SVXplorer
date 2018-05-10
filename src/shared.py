@@ -6,6 +6,7 @@ def readChromosomeLengths(bamfile):
     bfile = ps.Samfile(bamfile, 'rb')
     for chrominfo in bfile.header['SQ']:
         lengths[chrominfo['SN']] = chrominfo['LN']
+    bfile.close()
     return lengths
 
 def formExcludeHash(chrHash, ignoreBuffer, ignoreBED, lengths):
@@ -24,6 +25,7 @@ def formExcludeHash(chrHash, ignoreBuffer, ignoreBED, lengths):
         if currentTID not in chrHash:
             chrHash[currentTID] = np.zeros(lengths[currentTID])
         chrHash[currentTID][int(line_s[1])-ignoreBuffer:int(line_s[2])+ignoreBuffer] = 1
+    fo.close()
     return chrHash
 
 def ignoreRead(chr_l, loc_l, chr_r, loc_r, chrHash):

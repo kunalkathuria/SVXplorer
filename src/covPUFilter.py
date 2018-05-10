@@ -83,7 +83,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
         logging.debug("Calculating coverage for %s", chr_n)
         counterBase, refLoop, cov_100bp, totalCov = 0,0,0,0
         covList = []
-        for pileupcolumn in fBAM.pileup(chr_n):
+        for pileupcolumn in fBAM.pileup(chr_n, stepper="all"):
             if NH_REGIONS_FILE is None or \
             (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                 cov_100bp += pileupcolumn.n
@@ -115,10 +115,10 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
 
     gap = bpSecondL - bpFirstL
     start = .25*gap + bpFirstL
-    stop = start + .5*gap #min(start+.5*gap,start +3*PILEUP_THRESH)
+    stop = min(start+.5*gap,start +3*PILEUP_THRESH)
     covLoc, counter, confRegion = 0,0,0
     if stop > start:
-        for pileupcolumn in fBAM.pileup(chr_n, start, stop):
+        for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
             if NH_REGIONS_FILE is None or \
             (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                 covLoc = covLoc + pileupcolumn.n
@@ -126,11 +126,11 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                 if counter > PILEUP_THRESH:
                     break               
         # add sides also if not enough statistics in middle
-        if counter < PILEUP_THRESH/10 and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
+        if False and counter < PILEUP_THRESH/10 and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
             gbCount = counter 
             counter = 0
             start, stop = bpFirstL, bpFirstL + .25*gap
-            for pileupcolumn in fBAM.pileup(chr_n, start, stop):
+            for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
                 if NH_REGIONS_FILE is None or \
                 (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                     covLoc = covLoc + pileupcolumn.n
@@ -140,7 +140,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             gbCount+= counter
             counter = 0
             start, stop = bpSecondL - .25*gap, bpSecondL
-            for pileupcolumn in fBAM.pileup(chr_n, start, stop):
+            for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
                 if NH_REGIONS_FILE is None or \
                 (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                     covLoc = covLoc + pileupcolumn.n
@@ -307,7 +307,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         covLoc_12, conf_12 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                                 start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs)
                     else:
-                        convLoc_12, conf_12 = 0,0
+                        covLoc_12, conf_12 = 0,0
                    
                     #bp1-3 ("13" will here refer to 1, the paste bp, and the farther of the other 2)
                     start = int(lineAV_split[4])
@@ -322,7 +322,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         covLoc_13, conf_13 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                                 start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs)
                     else:
-                        convLoc_13, conf_13 = 0,0
+                        covLoc_13, conf_13 = 0,0
 
                     if conf_23:
                         if covLoc_23 > DUP_THRESH_L:

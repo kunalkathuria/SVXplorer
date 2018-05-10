@@ -1116,7 +1116,7 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
             newSimpleSV.count = 1
             newSimpleSV.clusterNums.append(clusterC.mapNum)
             # In case did not match with other half cluster for DN_INS (de novo INS)
-            if clusterC.r_orient == "2":
+            if clusterC.r_orient == 2:
                 newSimpleSV.SVType = "DN_INS"
                 newSimpleSV.bp2_start = newSimpleSV.bp1_start
                 newSimpleSV.bp2_end = newSimpleSV.bp1_end

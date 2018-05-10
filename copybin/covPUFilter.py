@@ -91,15 +91,6 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                 totalCov += pileupcolumn.n
                 counterBase += 1
                 refLoop += 1
-                badReadCount = 0
-                for read in pileupcolumn.pileups:
-                    if read.alignment.mapping_quality == 0:
-                        totalCov-= 1
-                        cov_100bp-= 1
-                        badReadCount+=1
-                if badReadCount == len(pileupcolumn.pileups):
-                    refLoop-=1
-                    cov_100bp-=1
                 if refLoop == bin_size:
                     covList.append(1.0*cov_100bp/refLoop)
                     cov_100bp, refLoop = 0,0
@@ -110,7 +101,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             covHash[chr_n] = avgCov #covList[len(covList)/2]
             #change to debug when test done
             logging.debug("Median coverage of Chr %s written as %f; average was %f",
-                          chr_n, covHash[chr_n], avgCov)
+                          chr_n, covList[len(covList)/2], avgCov)
         else:
             logging.debug("Unable to calculate coverage in chromosome %s", chr_n)
             print >> stderr, "Note: unable to calculate coverage in chromosome", chr_n
@@ -127,39 +118,29 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     start = .25*gap + bpFirstL
     stop = min(start+.5*gap,start +3*PILEUP_THRESH) #start + .5*gap
     covLoc, counter, confRegion = 0,0,0
+    pileupList = []
     if stop > start:
-        for pileupcolumn in fBAM.pileup(chr_n, start, stop):
+        logging.debug("Start, stop, gap, bpFirstL, bpFirst %s\t%s\t%s\t%s\t%s:", start, stop, gap, bpFirstL, bpFirst)
+        for pileupcolumn in fBAM.pileup(chr_n, start, stop, truncate=True):
             if NH_REGIONS_FILE is None or \
             (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                 covLoc = covLoc + pileupcolumn.n
                 counter+=1
-#                badReadCount = 0
-#                for read in pileupcolumn.pileups:
-#                    if read.alignment.mapping_quality == 0:
-#                        covLoc-= 1
-#                        badReadCount+=1
-#                if badReadCount == len(pileupcolumn.pileups):
-#                    counter-=1
+                pileupList.append((pileupcolumn.pos, pileupcolumn.n))
                 if counter > PILEUP_THRESH:
                     break               
         # add sides also if not enough statistics in middle
-        if counter < PILEUP_THRESH/10 and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
+        if False and counter < PILEUP_THRESH/10 and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
             gbCount = counter 
             counter = 0
             start, stop = bpFirstL + SR_GRACE, bpFirstL + .25*gap
             if stop > start:
-                for pileupcolumn in fBAM.pileup(chr_n, start, stop):
+                for pileupcolumn in fBAM.pileup(chr_n, start, stop, truncate=True):
                     if NH_REGIONS_FILE is None or \
                     (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                         covLoc = covLoc + pileupcolumn.n
                         counter+=1
-#                        badReadCount = 0    
-#                        for read in pileupcolumn.pileups:
-#                            if read.alignment.mapping_quality == 0:
-#                                covLoc-= 1
-#                                badReadCount+=1
-#                        if badReadCount == len(pileupcolumn.pileups):
-#                            counter-=1
+                        pileupList.append((pileupcolumn.pos, pileupcolumn.n))
                         if counter > PILEUP_THRESH:
                             break
             gbCount+= counter
@@ -171,13 +152,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                         covLoc = covLoc + pileupcolumn.n
                         counter+=1
-#                        badReadCount = 0 
-#                        for read in pileupcolumn.pileups:
-#                            if read.alignment.mapping_quality == 0:
-#                                covLoc-= 1
-#                                badReadCount+=1
-#                        if badReadCount == len(pileupcolumn.pileups):
-#                            counter-=1
+                        pileupList.append((pileupcolumn.pos, pileupcolumn.n))
                         if counter > PILEUP_THRESH:
                             break
             gbCount+= counter
@@ -188,18 +163,21 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             covLoc = (1.0*covLoc)/(1.0*counter)
 
     if covHash[chr_n] != 0:
+        logging.debug("CovLoc, chr cov, good-base count:%s\t%s\t%s",covLoc, covHash[chr_n],counter)
+        logging.debug("PU List: %s", pileupList)
         return 1.0*covLoc/covHash[chr_n], confRegion
     else:
         return 0, 0
 
 def writeVariants(lineAV_split, swap, bnd, support, GT, fAVN, PE_DEL_THRESH, 
                   SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH):
-   
+    logging.debug("Arrived in write variants: %s", "\t".join(lineAV_split)) 
     svtype = lineAV_split[1]
     lineAV_split_T = list(lineAV_split)
     if svtype.startswith("TD") or svtype.startswith("INV") or svtype.startswith("DEL") or\
         (svtype.startswith("INS_half") and lineAV_split[2] == lineAV_split[5]):
         if int(lineAV_split[7])-int(lineAV_split[3]) < UNIV_VAR_THRESH:
+            logging.debug("Not writing small variant %s", lineAV)
             return
 
     if svtype == "DEL":
@@ -260,6 +238,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
         print >> stderr, "Warning! Not using a good regions file for pile-up filter! This can affect some coverage-based results adversely."
     header = fAV.readline()
     for counter, lineAV in enumerate(fAV):
+        logging.debug("Arrival 1 %s", lineAV)
         if counter % 250 == 0:
             logging.info("Variant %s written.", counter)
         counter+=1
@@ -274,7 +253,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
             support = int(lineAV_split[14])
         if varNum in uniqueFilterSVs:
             svtype = lineAV_split[1]
-
+            logging.debug("Arrival 2 %s", lineAV)
             ## skip SV if size thresholds not met
             if svtype.startswith("TD") or svtype.startswith("INV") or svtype.startswith("DEL") or\
                 (svtype.startswith("INS_half") and lineAV_split[2] == lineAV_split[5]) or\
@@ -287,8 +266,10 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 bnd=0
                 swap = 0
                 GT="."
+                logging.debug("Arrival 3 %s", lineAV)
                 if (svtype == "DEL_INS" or svtype == "DEL" or svtype[0:2]== "TD") and \
-                    int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
+                        int(lineAV_split[4]) + MIN_PILEUP_THRESH > int(lineAV_split[6]):
+                    logging.debug("Passed MPU Cut %s", lineAV)
                     covLocM, confMiddle = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),
                             PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[3]), int(lineAV_split[7])])
@@ -299,9 +280,13 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             logging.debug("TD confirmed using pileup")
                             svtype = "TD"
 
-                        elif svtype[0:2] == "TD" and covLocM < DUP_THRESH_L:
+                        elif svtype[0:2] == "TD" and covLocM < 1.3: #DUP_THRESH_L:
+                            logging.debug("TD rejected using pile up %s", lineAV)
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS_halfRF"
+
+                        elif svtype[0:2] == "TD":
+                            logging.debug("Unaccounted TD %s", lineAV)
 
                         elif svtype[0:3] == "DEL" and covLocM < DEL_THRESH: 
 
@@ -340,7 +325,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         covLoc_12, conf_12 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                                 start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs)
                     else:
-                        convLoc_12, conf_12 = 0,0
+                        covLoc_12, conf_12 = 0,0
                    
                     #bp1-3 ("13" will here refer to 1, the paste bp, and the farther of the other 2)
                     start = int(lineAV_split[4])
@@ -355,7 +340,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         covLoc_13, conf_13 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                                 start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs)
                     else:
-                        convLoc_13, conf_13 = 0,0
+                        covLoc_13, conf_13 = 0,0
 
                     if conf_23:
                         if covLoc_23 > DUP_THRESH_L:
@@ -473,6 +458,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                 writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                               SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                                 continue
+                        NPE_CLUSTERS_SUPP = int(lineAV_split[12])
                         if (svtype == "INS_C" or svtype == "INS_C_I"):
                             if dup_23 and not dup_12:
                                 svtype+="_P"
@@ -480,11 +466,13 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                 svtype+="_P"
                                 swap = 1
                         elif (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
-                            (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                            (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH or\
+                            NPE_CLUSTERS_SUPP < 3):
                             bnd = 1
 
             ## write in BED files
             lineAV_split[1] = svtype
+            logging.debug("About to write %s", lineAV)
             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN,
                     PE_DEL_THRESH, SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 

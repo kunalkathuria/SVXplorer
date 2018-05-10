@@ -151,8 +151,8 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 isinv=""
                 svlen = str(abs(int(chr2Start) - int(chr1End)))
                 if name=="TD_INV":
-                    isinv="ISINV"
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + support + precise)
+                    isinv="ISINV;"
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + isinv + support + precise)
             elif name == "INV":
                 ciend = int(chr2End) - int(chr2Start)
                 pos = int((int(chr1Start) + int(chr1End))/2.0)
@@ -162,20 +162,20 @@ def writeVCFFromBedpe(inputFile, outputFile):
             elif name in ["INS","INS_I","INS_C_P","INS_C_I_P"]:
                 if name in ["INS","INS_I"]:
                     field1 = "DUP"
+                    svlen = str(abs(int(chr1End)-int(chr1Start)))
                     CM = "CopyPasteInsertion"
-                    # if paste < source in case on same chr
                 else:
                     field1 = "DEL"
                     CM = "CutPasteInsertion"
-                svlen = str(abs(int(chr1End)-int(chr1Start)))
+                    svlen = "-" + str(abs(int(chr1End)-int(chr1Start)))
                 cipos = int(chr2End)-int(chr2Start)
                 isinv=""
                 if name=="INS_I":
-                    isinv="ISINV"
+                    isinv="ISINV;"
                  
                 BNDAlt1, BNDAlt2 = "N[" + chr1 + ":" + chr1Start + "[", "]" + tokens[3] + ":" + chr2Start + "]N"
                 BNDAlt3, BNDAlt4 = "]" + tokens[3] + ":" + chr2Start + "]N", "N[" + chr1 + ":" + chr1End + "["
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", BNDAlt1,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 2) + ";" + isinv + ";" + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", BNDAlt2, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 1) + isinv + ";" + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", BNDAlt3, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 4) + ";" + isinv + ";" + support + precise)
@@ -192,7 +192,7 @@ def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
         # 2. variants.uniqueSupport.txt
         uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
                          "%s/allDiscordants.txt" % WORKSPACE, MAP_THRESH_U, 
-                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 4, 4, 3000000, 100000000, -1)
+                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 4, 3000000, 100000000, -1)
 
     # write the results. This writes
     # 1. variants.bedpe
@@ -362,7 +362,7 @@ if __name__ == '__main__':
     PARSER.add_argument('--subsample', action='store_true', help=argparse.SUPPRESS)    
 
     # writeDiscordantFragments
-    CALC_THRESH=7500000
+    CALC_THRESH=10000000
     MAP_THRESH=1
     # useful for secondary alignments
     PE_ALMT_COMB_THRESH=20

@@ -11,14 +11,6 @@ from sklearn.cluster import KMeans
 IL_BinDistHash = {}
 SR_GRACE_MARGIN = 40
 
-class fragment(object):
-    def __init__(self):
-        self.lpos = None
-        self.rpos = None
-        self.mq = None
-    def __str__(self):
-        return "%s\t%s\t%s\t" %(self.lpos, self.rpos, self.mq)
-
 class cluster(object):
     # cluster of aligned fragments
     def __init__(self):
@@ -40,9 +32,10 @@ class cluster(object):
         self.clSmall = -1
         self.fragNum = -1
         self.used = 0
+        self.mq = None
 
     def __str__(self):
-        return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.count, self.cType, self.lTID, self.l_start, self.l_end, self.rTID, self.r_start, self.r_end, self.clSmall)
+        return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.count, self.cType, self.lTID, self.l_start, self.l_end, self.rTID, self.r_start, self.r_end, self.clSmall, self.mq)
 
 def readBamStats(statFile):
     stats = []
@@ -284,11 +277,10 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
                 newCl.lmax = lmax
                 newCl.r_max = r_max
                 calculateMargin(newCl, max_cluster_length, disc_thresh, bp_margin)
-                if debug:
-                    fCliques.write("%s\t%s\n" %("@Cluster"+str(clusterNum),newCl))
-                fClusters.write("%s\t%s\n" %(clusterNum, newCl))
                 fClusterMap.write("%s" %clusterNum)
+                msMQ = 0
                 for item in goodFrags:
+                    msMQ+= (fragHash[item].mq)**2
                     # write all supporting fragments to clique info file as well
                     if debug:
                         fCliques.write("%s\t%s\t%s\n" %(item, fragHash[item].l_bound, fragHash[item].r_bound))
@@ -298,6 +290,12 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
                         item_s = item[:usPos]
                     fClusterMap.write("\t%s" %item_s)
                 fClusterMap.write("\n")
+                msMQ = msMQ*1.0/len(goodFrags)
+                rmsMQ = msMQ**(.5)
+                newCl.mq = int(round(rmsMQ))
+                if debug:
+                    fCliques.write("%s\t%s\n" %("@Cluster"+str(clusterNum),newCl))
+                fClusters.write("%s\t%s\n" %(clusterNum, newCl))
                 clusterNum+=1
     return clusterNum
 
@@ -450,6 +448,7 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
         almt.lTID = parsed[1]
         almt.rTID = parsed[3]
         almt.clSmall = int(parsed[6])
+        almt.mq = int(parsed[7])
         almt.fragNum = parsed[0]
 
         #ignore artefact seen often

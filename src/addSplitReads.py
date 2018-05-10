@@ -143,18 +143,29 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     bp2TID = -1
 
     ignoreList = set()
+    ignoreTIDAll = set()
     if ignoreChr is not None:
         with open(ignoreChr, "r") as fIC:
             for line in fIC:
-                ignoreList.add(line.strip().split()[0])
+                chrI = line.strip().split()[0]
+                if not chrI.startswith("*"):
+                    ignoreList.add(chrI)
+                    logging.info("Adding SRs: Chromosome %s will be ignored.", chrI)
+                else:
+                    ignoreTIDAll.add(chrI[1:])
+                    logging.info("Adding SRs: Chr names starting with %s will be ignored", chrI[1:])
 
     chromosome_lengths = readChromosomeLengths(bamFileSR)
 
     chrHash = {}
+    uncleanRHash = {}
+    uncleanRegions = None #workDir + "/badRegions.bed"
     if ignoreBED is not None:
         logging.info("Regions in %s will be ignored", ignoreBED)
         chrHash = formExcludeHash(chrHash, 0, ignoreBED, chromosome_lengths)
-
+    if uncleanRegions is not None:
+        logging.info("High activity regions given in %s will be ignored", uncleanRegions)
+        uncleanRHash = formExcludeHash(uncleanRHash, 0, uncleanRegions, chromosome_lengths)
     # all split reads should be mapped, unique alignments
     while True:
         try:
@@ -164,7 +175,6 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
             break
         varType = -1
         if sr1.qname == sr2.qname:
-            #print sr1, sr2
             SRFrag-=1
             sr_bp1 = sr1.reference_start
             sr_bp2 = sr2.reference_start
@@ -177,9 +187,18 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                sr1.mapping_quality < mapThresh or \
                sr2.mapping_quality < mapThresh or \
                ignoreRead(sr_bp1_tid, sr_bp1, sr_bp2_tid, sr_bp2, chrHash) or \
+               ignoreRead(sr_bp1_tid, sr_bp1, sr_bp2_tid, sr_bp2, uncleanRHash) or \
                (sr_bp1_tid == bp1TID and sr_bp2_tid == bp2TID and abs(sr_bp1 - bp1Prev) < refRate and abs(sr_bp2 - bp2Prev) < refRate):
                     continue
 
+            skip = 0
+            for chrI in ignoreTIDAll:
+                if sr1.reference_name.startswith(chrI) or sr2.reference_name.startswith(chrI):
+                    skip = 1
+                    break
+            if skip:
+                logging.debug("Ignoring SR almt %s and %s, as occurs as * entry in ignoreTIDs", sr1, sr2)
+                continue
             bp1Prev = sr_bp1
             bp1TID = sr_bp1_tid
             bp2Prev = sr_bp2
