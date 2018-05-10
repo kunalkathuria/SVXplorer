@@ -126,7 +126,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                 if counter > PILEUP_THRESH:
                     break               
         # add sides also if not enough statistics in middle
-        if False and counter < PILEUP_THRESH/10 and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
+        if counter < PILEUP_THRESH/10 and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
             gbCount = counter 
             counter = 0
             start, stop = bpFirstL, bpFirstL + .25*gap
@@ -220,7 +220,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
     fBAM = pysam.AlignmentFile(bamFile, "rb" )
     if NH_REGIONS_FILE is not None:
-        logging.info("Using BED file %s in cov PU", NH_REGIONS_FILE)
+        logging.info("Using good-regions BED file %s in cov PU", NH_REGIONS_FILE)
         chrLengths = readChromosomeLengths(bamFile)
         formChrHash(NH_REGIONS_FILE, RDL, chrLengths)
     else:
@@ -345,8 +345,9 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                         # bp2-3
                         #diploid deletion + copy-paste in 2-3 region possible, so use DEL_THRESH below not DUP_THRESH
-                        if (conf_23 and covLoc_23 < DEL_THRESH) \
-                            or (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                        if (conf_23 and covLoc_23 < DUP_THRESH_L) or \
+                           (conf_12 and covLoc_12 < DEL_THRESH) or \
+                           (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
                             bnd = 1
 
                     elif svtype.startswith("INS_C") and lineAV_split[11].find("PE") != -1 and \
@@ -440,6 +441,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                 writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                               SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                                 continue
+                        NPE_CLUSTERS_SUPP = int(lineAV_split[12])
                         if (svtype == "INS_C" or svtype == "INS_C_I"):
                             if dup_23 and not dup_12:
                                 svtype+="_P"
@@ -447,7 +449,9 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                 svtype+="_P"
                                 swap = 1
                         elif (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
-                            (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                            ((0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH) or \
+                            NPE_CLUSTERS_SUPP < 3): 
+                            #or (conf_12 and covLoc_12 > DUP_THRESH)):
                             bnd = 1
 
             ## write in BED files
