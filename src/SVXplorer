@@ -10,6 +10,7 @@ import logging
 import pysam
 import numpy as np
 import pandas as pd
+import subprocess
 
 from writeDiscordantFragments import writeDiscordantFragments
 from formPEClusters import formPEClusters
@@ -240,8 +241,16 @@ def processFragments():
     binFile = "%s/binDist.txt" % WORKSPACE
     formPEClusters(WORKSPACE, statFile, binFile, MIN_CS, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.subsample, ARGS.d)
 
+    # run cluster clean-up
+    clusterFile = WORKSPACE + "/allClusters.txt"
+    if not ARGS.x:
+        cmd = "./bin/runCleanup.sh " + ARGS.samplebam + " " + clusterFile + " " + WORKSPACE 
+        subprocess.call(cmd, shell=True)
+        logging.info("Finished cluster cleanup")
+        clusterFile = WORKSPACE + "/allClusters.postClean.txt"
+
     # collect the clusters that pass requirements -> allClusters.thresh.txt
-    data = pd.read_table("%s/allClusters.txt" % WORKSPACE, 
+    data = pd.read_table(clusterFile, 
                          names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
                                 'rchr', 'rpos', 'rend', 'small'],
                          dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
@@ -309,7 +318,7 @@ def processFragments():
     # 2. allVariants.pe_sr.txt
     addSplitReads(WORKSPACE, variantMapFile, allVariantFile, splitfile,
                   SLOP_SR, REF_RATE_SR, MIN_VS_SR, MQ_SR, ARGS.c,
-                  MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i)
+                  MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i, ARGS.x)
     logging.info("Done incorporating split reads.")
 
     # filter and format these results
@@ -343,7 +352,8 @@ if __name__ == '__main__':
                         help='print debug information')
     PARSER.add_argument('-f', action='store_true',
                         help='overwrite existing workspace')
-
+    PARSER.add_argument('-x', action='store_true',
+                        help='do not use cluster cleanup')
     PARSER.add_argument('-i', default=None, 
                         help='ignore regions in this BED file')
     PARSER.add_argument('-c', default=None,

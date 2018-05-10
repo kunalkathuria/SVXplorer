@@ -11,7 +11,7 @@ SVXplorer first forms discordant clusters from paired-end reads via formation of
 
 ### REQUIREMENTS
 
-Unix-based OS with bash, python with pysam and other common libraries, samtools, git. It is best to have basic executables like "python", "samtools" etc. on user path. 
+Unix-based OS with bash, python with pysam and other common libraries, samtools, git. It is best to have basic executables like "python", "samtools" , "bedtools" etc. on user path. 
 
 ### INSTALLATION
 
@@ -21,7 +21,7 @@ Download SVXplorer from GitHub following GitHub instructions. Follow usage instr
 
 Type "make" from the installation path. Now you are ready to run SVXplorer.
 
-./SVXplorer [options]
+./bin/SVXplorer [options]
 
 A good check to see if the tool is working properly is to provide as input the test alignment files in the SVXplorer/testCases folder and check if the resulting vcf file found in the newly created "test" folder is identical with the one contained in SVXplorer/testFiles. Simply type:
 
@@ -37,13 +37,13 @@ $BWA mem -R '@RG\tID:foo\tSM:bar' -Y -t $threads $REFERENCE $READ1 $READ2 \
 > input.bam
 ```
 
-In addition, a file containing all fragments that align discordantly should be provided as input.
+In addition, a split-alignment file and a file containing all fragments that align discordantly should be provided as input (e.g. samtools view -F 3586 -b -o DISC_OUTPATH BAM). If unsure, scripts are provided in the scripts/ folder to create discordants as well as split reads (latter uses a LUMPY script).
 
 All SVXplorer command line options are accessed via ./SVXplorer -h. A file to ignore alignments in certain chromosome/genomic units for B37 (-c) and a file to exclude certain regions of alignment for B37 (-i) are included. 
 
-A typical (and recommended) call on sequenced data might be, with appropriate path replacement:
+A typical (and recommended) call on sequenced data might be, with appropriate path replacement (make sure you run from the parent git directory of SVXplorer):
 
-./SVXplorer discordant.bam splitters.bam sample.bam reference.fa -i exclude.bed -c ignore_CHR.txt -m non_repeat_regions.bed -f -w pathToworkDir -s 100
+./bin/SVXplorer discordant.bam splitters.bam sample.bam reference.fa -i exclude.bed -c ignore_CHR.txt -m non_repeat_regions.bed -f -w pathToworkDir -s 100
 
 Option -m expects a file listing regions not containing frequently repeated sequences, for use in assessing coverage, and SVC provides one.
 

@@ -116,7 +116,7 @@ def formPEHash(fAV, iObjects, slop):
 
 def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                   slop, refRate, min_vs, mapThresh, ignoreChr, minSizeINS,
-                  minSRtoPEsupport, ignoreBED):
+                  minSRtoPEsupport, ignoreBED, noCCleanUp):
     fAV = open(workDir+"/allVariants.pe.txt","r")
     fVM = open(workDir+"/variantMap.pe.txt","r")
     fAVN = open(workDir+"/allVariants.pe_sr.txt","w")
@@ -159,7 +159,9 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
 
     chrHash = {}
     uncleanRHash = {}
-    uncleanRegions = None #workDir + "/badRegions.bed"
+    uncleanRegions = workDir + "/badRegions.bed"
+    if noCCleanUp:
+        uncleanRegions = None
     if ignoreBED is not None:
         logging.info("Regions in %s will be ignored", ignoreBED)
         chrHash = formExcludeHash(chrHash, 0, ignoreBED, chromosome_lengths)
@@ -675,6 +677,8 @@ if __name__ == "__main__":
     PARSER.add_argument('bamFileSR', help='File containing all split reads, name-sorted')
     PARSER.add_argument('-d', dest='debug', action='store_true',
                         help='print debug information')
+    PARSER.add_argument('-x', action='store_true',
+                                    help='no cluster cleanup used')
     PARSER.add_argument('-s', default=8.0, dest='slop', type=float, help='SR breakpoint slop')
     PARSER.add_argument('-f', default=0, dest='refRate', type=int, help='Subsample every so many split reads')
     PARSER.add_argument('-m', default=3, dest='min_vs', type=int,
@@ -701,6 +705,6 @@ if __name__ == "__main__":
     addSplitReads(ARGS.workDir, ARGS.variantMapFilePE, ARGS.allVariantFilePE,
                   ARGS.bamFileSR, ARGS.slop, ARGS.refRate, ARGS.min_vs,
                   ARGS.mapThresh, ARGS.ignoreChr, ARGS.minSizeINS,
-                  ARGS.minSRtoPEsupport, ARGS.ignoreBED)
+                  ARGS.minSRtoPEsupport, ARGS.ignoreBED, ARGS.x)
 
     logging.shutdown()
