@@ -41,7 +41,7 @@ In addition, a split-alignment file and a file containing all fragments that ali
 
 All SVXplorer command line options are accessed via ./SVXplorer -h. A file to ignore alignments in certain chromosome/genomic units for B37 (-c) and a file to exclude certain regions of alignment for B37 (-i) are included. 
 
-A typical (and recommended) call on sequenced data might be, with appropriate path replacement (make sure you run from the parent git directory of SVXplorer):
+A typical (and recommended) call on sequenced data might be, with appropriate path replacement:
 
 ./bin/SVXplorer discordant.bam splitters.bam sample.bam reference.fa -i exclude.bed -c ignore_CHR.txt -m non_repeat_regions.bed -f -w pathToworkDir -s 100
 
@@ -56,5 +56,5 @@ These files are written in the working directory. Intermediate bedpe files using
 ### NOTES
 
 1. One can also set MQ_THRESH to 0 and use the option of secondary alignments by assigning a value less than 1 to MATCHRATIO (-d;see command line help) for higher sensitivity, but which may increase run-time considerably.
-3. One can set SPLIT_INS to True for good-quality data which allows for better performance with this particular filter (reevaluates non-tandem duplications/translocations and break them into deletions and tandem duplications if indicated by local read depth).
+3. One can set SPLIT_INS to True for *good-quality* diploid data which allows for better performance with this particular filter (reevaluates non-tandem duplications/translocations and break them into deletions and tandem duplications if indicated by local read depth).
 4. One can set LIB_INV to FALSE if wish to call only those inversions that are supported by 2 opposing PE clusters, and not 1 PE and 1 SR cluster only (see manuscript for more details). 

@@ -117,7 +117,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     start = .25*gap + bpFirstL
     stop = min(start+.5*gap,start +3*PILEUP_THRESH)
     covLoc, counter, confRegion = 0,0,0
-    if stop > start:
+    if stop > start + MIN_PILEUP_THRESH:
         for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
             if NH_REGIONS_FILE is None or \
             (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):

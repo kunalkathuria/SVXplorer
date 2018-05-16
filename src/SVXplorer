@@ -11,6 +11,7 @@ import pysam
 import numpy as np
 import pandas as pd
 import subprocess
+import pybedtools
 
 from writeDiscordantFragments import writeDiscordantFragments
 from formPEClusters import formPEClusters
@@ -19,6 +20,9 @@ from uniqueSuppFilter import uniqueSuppFilter
 from writeBEDs import writeBEDs
 from addSplitReads import addSplitReads
 from covPUFilter import covPUFilter
+from markDuplicateClusterRegions import markDuplicateClusterRegions
+#from markLikelyConflicts import markLikelyConflicts
+from pickBestCluster import pickBestCluster
 
 def createDirectory(name):
     try:
@@ -244,8 +248,38 @@ def processFragments():
     # run cluster clean-up
     clusterFile = WORKSPACE + "/allClusters.txt"
     if not ARGS.x:
-        cmd = "./bin/runCleanup.sh " + ARGS.samplebam + " " + clusterFile + " " + WORKSPACE 
+        # sort cluster file by left chr and pos
+        clusterFileLS = "%s/allClusters.ls.txt" % WORKSPACE
+        data = pd.read_table("%s/allClusters.txt" % WORKSPACE,
+                             names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
+                                    'rchr', 'rpos', 'rend', 'small'],
+                             dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
+        data = data.sort_values(by = ['lchr', 'lpos'])
+        data.to_csv(clusterFileLS, header=None, index=None, sep='\t')
+        
+        markDuplicateClusterRegions(clusterFileLS, WORKSPACE)
+        
+        # sort and merge bad regions
+        badRegionsFile = WORKSPACE + "/badRegions.bed"
+        badRegionsFileS = WORKSPACE + "badRegions.sorted.bed"
+        data = pd.read_table(badRegionsFile,
+                             names=['chr', 'start', 'stop'],
+                             dtype={'chr':np.str})
+        data = data.sort_values(by = ['chr', 'start'])
+        data.to_csv(badRegionsFileS, header=None, index=None, sep='\t')
+        
+        #$$$ throwing error "mergeBed not on path" -- resolve if possible and avoid shell call below
+        #pybedtools.set_bedtools_path(ARGS.bedtoolsPath)
+        #brFile = pybedtools.BedTool(badRegionsFileS)
+        #brFileM = brFile.merge(d=100)
+        #brFileM.saveas(WORKSPACE + "/badRegions.merged.bed")
+        
+        badRegionsFileM = WORKSPACE + "/badRegions.merged.bed"
+        cmd = "bedtools merge -d 100 -i " + badRegionsFileS + " > " + badRegionsFileM
         subprocess.call(cmd, shell=True)
+
+        # pick best cluster from each bad region
+        pickBestCluster(clusterFile, WORKSPACE, badRegionsFileM, ARGS.samplebam)
         logging.info("Finished cluster cleanup")
         clusterFile = WORKSPACE + "/allClusters.postClean.txt"
 
@@ -264,7 +298,7 @@ def processFragments():
     logging.info('Setting max_cl_comb_gap to %f', max_cl_comb_gap)
 
 
-    # sort the clusters based on the left breakpoint -> allClusters.ls.txt
+    # sort the clusters based on left chr and pos -> allClusters.ls.txt
     clusterFileLS = "%s/allClusters.ls.txt" % WORKSPACE
     data = pd.read_table("%s/allClusters.thresh.txt" % WORKSPACE,
                          names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
@@ -367,6 +401,8 @@ if __name__ == '__main__':
     PARSER.add_argument('split', help='bam file of split reads')
     PARSER.add_argument('samplebam', help='bam file of alignments')
     PARSER.add_argument('reference', help='path to reference genome')
+    # $$$ fix pybedtools implementation of merging in cleanup
+    #PARSER.add_argument('bedtoolsPath', help='path to bedtools')
 
     # options we do not expect the user to change
     PARSER.add_argument('--subsample', action='store_true', help=argparse.SUPPRESS)    
@@ -405,7 +441,7 @@ if __name__ == '__main__':
     MIN_SRtoPE_SUPP=2
 
     # covPUFilter
-    DEL_CN_SUPP_THRESH=.6 
+    DEL_CN_SUPP_THRESH=.7 
     DUP_CN_SUPP_THRESH=1.4
     PILEUP_THRESH=1000.0
     GOOD_REG_THRESH=.8

@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-cat $1 | grep -v GL00 | grep -v NC_ | grep -v hs3 | grep -v -w MT | grep -v BND | grep DEL > DEL.$2.gt.vcf
-~/scratch/share/svtyper/svtyper -B ~/na12878/ERR194147/alignments/sample.bam -S ~/na12878/SRR3397076/alignments/splitters.bam -i DEL.$2.gt.vcf -o DEL.$2.svtyper.vcf
-cat DEL.$2.svtyper.vcf | grep -v "0\/0" | grep -v "\.\/\." | cut -f1-5 > DEL.$2.svtyper.5col.vcf
-grep -F -f DEL.$2.svtyper.5col.vcf DEL.$2.gt.vcf > DEL.$2.svtyper.pass.vcf
-python ~/sve/scripts/vcftoBedpe.py DEL.$2.svtyper.pass.vcf 2

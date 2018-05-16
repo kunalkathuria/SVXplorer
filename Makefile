@@ -6,7 +6,6 @@ install:
 	mkdir -p bin
 	rm -f bin/*
 	cp src/*.py src/SVXplorer src/VERSION bin
-	cp scripts/manuscript/* bin
 test:
 	./bin/SVXplorer testCases/discordants.bam testCases/splitters.bam \
 	testCases/sample.bam testCases/ref/10kbp.random.ref.fa -x -f -w test
