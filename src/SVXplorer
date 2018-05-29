@@ -21,8 +21,8 @@ from writeBEDs import writeBEDs
 from addSplitReads import addSplitReads
 from covPUFilter import covPUFilter
 from markDuplicateClusterRegions import markDuplicateClusterRegions
-#from markLikelyConflicts import markLikelyConflicts
 from pickBestCluster import pickBestCluster
+from preserveSmallClusters import preserveSmallClusters
 
 def createDirectory(name):
     try:
@@ -282,6 +282,16 @@ def processFragments():
         pickBestCluster(clusterFile, WORKSPACE, badRegionsFileM, ARGS.samplebam)
         logging.info("Finished cluster cleanup")
         clusterFile = WORKSPACE + "/allClusters.postClean.txt"
+
+    splitfile = ARGS.split
+    if sortorder == 'coordinate':
+        splitfile = "%s/splitters.ns.bam" % WORKSPACE
+        logging.info('Started name sorting the splitters file')
+        pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", "-o", splitfile, ARGS.split)
+        logging.info('Finished name sorting the splitters file')
+
+    preserveSmallClusters(splitfile, clusterFile, MQ_SR, PRESERVE_SIZE, SLOP_SR, ARGS.w)
+    clusterFile = clusterFile + ".p"
 
     # collect the clusters that pass requirements -> allClusters.thresh.txt
     data = pd.read_table(clusterFile, 
