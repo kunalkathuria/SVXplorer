@@ -11,13 +11,12 @@ import logging
 from shared import readChromosomeLengths
 
 # global variables
-DEL_THRESH2 = .125
-DEL_THRESH_L = .8
-DUP_THRESH_L = 1.2
-DEL_THRESH_S = .7
+DEL_THRESH_GT = .125
+DUP_THRESH_S = 1.15
+DEL_THRESH_S = .85
 MIN_PILEUP_THRESH = 80
-CALC_THRESH = 1000000
-PE_DEL_THRESH_S = 102 #$remove model if unnecessary
+CALC_THRESH = 2000000
+PE_DEL_THRESH_S = 100 #$remove model if unnecessary
 PE_DEL_THRESH_L = 100
 chrHash = {}
 covHash = {}
@@ -91,13 +90,16 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                 counterBase += 1
                 refLoop += 1
                 if refLoop == bin_size:
+                    #logging.debug("Covg for chr %s in bin %s: %s", chr_n, 1 + len(covList), cov_100bp)  
                     covList.append(1.0*cov_100bp/refLoop)
                     cov_100bp, refLoop = 0,0
                 if counterBase > CALC_THRESH:
                     break
         if len(covList) > 0:
+            #logging.debug("100bp cvg list: %s", covList)
             avgCov = 1.0*totalCov/counterBase
-            covHash[chr_n] = covList[len(covList)/2] #avgCov
+            covListS = sorted(covList)
+            covHash[chr_n] = covListS[len(covListS)/2] #avgCov
             #change to debug when test done
             logging.debug("Median coverage of Chr %s written as %f; average was %f",
                           chr_n, covHash[chr_n], avgCov)
@@ -117,14 +119,24 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     start = .25*gap + bpFirstL
     stop = min(start+.5*gap,start +3*PILEUP_THRESH)
     covLoc, counter, confRegion = 0,0,0
-    if stop > start + MIN_PILEUP_THRESH:
+    if stop > start:
         for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
             if NH_REGIONS_FILE is None or \
             (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
-                covLoc = covLoc + pileupcolumn.n
+                covLoc+= pileupcolumn.n
                 counter+=1
                 if counter > PILEUP_THRESH:
-                    break               
+                    break
+        # pile-up does not step through loop if no portion of reads lies in variant region
+        if counter < MIN_PILEUP_THRESH:
+            counter = 0
+            for x in range(int(start), int(stop)):
+                if NH_REGIONS_FILE is None or \
+                    (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x]):
+                    counter+=1         
+                if counter > PILEUP_THRESH:
+                    break
+
         # add sides also if not enough statistics in middle
         if counter < PILEUP_THRESH/10 and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
             gbCount = counter 
@@ -133,10 +145,20 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
                 if NH_REGIONS_FILE is None or \
                 (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
-                    covLoc = covLoc + pileupcolumn.n
+                    covLoc+= pileupcolumn.n
                     counter+=1
                     if counter > PILEUP_THRESH:
                         break
+            # pile-up does not step through loop if no portion of reads lies in variant region
+            if counter < MIN_PILEUP_THRESH:
+                counter = 0
+                for x in range(int(start), int(stop)):
+                    if NH_REGIONS_FILE is None or \
+                        (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x]):
+                        counter+=1         
+                    if counter > PILEUP_THRESH:
+                        break
+
             gbCount+= counter
             counter = 0
             start, stop = bpSecondL - .25*gap, bpSecondL
@@ -147,6 +169,15 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     counter+=1
                     if counter > PILEUP_THRESH:
                         break
+            # pile-up does not step through loop if no portion of reads lies in variant region
+            if counter < MIN_PILEUP_THRESH:
+                counter = 0
+                for x in range(int(start), int(stop)):
+                    if NH_REGIONS_FILE is None or \
+                        (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x]):
+                        counter+=1         
+                    if counter > PILEUP_THRESH:
+                        break
             gbCount+= counter
             counter = gbCount
 
@@ -154,6 +185,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             confRegion = 1
             covLoc = (1.0*covLoc)/(1.0*counter)
 
+    logging.debug("Good bases found, conf, cov: %s, %s, %s, %s", counter, confRegion, covLoc, covHash[chr_n])
     if covHash[chr_n] != 0:
         return 1.0*covLoc/covHash[chr_n], confRegion
     else:
@@ -210,6 +242,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     # around sig_IL of 20 and lower for generally well-behaved distributions. Without rigor, though.
     PE_DEL_THRESH = max(calculateDELThreshPE(SD),UNIV_VAR_THRESH)
     logging.info("PE deletion threshold is %d", PE_DEL_THRESH)
+    logging.info("DEL_THRESH, DEL_THRESH_S, DUP_THRESH, DUP_THRESH_S: %s, %s, %s, %s", DEL_THRESH, DEL_THRESH_S, DUP_THRESH, DUP_THRESH_S)
 
     uniqueFilterSVs = set()
     global chrHash
@@ -225,7 +258,10 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
         formChrHash(NH_REGIONS_FILE, RDL, chrLengths)
     else:
         print >> stderr, "Warning! Not using a good regions file for pile-up filter! This can affect some coverage-based results adversely."
+
+    svtype = None
     header = fAV.readline()
+
     for counter, lineAV in enumerate(fAV):
         if counter % 250 == 0:
             logging.info("Variant %s written.", counter)
@@ -255,7 +291,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                 swap = 0
                 GT="."
                 if (svtype == "DEL_INS" or svtype == "DEL" or svtype[0:2]== "TD") and \
-                    int(lineAV_split[4]) + MIN_PILEUP_THRESH < int(lineAV_split[6]):
+                    int(lineAV_split[3]) + MIN_PILEUP_THRESH < int(lineAV_split[7]):
+
                     covLocM, confMiddle = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),
                             PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[3]), int(lineAV_split[7])])
@@ -266,7 +303,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             logging.debug("TD confirmed using pileup")
                             svtype = "TD"
 
-                        elif svtype[0:2] == "TD" and covLocM < DUP_THRESH_L:
+                        elif svtype[0:2] == "TD" and covLocM < DUP_THRESH_S:
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS_halfRF"
 
@@ -274,14 +311,21 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                             logging.debug("DEL confirmed using pileup")
                             svtype = "DEL"
-                            if covLocM < DEL_THRESH2:
+                            if covLocM < DEL_THRESH_GT:
                                 GT="GT:1/1"
-                            elif covLocM > 3*DEL_THRESH2:
+                            elif covLocM > 3*DEL_THRESH_GT:
                                 GT="GT:0/1"
 
                         elif svtype[0:3] == "DEL" and covLocM > DEL_THRESH_S:
+                            logging.debug("Rejected %s due to high cvg", lineAV)
                             # since bp3 = -1, this will be written as a BND event
                             svtype = "INS_halfFR"
+
+                        elif svtype[0:3] == "DEL":
+                            logging.debug("Rejected %s due to middle cvg", lineAV)
+                        
+                    elif svtype[0:3] == "DEL":
+                        logging.debug("Not enough good bases in %s", lineAV)
 
                 elif svtype in ["INS", "INS_I"] or svtype.startswith("INS_C"):
 
@@ -325,17 +369,17 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         covLoc_13, conf_13 = 0,0
 
                     if conf_23:
-                        if covLoc_23 > DUP_THRESH_L:
+                        if covLoc_23 > DUP_THRESH_S:
                             dup_23 = 1
                         elif covLoc_23 < DEL_THRESH:
                             del_23 =1
                     if conf_12:
-                        if covLoc_12 > DUP_THRESH_L:
+                        if covLoc_12 > DUP_THRESH_S:
                             dup_12 = 1
                         elif covLoc_12 < DEL_THRESH:
                             del_12 =1
                     if conf_13:
-                        if covLoc_13 > DUP_THRESH_L:
+                        if covLoc_13 > DUP_THRESH_S:
                             dup_13 = 1
                         elif covLoc_13 < DEL_THRESH:
                             del_13 =1
@@ -345,11 +389,15 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                         # bp2-3
                         #diploid deletion + copy-paste in 2-3 region possible, so use DEL_THRESH below not DUP_THRESH
-                        if (conf_23 and covLoc_23 < DUP_THRESH_L) or \
-                           (conf_12 and covLoc_12 < DEL_THRESH) or \
+                        if (conf_12 and covLoc_12 < DEL_THRESH) or \
                            (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
                             bnd = 1
-
+                        elif (conf_23 and covLoc_23 < DUP_THRESH_S):
+                            if svtype == "INS_I":
+                                svtype = "INS_C_I_P"
+                            else:
+                                svtype = "INS_C_P"
+                            
                     elif svtype.startswith("INS_C") and lineAV_split[11].find("PE") != -1 and \
                         lineAV_split[8] != "-1":
 
@@ -441,18 +489,24 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                 writeVariants(lineAV_split1, swap, bnd, support, GT, fAVN, PE_DEL_THRESH,
                                               SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
                                 continue
-                        NPE_CLUSTERS_SUPP = int(lineAV_split[12])
+
                         if (svtype == "INS_C" or svtype == "INS_C_I"):
                             if dup_23 and not dup_12:
                                 svtype+="_P"
                             elif dup_12 and not dup_23:
                                 svtype+="_P"
                                 swap = 1
-                        elif (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
-                            ((0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH) or \
-                            NPE_CLUSTERS_SUPP < 3): 
-                            #or (conf_12 and covLoc_12 > DUP_THRESH)):
-                            bnd = 1
+                
+                #NPE_CLUSTERS_SUPP = int(lineAV_split[12])
+                if (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
+                    (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH): #or \
+                    #NPE_CLUSTERS_SUPP < 3): 
+                    #or (conf_12 and covLoc_12 > DUP_THRESH)):
+                    bnd = 1
+
+                elif (svtype == "INS" or svtype == "INS_I") or \
+                   (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                    bnd = 1
 
             ## write in BED files
             lineAV_split[1] = svtype

@@ -127,8 +127,8 @@ def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile,
     pe_high = 6
     covg_low = 5
     covg_high = 50
-    sr_low = 4
-    sr_high = 6
+    sr_low = 3
+    sr_high = 5
     il_low1 = 25
     il_low2 = 35
     ILBoost = 0

@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 import argparse
 
+#global
+CLEANUP_THRESH_MCS = 3
+
 def writeRemainingRegions(overlap, badRegFile, listT):
     if len(listT) >= 2:
         maxStop = -1
@@ -57,6 +60,9 @@ def markDuplicateClusterRegions(clusterFile, wdir):
 
     for line in fCL:
         line_split = line.split()
+        size = int(line_split[1])
+        if size < CLEANUP_THRESH_MCS:
+            continue
         chr_n, start, chrB = line_split[3], int(line_split[4]), line_split[6]
         orient = line_split[2]
         if orient == "01":
@@ -94,6 +100,9 @@ def markDuplicateClusterRegions(clusterFile, wdir):
 
     for line in fCNR:
         line_split = line.split()
+        size = int(line_split[1])
+        if size < CLEANUP_THRESH_MCS:
+            continue
         chr_n, start, chrB = line_split[6], int(line_split[7]), line_split[3]
         orient = line_split[2]
         if orient == "01":

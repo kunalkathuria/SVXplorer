@@ -261,7 +261,7 @@ def processFragments():
         
         # sort and merge bad regions
         badRegionsFile = WORKSPACE + "/badRegions.bed"
-        badRegionsFileS = WORKSPACE + "badRegions.sorted.bed"
+        badRegionsFileS = WORKSPACE + "/badRegions.sorted.bed"
         data = pd.read_table(badRegionsFile,
                              names=['chr', 'start', 'stop'],
                              dtype={'chr':np.str})
@@ -433,7 +433,7 @@ if __name__ == '__main__':
     LIB_INV=True
 
     # addSplitReads
-    SLOP_SR=8
+    SLOP_SR=16
     REF_RATE_SR=0
     MIN_VS_SR=3
     MQ_SR=10
@@ -441,8 +441,8 @@ if __name__ == '__main__':
     MIN_SRtoPE_SUPP=2
 
     # covPUFilter
-    DEL_CN_SUPP_THRESH=.7 
-    DUP_CN_SUPP_THRESH=1.4
+    DEL_CN_SUPP_THRESH=.8 
+    DUP_CN_SUPP_THRESH=1.2
     PILEUP_THRESH=1000.0
     GOOD_REG_THRESH=.8
     SPLIT_INS=False

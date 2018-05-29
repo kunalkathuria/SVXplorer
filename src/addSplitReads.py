@@ -158,16 +158,9 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     chromosome_lengths = readChromosomeLengths(bamFileSR)
 
     chrHash = {}
-    uncleanRHash = {}
-    uncleanRegions = workDir + "/badRegions.bed"
-    if noCCleanUp:
-        uncleanRegions = None
     if ignoreBED is not None:
         logging.info("Regions in %s will be ignored", ignoreBED)
         chrHash = formExcludeHash(chrHash, 0, ignoreBED, chromosome_lengths)
-    if uncleanRegions is not None:
-        logging.info("High activity regions given in %s will be ignored", uncleanRegions)
-        uncleanRHash = formExcludeHash(uncleanRHash, 0, uncleanRegions, chromosome_lengths)
     # all split reads should be mapped, unique alignments
     while True:
         try:
@@ -189,7 +182,6 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                sr1.mapping_quality < mapThresh or \
                sr2.mapping_quality < mapThresh or \
                ignoreRead(sr_bp1_tid, sr_bp1, sr_bp2_tid, sr_bp2, chrHash) or \
-               ignoreRead(sr_bp1_tid, sr_bp1, sr_bp2_tid, sr_bp2, uncleanRHash) or \
                (sr_bp1_tid == bp1TID and sr_bp2_tid == bp2TID and abs(sr_bp1 - bp1Prev) < refRate and abs(sr_bp2 - bp2Prev) < refRate):
                     continue
 

@@ -116,8 +116,6 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
 
 def calculateMargin(clusterC, max_cluster_length, disc_thresh, bp_margin):
 
-    marginChangeThresh = 2
-    changeMargin = 50
     l_orient = int(clusterC.cType[0])
     r_orient = int(clusterC.cType[1])
     cl_margin_l = max_cluster_length - (clusterC.lmax - clusterC.l_min)
@@ -128,10 +126,6 @@ def calculateMargin(clusterC, max_cluster_length, disc_thresh, bp_margin):
         cl_margin = cl_margin_l
 
     cl_margin = int(cl_margin)
-    #SR support for low support PE clusters may be significant
-    # but only if lying close -- so, lower margin
-    if clusterC.count <= marginChangeThresh:
-        cl_margin = min(changeMargin,cl_margin)
     if cl_margin < 2*bp_margin:
         # use small margin
         cl_margin = 2*bp_margin
@@ -209,25 +203,26 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
                 else:
                     sample.append([fragHash[item].l_bound, fragHash[item].r_bound])
 
-            kmeans = KMeans(n_clusters=2)
-            kmeans = kmeans.fit(sample)
-            label = kmeans.predict(sample)
-            label = list(label)
-            count0 = label.count(0)
-            count1 = len(label) - count0
+            if len(sample) > 1:
+                kmeans = KMeans(n_clusters=2)
+                kmeans = kmeans.fit(sample)
+                label = kmeans.predict(sample)
+                labelList = list(label)
+                count0 = labelList.count(0)
+                count1 = len(labelList) - count0
 
-            if 1.0*count1/count0 < (1/6.) or 1.0*count0/count1 < (1/6.):
-                if count0 < count1:
-                    removeBit = 0
-                else:
-                    removeBit = 1
+                if 1.0*count1/count0 < (1/6.) or 1.0*count0/count1 < (1/6.):
+                    if count0 < count1:
+                        removeBit = 0
+                    else:
+                        removeBit = 1
 
-                removeList = set()
-                for k,item in enumerate(clique):
-                    if label[k] == removeBit:
-                        removeList.add(k)
+                    removeList = set()
+                    for k,item in enumerate(clique):
+                        if labelList[k] == removeBit:
+                            removeList.add(k)
 
-                cliqueRev = [v for i, v in enumerate(clique) if i not in removeList]
+                    cliqueRev = [v for i, v in enumerate(clique) if i not in removeList]
 
             pickedFrags = {}
             clique0 = cliqueRev[0]
