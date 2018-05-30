@@ -283,6 +283,15 @@ def processFragments():
         logging.info("Finished cluster cleanup")
         clusterFile = WORKSPACE + "/allClusters.postClean.txt"
 
+    # name sort the BAM file if it is not name-sorted. 
+    samfile = pysam.AlignmentFile(ARGS.split, 'rb')
+    try:
+        sortorder = samfile.header['HD']['SO']
+    except KeyError:
+        print >> stderr, "Missing headers. Please check if BAM was correctly written."
+        exit(1)
+    samfile.close()
+
     splitfile = ARGS.split
     if sortorder == 'coordinate':
         splitfile = "%s/splitters.ns.bam" % WORKSPACE
