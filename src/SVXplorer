@@ -342,22 +342,6 @@ def processFragments():
     allVariantFile = "%s/allVariants.pe.txt" % WORKSPACE
     filterAndFormat(variantMapFile, allVariantFile, statFile, "pe")
 
-    # name sort the BAM file if it is not name-sorted. 
-    samfile = pysam.AlignmentFile(ARGS.split, 'rb')
-    try:
-        sortorder = samfile.header['HD']['SO']
-    except KeyError:
-        print >> stderr, "Missing headers. Please check if BAM was correctly written."
-        exit(1)
-    samfile.close()
-
-    splitfile = ARGS.split
-    if sortorder == 'coordinate':
-        splitfile = "%s/splitters.ns.bam" % WORKSPACE
-        logging.info('Started name sorting the splitters file')
-        pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", "-o", splitfile, ARGS.split)
-        logging.info('Finished name sorting the splitters file')
-
     # now add the split read information to the system. Write the files 
     # 1. variantMap.pe_sr.txt
     # 2. allVariants.pe_sr.txt
@@ -428,7 +412,7 @@ if __name__ == '__main__':
     AS_RELATIVE_THRESH=2
     
     # formPEClusters
-    MIN_CS=3
+    MIN_CS=1
     DISC_ENHANCER=1.67
     MIN_PE_BPMARGIN=25
 
