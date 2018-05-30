@@ -116,7 +116,7 @@ def readVariantMap(filename, allFrags):
 def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile, 
                      allDiscordantsFile, map_thresh, single_thresh,
                      pe_thresh_max, sr_thresh_max, 
-                     pe_thresh_min, sr_thresh_min, mix_thresh, complex_thresh,
+                     pe_thresh_min, sr_thresh_min, complex_thresh,
                      rdVarIndex, rdFragIndex, argsILBoost):
     allFrags = []
     mqSet = set()
@@ -127,16 +127,21 @@ def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile,
     pe_high = 6
     covg_low = 5
     covg_high = 50
-    sr_low = 4
-    sr_high = 6
+    sr_low = 3
+    sr_high = 5
     il_low1 = 25
     il_low2 = 35
     ILBoost = 0
-
+    covg_cusp = 8
     # apply above-mentioned support threshold model
     [covg,sig_il] = readBamStats(statFile)
     if il_low1 <= int(sig_il) <= il_low2:
         ILBoost = argsILBoost 
+    if covg <= covg_cusp:
+        mix_thresh = 3
+    else:
+        mix_thresh = 4
+
     sr_thresh = math.floor(sr_low + (covg-covg_low)*1.0*(sr_high - sr_low)/(covg_high - covg_low))
     pe_thresh = round(ILBoost + pe_low + (covg-covg_low)*1.0*(pe_high - pe_low)/(covg_high - covg_low))
     if pe_thresh > pe_thresh_max:
@@ -203,7 +208,7 @@ if __name__ == "__main__":
                      ARGS.allVariantFile, ARGS.allDiscordantsFile,
                      ARGS.map_thresh, ARGS.single_thresh,
                      ARGS.pe_thresh_max, ARGS.sr_thresh_max, ARGS.pe_thresh_min,
-                     ARGS.sr_thresh_min, ARGS.mix_thresh, ARGS.complex_thresh,
+                     ARGS.sr_thresh_min, ARGS.complex_thresh,
                      ARGS.rdVarIndex, ARGS.rdFragIndex, ARGS.ILBoost)
 
     logging.shutdown()

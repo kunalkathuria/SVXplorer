@@ -5,9 +5,20 @@ import pysam
 import networkx as nx
 import argparse as ap
 import logging
+from sklearn.cluster import KMeans
 
 #global variables
 IL_BinDistHash = {}
+#margin to increase max_cluster_length due to split reads affecting insert size
+SR_GRACE_MARGIN = 40
+
+class fragment(object):
+    def __init__(self):
+        self.lpos = None
+        self.rpos = None
+        self.mq = None
+    def __str__(self):
+        return "%s\t%s\t%s\t" %(self.lpos, self.rpos, self.mq)
 
 class cluster(object):
     # cluster of aligned fragments
@@ -60,9 +71,9 @@ def calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty):
             else:
                 distPen = 0
         else:
-            distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_end - mean_IL)
+            distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl- SR_GRACE_MARGIN -dist_end)*1.0/(dist_end - mean_IL)
     else:
-        distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl-dist_end)*1.0/(dist_penalty - dist_end)
+        distPen = 1 - (abs(f2_lPos-f1_lPos)+2*rdl- SR_GRACE_MARGIN -dist_end)*1.0/(dist_penalty - dist_end)
     if distPen > 1:
         distPen = 1
     return distPen
@@ -85,6 +96,11 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
     elif c_type == "00" or c_type == "11":
         ildist = abs(bin_size*int((f2_lPos - f1_lPos + f2_rPos - f1_rPos)/(1.0*bin_size)))
 
+    #larger IL distance for liberal approach
+    if ildist > SR_GRACE_MARGIN:
+        ildist_L = ildist - abs(bin_size*int(SR_GRACE_MARGIN/(1.0*bin_size)))
+    else:
+        ildist_L = ildist
     # calculate weight component 1
     distPen = calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty)
 
@@ -92,14 +108,14 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
     # RF clusters from TDs need not have overlapping almts
     if ildist in IL_BinDistHash and distPen > 0 and (c_type == "10" or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
         weight = distPen*IL_BinDistHash[abs(ildist)]/(1.0*IL_BinTotalEntries)
+    elif ildist_L in IL_BinDistHash and distPen > 0 and (c_type == "10" or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
+        weight = distPen*IL_BinDistHash[abs(ildist_L)]/(1.0*IL_BinTotalEntries)
     else:
         weight = 0
     return weight
 
 def calculateMargin(clusterC, max_cluster_length, disc_thresh, bp_margin):
 
-    marginChangeThresh = 2
-    changeMargin = 50
     l_orient = int(clusterC.cType[0])
     r_orient = int(clusterC.cType[1])
     cl_margin_l = max_cluster_length - (clusterC.lmax - clusterC.l_min)
@@ -110,13 +126,9 @@ def calculateMargin(clusterC, max_cluster_length, disc_thresh, bp_margin):
         cl_margin = cl_margin_l
 
     cl_margin = int(cl_margin)
-    #SR support for low support PE clusters may be significant
-    # but only if lying close -- so, lower margin
-    if clusterC.count <= marginChangeThresh:
-        cl_margin = min(changeMargin,cl_margin)
-    if cl_margin <= bp_margin:
+    if cl_margin < 2*bp_margin:
         # use small margin
-        cl_margin = bp_margin
+        cl_margin = 2*bp_margin
     # small margin on other side of "alignment tip"
     reverse_margin = bp_margin
 
@@ -182,20 +194,50 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
 
     # process and write clusters from cliques
     for clique in max_clique_list_s:
-        pickedFrags = {}
-        clique0 = clique[0]
-        lTID = fragHash[clique0].lTID
-        rTID = fragHash[clique0].rTID
-        lbp = fragHash[clique0].l_bound
-        rbp = fragHash[clique0].r_bound
-        l_min = fragHash[clique0].l_bound
-        lmax = fragHash[clique0].l_bound + 1
-        r_min = fragHash[clique0].r_bound
-        r_max = fragHash[clique0].r_bound + 1
-        goodFrags = []
-        count = 0
         if len(clique) >= min_cluster_size:
+            cliqueRev = clique
+            sample = []
             for item in clique:
+                if sample == []:
+                    sample = [[fragHash[item].l_bound, fragHash[item].r_bound]]
+                else:
+                    sample.append([fragHash[item].l_bound, fragHash[item].r_bound])
+
+            if len(sample) > 1:
+                kmeans = KMeans(n_clusters=2)
+                kmeans = kmeans.fit(sample)
+                label = kmeans.predict(sample)
+                labelList = list(label)
+                count0 = labelList.count(0)
+                count1 = len(labelList) - count0
+
+                if 1.0*count1/count0 < (1/6.) or 1.0*count0/count1 < (1/6.):
+                    if count0 < count1:
+                        removeBit = 0
+                    else:
+                        removeBit = 1
+
+                    removeList = set()
+                    for k,item in enumerate(clique):
+                        if labelList[k] == removeBit:
+                            removeList.add(k)
+
+                    cliqueRev = [v for i, v in enumerate(clique) if i not in removeList]
+
+            pickedFrags = {}
+            clique0 = cliqueRev[0]
+            lTID = fragHash[clique0].lTID
+            rTID = fragHash[clique0].rTID
+            lbp = fragHash[clique0].l_bound
+            rbp = fragHash[clique0].r_bound
+            l_min = fragHash[clique0].l_bound
+            lmax = fragHash[clique0].l_bound + 1
+            r_min = fragHash[clique0].r_bound
+            r_max = fragHash[clique0].r_bound + 1
+            goodFrags = []
+            count = 0
+
+            for item in cliqueRev:
                 # do not put diff almts of same *fragment* in same cluster
                 usPos = item.find("_")
                 if usPos != -1:
@@ -355,7 +397,7 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
                    disc_enhancer, bp_margin, subsample, debug):
     # read the stats
     rdl, mean_IL, disc_thresh, dist_penalty, dist_end = readBamStats(statFile)
-    max_cluster_length = mean_IL + disc_enhancer*disc_thresh - 2*rdl
+    max_cluster_length = mean_IL + disc_enhancer*disc_thresh - 2*rdl + SR_GRACE_MARGIN
     logging.info('max_cluster_length is %f', max_cluster_length)
 
     # maximal-clique-based cluster formation routine variables

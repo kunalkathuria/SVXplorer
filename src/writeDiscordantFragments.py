@@ -294,7 +294,7 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                     skip = 1
                     break
             if skip:
-                logging.debug("Ignoring almt combination %s and %s as occurs as * entry in ignoreTIDs", al1_reference_name, al2_reference_name)
+                logging.debug("Ignoring almt combination %s and %s as occurs as * entry in ignoreTIDs", al1, al2)
                 continue
 
             if ignoreBED is not None and ignoreRead(al1_reference_name, al1_reference_start, al2_reference_name, al2_reference_start, chrHash):

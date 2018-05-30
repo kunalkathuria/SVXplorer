@@ -3,3 +3,5 @@ results/text/*
 bin*
 *.pyc
 test
+expt*
+scripts/manuscript

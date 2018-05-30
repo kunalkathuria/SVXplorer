@@ -116,7 +116,7 @@ def formPEHash(fAV, iObjects, slop):
 
 def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                   slop, refRate, min_vs, mapThresh, ignoreChr, minSizeINS,
-                  minSRtoPEsupport, ignoreBED):
+                  minSRtoPEsupport, ignoreBED, noCCleanUp):
     fAV = open(workDir+"/allVariants.pe.txt","r")
     fVM = open(workDir+"/variantMap.pe.txt","r")
     fAVN = open(workDir+"/allVariants.pe_sr.txt","w")
@@ -143,10 +143,17 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     bp2TID = -1
 
     ignoreList = set()
+    ignoreTIDAll = set()
     if ignoreChr is not None:
         with open(ignoreChr, "r") as fIC:
             for line in fIC:
-                ignoreList.add(line.strip().split()[0])
+                chrI = line.strip().split()[0]
+                if not chrI.startswith("*"):
+                    ignoreList.add(chrI)
+                    logging.info("Adding SRs: Chromosome %s will be ignored.", chrI)
+                else:
+                    ignoreTIDAll.add(chrI[1:])
+                    logging.info("Adding SRs: Chr names starting with %s will be ignored", chrI[1:])
 
     chromosome_lengths = readChromosomeLengths(bamFileSR)
 
@@ -154,7 +161,6 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     if ignoreBED is not None:
         logging.info("Regions in %s will be ignored", ignoreBED)
         chrHash = formExcludeHash(chrHash, 0, ignoreBED, chromosome_lengths)
-
     # all split reads should be mapped, unique alignments
     while True:
         try:
@@ -164,7 +170,6 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
             break
         varType = -1
         if sr1.qname == sr2.qname:
-            #print sr1, sr2
             SRFrag-=1
             sr_bp1 = sr1.reference_start
             sr_bp2 = sr2.reference_start
@@ -180,6 +185,14 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                (sr_bp1_tid == bp1TID and sr_bp2_tid == bp2TID and abs(sr_bp1 - bp1Prev) < refRate and abs(sr_bp2 - bp2Prev) < refRate):
                     continue
 
+            skip = 0
+            for chrI in ignoreTIDAll:
+                if sr1.reference_name.startswith(chrI) or sr2.reference_name.startswith(chrI):
+                    skip = 1
+                    break
+            if skip:
+                logging.debug("Ignoring SR almt %s and %s, as occurs as * entry in ignoreTIDs", sr1, sr2)
+                continue
             bp1Prev = sr_bp1
             bp1TID = sr_bp1_tid
             bp2Prev = sr_bp2
@@ -656,6 +669,8 @@ if __name__ == "__main__":
     PARSER.add_argument('bamFileSR', help='File containing all split reads, name-sorted')
     PARSER.add_argument('-d', dest='debug', action='store_true',
                         help='print debug information')
+    PARSER.add_argument('-x', action='store_true',
+                                    help='no cluster cleanup used')
     PARSER.add_argument('-s', default=8.0, dest='slop', type=float, help='SR breakpoint slop')
     PARSER.add_argument('-f', default=0, dest='refRate', type=int, help='Subsample every so many split reads')
     PARSER.add_argument('-m', default=3, dest='min_vs', type=int,
@@ -682,6 +697,6 @@ if __name__ == "__main__":
     addSplitReads(ARGS.workDir, ARGS.variantMapFilePE, ARGS.allVariantFilePE,
                   ARGS.bamFileSR, ARGS.slop, ARGS.refRate, ARGS.min_vs,
                   ARGS.mapThresh, ARGS.ignoreChr, ARGS.minSizeINS,
-                  ARGS.minSRtoPEsupport, ARGS.ignoreBED)
+                  ARGS.minSRtoPEsupport, ARGS.ignoreBED, ARGS.x)
 
     logging.shutdown()

@@ -10,6 +10,8 @@ import logging
 import pysam
 import numpy as np
 import pandas as pd
+import subprocess
+import pybedtools
 
 from writeDiscordantFragments import writeDiscordantFragments
 from formPEClusters import formPEClusters
@@ -18,6 +20,9 @@ from uniqueSuppFilter import uniqueSuppFilter
 from writeBEDs import writeBEDs
 from addSplitReads import addSplitReads
 from covPUFilter import covPUFilter
+from markDuplicateClusterRegions import markDuplicateClusterRegions
+from pickBestCluster import pickBestCluster
+from preserveSmallClusters import preserveSmallClusters
 
 def createDirectory(name):
     try:
@@ -151,8 +156,8 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 isinv=""
                 svlen = str(abs(int(chr2Start) - int(chr1End)))
                 if name=="TD_INV":
-                    isinv="ISINV"
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + support + precise)
+                    isinv="ISINV;"
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + isinv + support + precise)
             elif name == "INV":
                 ciend = int(chr2End) - int(chr2Start)
                 pos = int((int(chr1Start) + int(chr1End))/2.0)
@@ -162,20 +167,20 @@ def writeVCFFromBedpe(inputFile, outputFile):
             elif name in ["INS","INS_I","INS_C_P","INS_C_I_P"]:
                 if name in ["INS","INS_I"]:
                     field1 = "DUP"
+                    svlen = str(abs(int(chr1End)-int(chr1Start)))
                     CM = "CopyPasteInsertion"
-                    # if paste < source in case on same chr
                 else:
                     field1 = "DEL"
                     CM = "CutPasteInsertion"
-                svlen = str(abs(int(chr1End)-int(chr1Start)))
+                    svlen = "-" + str(abs(int(chr1End)-int(chr1Start)))
                 cipos = int(chr2End)-int(chr2Start)
                 isinv=""
                 if name=="INS_I":
-                    isinv="ISINV"
+                    isinv="ISINV;"
                  
                 BNDAlt1, BNDAlt2 = "N[" + chr1 + ":" + chr1Start + "[", "]" + tokens[3] + ":" + chr2Start + "]N"
                 BNDAlt3, BNDAlt4 = "]" + tokens[3] + ":" + chr2Start + "]N", "N[" + chr1 + ":" + chr1End + "["
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", BNDAlt1,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 2) + ";" + isinv + ";" + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", BNDAlt2, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 1) + isinv + ";" + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", BNDAlt3, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 4) + ";" + isinv + ";" + support + precise)
@@ -192,7 +197,7 @@ def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
         # 2. variants.uniqueSupport.txt
         uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
                          "%s/allDiscordants.txt" % WORKSPACE, MAP_THRESH_U, 
-                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 4, 4, 3000000, 100000000, -1)
+                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 4, 3000000, 100000000, -1)
 
     # write the results. This writes
     # 1. variants.bedpe
@@ -240,8 +245,57 @@ def processFragments():
     binFile = "%s/binDist.txt" % WORKSPACE
     formPEClusters(WORKSPACE, statFile, binFile, MIN_CS, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.subsample, ARGS.d)
 
+    # run cluster clean-up
+    clusterFile = WORKSPACE + "/allClusters.txt"
+    if not ARGS.x:
+        # sort cluster file by left chr and pos
+        clusterFileLS = "%s/allClusters.ls.txt" % WORKSPACE
+        data = pd.read_table("%s/allClusters.txt" % WORKSPACE,
+                             names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
+                                    'rchr', 'rpos', 'rend', 'small'],
+                             dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
+        data = data.sort_values(by = ['lchr', 'lpos'])
+        data.to_csv(clusterFileLS, header=None, index=None, sep='\t')
+        
+        markDuplicateClusterRegions(clusterFileLS, WORKSPACE)
+        
+        # sort and merge bad regions
+        badRegionsFile = WORKSPACE + "/badRegions.bed"
+        badRegionsFileS = WORKSPACE + "/badRegions.sorted.bed"
+        data = pd.read_table(badRegionsFile,
+                             names=['chr', 'start', 'stop'],
+                             dtype={'chr':np.str})
+        data = data.sort_values(by = ['chr', 'start'])
+        data.to_csv(badRegionsFileS, header=None, index=None, sep='\t')
+        
+        #$$$ throwing error "mergeBed not on path" -- resolve if possible and avoid shell call below
+        #pybedtools.set_bedtools_path(ARGS.bedtoolsPath)
+        #brFile = pybedtools.BedTool(badRegionsFileS)
+        #brFileM = brFile.merge(d=100)
+        #brFileM.saveas(WORKSPACE + "/badRegions.merged.bed")
+        
+        badRegionsFileM = WORKSPACE + "/badRegions.merged.bed"
+        cmd = "bedtools merge -d 100 -i " + badRegionsFileS + " > " + badRegionsFileM
+        subprocess.call(cmd, shell=True)
+
+        # pick best cluster from each bad region
+        pickBestCluster(clusterFile, WORKSPACE, badRegionsFileM, ARGS.samplebam)
+        logging.info("Finished cluster cleanup")
+        clusterFile = WORKSPACE + "/allClusters.postClean.txt"
+
+    splitfile = ARGS.split
+    if sortorder == 'coordinate':
+        splitfile = "%s/splitters.ns.bam" % WORKSPACE
+        logging.info('Started name sorting the splitters file')
+        pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", "-o", splitfile, ARGS.split)
+        logging.info('Finished name sorting the splitters file')
+
+    preserveSmallClusters(splitfile, clusterFile, MQ_SR, PRESERVE_SIZE, SLOP_SR, ARGS.w)
+    clusterFile = clusterFile + ".p"
+    logging.info('Finished preserve-cluster routine')
+
     # collect the clusters that pass requirements -> allClusters.thresh.txt
-    data = pd.read_table("%s/allClusters.txt" % WORKSPACE, 
+    data = pd.read_table(clusterFile, 
                          names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
                                 'rchr', 'rpos', 'rend', 'small'],
                          dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
@@ -255,7 +309,7 @@ def processFragments():
     logging.info('Setting max_cl_comb_gap to %f', max_cl_comb_gap)
 
 
-    # sort the clusters based on the left breakpoint -> allClusters.ls.txt
+    # sort the clusters based on left chr and pos -> allClusters.ls.txt
     clusterFileLS = "%s/allClusters.ls.txt" % WORKSPACE
     data = pd.read_table("%s/allClusters.thresh.txt" % WORKSPACE,
                          names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
@@ -309,7 +363,7 @@ def processFragments():
     # 2. allVariants.pe_sr.txt
     addSplitReads(WORKSPACE, variantMapFile, allVariantFile, splitfile,
                   SLOP_SR, REF_RATE_SR, MIN_VS_SR, MQ_SR, ARGS.c,
-                  MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i)
+                  MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i, ARGS.x)
     logging.info("Done incorporating split reads.")
 
     # filter and format these results
@@ -343,7 +397,8 @@ if __name__ == '__main__':
                         help='print debug information')
     PARSER.add_argument('-f', action='store_true',
                         help='overwrite existing workspace')
-
+    PARSER.add_argument('-x', action='store_true',
+                        help='do not use cluster cleanup')
     PARSER.add_argument('-i', default=None, 
                         help='ignore regions in this BED file')
     PARSER.add_argument('-c', default=None,
@@ -357,12 +412,14 @@ if __name__ == '__main__':
     PARSER.add_argument('split', help='bam file of split reads')
     PARSER.add_argument('samplebam', help='bam file of alignments')
     PARSER.add_argument('reference', help='path to reference genome')
+    # $$$ fix pybedtools implementation of merging in cleanup
+    #PARSER.add_argument('bedtoolsPath', help='path to bedtools')
 
     # options we do not expect the user to change
     PARSER.add_argument('--subsample', action='store_true', help=argparse.SUPPRESS)    
 
     # writeDiscordantFragments
-    CALC_THRESH=1000000
+    CALC_THRESH=10000000
     MAP_THRESH=1
     # useful for secondary alignments
     PE_ALMT_COMB_THRESH=20
@@ -387,7 +444,7 @@ if __name__ == '__main__':
     LIB_INV=True
 
     # addSplitReads
-    SLOP_SR=8
+    SLOP_SR=16
     REF_RATE_SR=0
     MIN_VS_SR=3
     MQ_SR=10
@@ -395,9 +452,9 @@ if __name__ == '__main__':
     MIN_SRtoPE_SUPP=2
 
     # covPUFilter
-    DEL_CN_SUPP_THRESH=.6 
-    DUP_CN_SUPP_THRESH=1.4
-    PILEUP_THRESH=500.0
+    DEL_CN_SUPP_THRESH=.8 
+    DUP_CN_SUPP_THRESH=1.2
+    PILEUP_THRESH=1000.0
     GOOD_REG_THRESH=.8
     SPLIT_INS=False
     #setting to false as this may be risky for diploid variants like cut-paste and del in same region
