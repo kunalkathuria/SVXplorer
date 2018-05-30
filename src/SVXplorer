@@ -292,6 +292,7 @@ def processFragments():
 
     preserveSmallClusters(splitfile, clusterFile, MQ_SR, PRESERVE_SIZE, SLOP_SR, ARGS.w)
     clusterFile = clusterFile + ".p"
+    logging.info('Finished preserve-cluster routine')
 
     # collect the clusters that pass requirements -> allClusters.thresh.txt
     data = pd.read_table(clusterFile, 
