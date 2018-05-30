@@ -424,6 +424,7 @@ if __name__ == '__main__':
     MIN_CS=1
     DISC_ENHANCER=1.67
     MIN_PE_BPMARGIN=25
+    PRESERVE_SIZE=3
 
     # consolidatePEClusters
     SLOP_PE=0

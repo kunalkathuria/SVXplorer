@@ -36,13 +36,16 @@ def pickBestCluster(clusterFile, wdir, ignoreRegions, sampleBAM):
         startR, stopR = int(line_split[7]), int(line_split[8])
         condn1 = False
         if (chrL not in chrHash) or (chrL in chrHash and chrHash[chrL][startL] == 0 and \
-            chrHash[chrL][stopL] == 0): 
-            condn1 = True
+            (stopL >= len(chrHash[chrL]) or chrHash[chrL][stopL] == 0)):
+            if stopL >= len(chrHash[chrL]):
+                line_split[5] = str(len(chrHash[chrL]) - 1)
             if (chrR not in chrHash) or (chrR in chrHash and chrHash[chrR][startR] == 0 and \
-                chrHash[chrR][stopR] == 0): 
-                fCN.write("%s" %line)
-            else:
-                condn1 = False
+                (stopR >= len(chrHash[chrR]) or chrHash[chrR][stopR] == 0)): 
+                condn1 = True
+                if stopR >= len(chrHash[chrR]):
+                    line_split[8] = str(len(chrHash[chrR]) - 1)
+                fCN.write("%s\n" %"\t".join(line_split))
+
         if not condn1:
             if chrL in chrHash: 
                 minBR = determineMin1(chrL, startL, chrHash)
@@ -70,7 +73,13 @@ def pickBestCluster(clusterFile, wdir, ignoreRegions, sampleBAM):
         if maxSuppIndex > -1:
              #print "Sum is", suppSum, .75*suppSum, suppMax, maxSuppIndex, listC[maxSuppIndex]
             if suppMax >= max(MIN_SUPP,SUPP_PERC*suppSum):
-                fCN.write("%s" %compHash[compID][maxSuppIndex])
+                clLine = compHash[compID][maxSuppIndex]
+                clLine_split = clLine.split()
+                if clLine_split[3] in chrHash and int(clLine_split[5]) >= len(chrHash[clLine_split[3]]):
+                    clLine_split[5] = str(len(chrHash[clLine_split[3]]) - 1)
+                if clLine_split[6] in chrHash and int(clLine_split[8]) >= len(chrHash[clLine_split[6]]):
+                    clLine_split[8] = str(len(chrHash[clLine_split[6]]) - 1)
+                fCN.write("%s\n" %"\t".join(clLine_split))
             fSuppHist.write("%s\n" %(1.0*suppMax/suppSum))
 
     fCl.close()
