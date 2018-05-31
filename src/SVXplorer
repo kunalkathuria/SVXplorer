@@ -101,10 +101,13 @@ def printVCFHeader(f):
 def writeVCFFromBedpe(inputFile, outputFile):
     """Read the BEDPE and convert to VCF."""
     with open(inputFile, 'r') as inpt, open(outputFile,'w') as otpt:
-        counter = 0
+        counter = -1
         printVCFHeader(otpt)
         for line in inpt:
             counter+=1
+            if counter == 0:
+                #header
+                continue
             tokens = line.split()
             precise=tokens[11].find("SR")
             support="SUPPORT=" + tokens[16] + ";PE=" + tokens[19] + ";SR=" + tokens[20] + ";"  
@@ -421,7 +424,7 @@ if __name__ == '__main__':
     AS_RELATIVE_THRESH=2
     
     # formPEClusters
-    MIN_CS=1
+    MIN_CS=2
     DISC_ENHANCER=1.67
     MIN_PE_BPMARGIN=25
     PRESERVE_SIZE=3

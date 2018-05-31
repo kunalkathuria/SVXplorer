@@ -18,7 +18,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
 
     outfile = sys.stdout
     if outname != sys.stdout: outfile = open(outname, 'w')
-
+    outfile.write("%s\n" %("chr1\tstart1\tstop1\tchr2\tstart2\tstop2\tnameID\tscore\tstrand1\tstrand2\tSVType\tSupportedBy\tconfPos\tconfEnd\tInverted\tGT\tNSupport\tBNDTag\tSVSubtype\tN_PE\tN_SR\tN_PE_Cl\tBNDAlt1\tBNDAlt2\tGROUPID"))
     with open(variantFile, 'r') as fAV:
         header = fAV.readline()
         for counter, lineAV in enumerate(fAV):

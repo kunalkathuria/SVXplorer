@@ -516,7 +516,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         SRVarHash[newAlmtExt] = newVariant2
 
     ## WRITE REVISED PE VARIANTS TO FILE
-    fAVN.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\start3\tstop3\t SupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\n")
+    fAVN.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\tstart3\tstop3\tSupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\n")
     fAV.seek(0)
     header = fAV.readline()
     for lineVM in fVM:
