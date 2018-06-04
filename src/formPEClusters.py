@@ -193,7 +193,8 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
         del max_clique_list_s[k:]
 
     # process and write clusters from cliques
-    for clique in max_clique_list_s:
+    while len(max_clique_list_s) > 0:
+        clique = max(max_clique_list_s, key=len)
         if len(clique) >= min_cluster_size:
             cliqueRev = clique
             sample = []
@@ -210,41 +211,37 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
                 labelList = list(label)
                 count0 = labelList.count(0)
                 count1 = len(labelList) - count0
-
                 if 1.0*count1/count0 < (1/6.) or 1.0*count0/count1 < (1/6.):
                     if count0 < count1:
                         removeBit = 0
                     else:
                         removeBit = 1
-
                     removeList = set()
                     for k,item in enumerate(clique):
                         if labelList[k] == removeBit:
                             removeList.add(k)
-
                     cliqueRev = [v for i, v in enumerate(clique) if i not in removeList]
 
             pickedFrags = {}
-            clique0 = cliqueRev[0]
-            lTID = fragHash[clique0].lTID
-            rTID = fragHash[clique0].rTID
-            lbp = fragHash[clique0].l_bound
-            rbp = fragHash[clique0].r_bound
-            l_min = fragHash[clique0].l_bound
-            lmax = fragHash[clique0].l_bound + 1
-            r_min = fragHash[clique0].r_bound
-            r_max = fragHash[clique0].r_bound + 1
             goodFrags = []
             count = 0
+            first = 1
 
             for item in cliqueRev:
                 # do not put diff almts of same *fragment* in same cluster
-                usPos = item.find("_")
-                if usPos != -1:
-                    item_s = item[:item.find("_")]
-                else:
-                    item_s = item
+                item_s = item.split("_")[0]
                 if item_s not in pickedFrags and not fragHash[item].used:
+                    if first == 1: 
+                        lTID = fragHash[item].lTID
+                        rTID = fragHash[item].rTID
+                        lbp = fragHash[item].l_bound
+                        rbp = fragHash[item].r_bound
+                        l_min = fragHash[item].l_bound
+                        lmax = fragHash[item].l_bound + 1
+                        r_min = fragHash[item].r_bound
+                        r_max = fragHash[item].r_bound + 1
+                        first = 0
+
                     pickedFrags[item_s] = 1
                     count+=1
                     goodFrags.append(item)
@@ -273,8 +270,8 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
                 newCl.rTID = rTID
                 newCl.l_bound = lbp
                 newCl.r_bound = rbp
-                newCl.cType = fragHash[clique0].cType
-                newCl.clSmall = fragHash[clique0].clSmall
+                newCl.cType = fragHash[goodFrags[0]].cType
+                newCl.clSmall = fragHash[goodFrags[0]].clSmall
                 newCl.l_min = l_min
                 newCl.r_min = r_min
                 newCl.lmax = lmax
@@ -288,13 +285,27 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
                     # write all supporting fragments to clique info file as well
                     if debug:
                         fCliques.write("%s\t%s\t%s\n" %(item, fragHash[item].l_bound, fragHash[item].r_bound))
-                    item_s = item
-                    usPos = item.find("_")
-                    if len(item) > 2 and usPos != -1:
-                        item_s = item[:usPos]
+                    item_s = item.split("_")[0]
                     fClusterMap.write("\t%s" %item_s)
                 fClusterMap.write("\n")
                 clusterNum+=1
+
+                # remove each picked element from universe of fragments and resort list
+                usedSet = set(goodFrags)
+                max_clique_list_T = []
+                max_clique_list_s.remove(clique)
+                for clNum, cliqueSet in enumerate(max_clique_list_s):
+                    cliqueSet_R = [x for x in cliqueSet if x not in usedSet]
+                    max_clique_list_T.append(cliqueSet_R)
+                max_clique_list_s = max_clique_list_T
+            else:
+                for item in cliqueRev:
+                    if fragHash[item].used:
+                        fragHash[item].used = 0
+                max_clique_list_s.remove(clique)
+        else:
+            max_clique_list_s.remove(clique)
+
     return clusterNum
 
 def doSubsample(fp):
@@ -438,6 +449,9 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
 
     logging.info('Started PE cluster formation')
     for line_num,line in enumerate(fDiscAlmts):
+        if line_num % 1000 == 0:
+            logging.info("Processed %s alignments", line_num)
+
         parsed = line.strip().split()
         almt = cluster()
         almt.l_bound = int(parsed[2])
@@ -493,9 +507,9 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
     for frag1,frag2,edge_weight in edgeStore:
         if edge_weight > 0 and frag1 != frag2:
             fragmentGraph.add_edge(frag1, frag2)
-    logging.info('Started writing clusters')
+    logging.info('Started writing remaining clusters')
     clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, [], clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
-    logging.info('Finished writing clusters')
+    logging.info('Finished writing remaining clusters')
 
     if debug:
         fCliques.close()

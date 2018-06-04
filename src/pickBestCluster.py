@@ -37,12 +37,12 @@ def pickBestCluster(clusterFile, wdir, ignoreRegions, sampleBAM):
         condn1 = False
         if (chrL not in chrHash) or (chrL in chrHash and chrHash[chrL][startL] == 0 and \
             (stopL >= len(chrHash[chrL]) or chrHash[chrL][stopL] == 0)):
-            if stopL >= len(chrHash[chrL]):
+            if chrL in chrHash and stopL >= len(chrHash[chrL]):
                 line_split[5] = str(len(chrHash[chrL]) - 1)
             if (chrR not in chrHash) or (chrR in chrHash and chrHash[chrR][startR] == 0 and \
                 (stopR >= len(chrHash[chrR]) or chrHash[chrR][stopR] == 0)): 
                 condn1 = True
-                if stopR >= len(chrHash[chrR]):
+                if chrR in chrHash and stopR >= len(chrHash[chrR]):
                     line_split[8] = str(len(chrHash[chrR]) - 1)
                 fCN.write("%s\n" %"\t".join(line_split))
 
