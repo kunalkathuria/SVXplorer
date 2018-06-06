@@ -124,7 +124,7 @@ def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile,
     # linear model to calculate support threshold by category
     # familiar developers may tweak model here directly
     pe_low = 3
-    pe_high = 6
+    pe_high = 5
     covg_low = 5
     covg_high = 50
     sr_low = 3

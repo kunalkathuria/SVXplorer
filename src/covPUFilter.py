@@ -138,7 +138,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     break
 
         # add sides also if not enough statistics in middle
-        if counter < MIN_PILEUP_THRESH and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
+        if counter < 2*MIN_PILEUP_THRESH and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
             gbCount = counter 
             counter = 0
             start, stop = bpFirstL, bpFirstL + .25*gap
