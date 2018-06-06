@@ -424,7 +424,7 @@ if __name__ == '__main__':
     AS_RELATIVE_THRESH=2
     
     # formPEClusters
-    MIN_CS=2
+    MIN_CS=3
     DISC_ENHANCER=1.67
     MIN_PE_BPMARGIN=25
     PRESERVE_SIZE=3
