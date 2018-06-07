@@ -1,2 +1,4 @@
-chr20	3658	3841	chr20	5462	5463	SV0	.	.	.	INS	PE_SR	.	.	.	.	80	0	.	55	25	2	.	.	.
-chr20	2280	2281	chr20	2460	2461	SV1	.	.	.	DEL	PE_SR	.	.	.	.	32	0	.	25	7	1	.	.	.
+chr1	start1	stop1	chr2	start2	stop2	nameID	score	strand1	strand2	SVType	SupportedBy	confPos	confEnd	Inverted	GT	NSupport	BNDTag	SVSubtype	N_PE	N_SR	N_PE_Cl	BNDAlt1	BNDAlt2	GROUPID
+chr20	5462	5463	chr20	3658	3659	SV0	.	.	.	BND	PE_SR	.	.	.	.	80	1	INS	55	25	2	N[p[	]p]N	.
+chr20	5462	5463	chr20	3840	3841	SV0	.	.	.	BND	PE_SR	.	.	.	.	80	1	INS	55	25	2	]p]N	N[p[	.
+chr20	2280	2281	chr20	2460	2461	SV1	.	.	.	DEL	PE_SR	.	.	.	GT:1/1	32	0	.	25	7	1	.	.	.
