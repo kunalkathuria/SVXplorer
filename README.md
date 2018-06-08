@@ -3,11 +3,13 @@ A comprehensive-approach structural variant caller making use of PE, SR and read
 
 ### SUMMARY
 
-SVXplorer accepts a BAM file of target as input and outputs 6 bedpe files (and 1 equivalent vcf file) containing deletions, non-tandem duplications (insertions.bedpe), inversions, tandem duplications, novel sequence insertions (insertions_dn.bedpe) and BNDs repectively in standard bedpe format. The insertions are tagged as INS (copy-paste duplication), INS_C_P (cut-paste or translocation), INS_I (inverted copy-paste), INS_C_P, INS_C_I_P. The BND file ("unknowns.bedpe") contains all unidentified variants, like partially supported inversions, small non-deletion "FR" clusters etc. It also contains translocations (INS_C) whose source and insert locations have not been ascertained. In the last column, the partially identified variant type is also provided.
+SVXplorer accepts a BAM file of target as input and outputs 6 bedpe files (and 1 equivalent vcf file) containing deletions, non-tandem duplications (insertions.bedpe), inversions, tandem duplications, novel sequence insertions (insertions_dn.bedpe) and BNDs in standard bedpe format. The insertions are tagged as INS (copy-paste duplication), INS_C_P (cut-paste or translocation), INS_I (inverted copy-paste), INS_C_P, INS_C_I_P. The BND file ("unknowns.bedpe") contains all unidentified variants, like partially supported inversions, small non-deletion "FR" clusters, translocations (INS_C) whose source and insert locations have not been ascertained etc.
+
+SVXplorer addresses many of the standard limitations in SV detection by its comprehensive 3-tier approach of sequentially using discordant paired-end (PE) alignment, split-read (SR) alignment and read-depth information to capture as many SVs as possible and simultaneously or progressively weeding out poor candidates. Significant attention is given to categorizing alignments, grouping alignments correctly into respective clusters, eliminating cluster “conflict,” consolidating clusters meticulously into variants, integrating PE and SR calls precisely, dynamically calculating PE and SR SV-support thresholds, retaining all clusters and choosing variants based on final support, corroborating SVs using streamlined local read-depth information etc.
 
 ### METHODOLOGY
 
-SVXplorer first forms discordant clusters from paired-end reads via formation of maximal cliques in a weight-thresholded bidirectional graph and matches them up with each other to form PE variants. It then integrates split reads and read-depth information from samtools(c) to call putative variants. Thus, it iteratively uses paired-end mappings, split reads and read-depth-based pile-up filters to enhance existing variants and identiy new ones. It also filters out variants based on unique-fragment-support criteria: if a variant has sufficient support from fragments that uniquely support that variant, it is likely to be true. 
+SVXplorer first forms discordant clusters from paired-end reads via formation of maximal cliques in a weight-thresholded bidirectional graph and consolidates them further into PE-supported variants. It then integrates split reads and read-depth information to call putative variants, enhancing/filtering out existing variants or identifying new ones along the way. 
 
 ### REQUIREMENTS
 
@@ -55,6 +57,5 @@ These files are written in the working directory. Intermediate bedpe files using
 
 ### NOTES
 
-1. One can also set MQ_THRESH to 0 and use the option of secondary alignments by assigning a value less than 1 to MATCHRATIO (-d;see command line help) for higher sensitivity, but which may increase run-time considerably.
-3. One can set SPLIT_INS to True for *good-quality* diploid data which allows for better performance with this particular filter (reevaluates non-tandem duplications/translocations and break them into deletions and tandem duplications if indicated by local read depth).
-4. One can set LIB_INV to FALSE if wish to call only those inversions that are supported by 2 opposing PE clusters, and not 1 PE and 1 SR cluster only (see manuscript for more details). 
+1. One can set SPLIT_INS to True for *good-quality* diploid data which allows for better performance with this particular filter (reevaluates non-tandem duplications/translocations and break them into deletions and tandem duplications if indicated by local read depth).
+2. One can set LIB_INV to FALSE if wish to call only those inversions that are supported by 2 opposing PE clusters, and not 1 PE and 1 SR cluster only (see manuscript for more details). 
