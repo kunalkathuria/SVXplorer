@@ -332,7 +332,7 @@ def runSubsample(almt, block_hash):
     return found, process
 
 def processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights,
-                   wt_calc_thresh, wt_isUncalculated, edgeStore, fragmentGraph,
+                   wt_calc_thresh, edgeStore, fragmentGraph,
                    edge_weight_thresh, dist_penalty, dist_end, rdl,
                    IL_BinDistHash, mean_IL, wtThresh_perc, debug):
     """Include the new fragment into the graph.
@@ -352,32 +352,14 @@ def processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights,
             f2_rPos = almt.r_bound
             edge_weight = calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, almt.cType, dist_penalty, dist_end, rdl, IL_BinDistHash, mean_IL)
             if edge_weight > 0: logging.debug("Edge weight is: %f", edge_weight)
-            if len(cnnxnWeights) < wt_calc_thresh and edge_weight > 0:
-                cnnxnWeights.append(edge_weight)
-                edgeStore.append((storedAlmt.fragNum, almt.fragNum, edge_weight))
-            elif len(cnnxnWeights) >= wt_calc_thresh and wt_isUncalculated:
-                cnnxnWeights_S = sorted(cnnxnWeights)
-                indexW = int(wtThresh_perc*len(cnnxnWeights))
-                edge_weight_thresh = cnnxnWeights_S[indexW]
-                wt_isUncalculated = 0
-                logging.debug("Edge weight threshold calculated to be %f at percentile %f", edge_weight_thresh, wtThresh_perc)
-                # $$$ for now I am setting this to be zero in consultation with
-                # Kunal. I should remove all vestiges of this later (31 Jan)
-                edge_weight_thresh = 0.00
-                for frag1,frag2,edge_weight in edgeStore:
-                    if edge_weight > edge_weight_thresh and frag1 != frag2:
-                        fragmentGraph.add_edge(frag1, frag2)
-                edgeStore = []
 
             # only add node if calculation threshold to get edge_weight_thresh
             # has been reached, else determine later
-            if wt_isUncalculated == False and edge_weight > edge_weight_thresh:
+            if edge_weight > edge_weight_thresh:
                 if storedAlmt.fragNum != almt.fragNum:
                     fragmentGraph.add_edge(storedAlmt.fragNum, almt.fragNum)
 
-    return wt_isUncalculated, edge_weight_thresh
-
-def refreshFragList(fragList, almt, wt_isUncalculated, fragmentGraph, fragHash,
+def refreshFragList(fragList, almt, fragmentGraph, fragHash,
                     fCliques, fClusters, fClusterMap, max_cluster_length,
                     clusterNum, newClusterBlock, mean_IL, disc_thresh,
                     bp_margin, debug, min_cluster_size):
@@ -387,20 +369,18 @@ def refreshFragList(fragList, almt, wt_isUncalculated, fragmentGraph, fragHash,
             newClusterBlock = 0
             fragList = [fragList[-1]]
             logging.debug('Refreshed list for new chromosomes')
-            if not wt_isUncalculated:
-                clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, [], clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
-                fragmentGraph.clear()
-                fragmentGraph.add_node(fragList[0].fragNum)
+            clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, [], clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
+            fragmentGraph.clear()
+            fragmentGraph.add_node(fragList[0].fragNum)
         elif almt.lTID == fragList[newClusterBlock].lTID and \
                 (almt.l_bound - fragList[newClusterBlock].l_bound) > 2*max_cluster_length:
-            if not wt_isUncalculated:
-                nodeList = {}
-                for frag in fragList[newClusterBlock:]:
-                    nodeList[frag.fragNum] = 1
-                clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, nodeList, clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
-                del fragList[0:newClusterBlock]
-                logging.debug('Deleted %d elems from list', newClusterBlock)
-                newClusterBlock = len(fragList)-1
+            nodeList = {}
+            for frag in fragList[newClusterBlock:]:
+                nodeList[frag.fragNum] = 1
+            clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, nodeList, clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
+            del fragList[0:newClusterBlock]
+            logging.debug('Deleted %d elems from list', newClusterBlock)
+            newClusterBlock = len(fragList)-1
 
     return fragList, clusterNum, newClusterBlock, fragHash
 
@@ -426,8 +406,7 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
     block_thresh = 3*min_cluster_size
     block_hash = {}
 
-    edge_weight_thresh = -1
-    wt_isUncalculated = 1
+    edge_weight_thresh = 0.00
     global IL_BinDistHash
     fragList = []
     fBin=open(IL_BinFile,"r")
@@ -497,16 +476,12 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
         fragList.append(almt)
 
         # process new PE alignment
-        wt_isUncalculated, edge_weight_thresh = processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights, wt_calc_thresh, wt_isUncalculated, edgeStore, fragmentGraph, edge_weight_thresh, dist_penalty, dist_end, rdl, IL_BinDistHash,mean_IL,wtThresh_perc, debug)
+        processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights, wt_calc_thresh, edgeStore, fragmentGraph, edge_weight_thresh, dist_penalty, dist_end, rdl, IL_BinDistHash,mean_IL,wtThresh_perc, debug)
 
         # refresh fragment list
-        fragList, clusterNum, newClusterBlock, fragHash = refreshFragList(fragList, almt, wt_isUncalculated, fragmentGraph, fragHash, fCliques,  fClusters, fClusterMap, max_cluster_length, clusterNum, newClusterBlock, mean_IL, disc_thresh, bp_margin, debug, min_cluster_size)
+        fragList, clusterNum, newClusterBlock, fragHash = refreshFragList(fragList, almt, fragmentGraph, fragHash, fCliques,  fClusters, fClusterMap, max_cluster_length, clusterNum, newClusterBlock, mean_IL, disc_thresh, bp_margin, debug, min_cluster_size)
     logging.info('Finished PE cluster formation')
 
-    # write remaining nodes/almts to file
-    for frag1,frag2,edge_weight in edgeStore:
-        if edge_weight > 0 and frag1 != frag2:
-            fragmentGraph.add_edge(frag1, frag2)
     logging.info('Started writing remaining clusters')
     clusterNum = writeClusters(fragmentGraph, fragHash, fCliques, fClusters, fClusterMap, [], clusterNum, mean_IL, disc_thresh, max_cluster_length, bp_margin, min_cluster_size, debug)
     logging.info('Finished writing remaining clusters')
