@@ -33,21 +33,6 @@ class newSRVar(object):
     def __str__(self):
        return "%s\t%s\t%s\t%s\t%s" %(self.bp2, self.bp3, self.count, self.isOriginal, self.typeSV)
 
-class SRAlmt(object):
-    def __init__(self):
-        self.bp = -1
-        self.tid = -1
-        self.tid_2 = -1
-    def __str__(self):
-        return "%s\t%s\t%s" %(self.bp, self.tid, self.tid_2)
-    def __hash__(self):
-        return hash((self.bp, self.tid, self.tid_2))
-    def __eq__(self, other):
-        return (self.bp, self.tid, self.tid_2) == (other.bp, other.tid, other.tid_2)
-    def __ne__(self, other):
-        # not strictly necessary
-        return not(self == other)
-
 class PEVarDetails(object):
     def __init__(self):
         self.bp2_1 = -1
@@ -101,12 +86,10 @@ def formPEHash(fAV, iObjects, slop):
         SV_specsPE.bp2_2 = int(line_s[7]) + slop
 
         # hash all values within bp margin
-        for x in range(int(line_s[3])-int(slop), int(line_s[4]) + int(slop)):
-            almt = SRAlmt()
-            almt.tid = line_s[2]
-            if line_s[5] != almt.tid:
-                almt.tid_2 = line_s[5]
-            almt.bp = x
+        for bp in range(int(line_s[3])-int(slop), int(line_s[4]) + int(slop)):
+            tid1 = line_s[2]
+            tid2 = line_s[5]
+            almt = (tid1, tid2, bp)
             #immutable hash objects -- preserve so memory doesn't get overwritten
             iObjects.append(almt)
             if almt not in SVHashPE:
@@ -238,11 +221,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
 
         ## CHECK CURRENT SR ALMT AGAINST EXISTING PE VARIANTS FOR MATCH
         match = 0
-        newAlmt = SRAlmt()
-        newAlmt.bp = sr_bp1
-        newAlmt.tid = sr_bp1_tid
-        if sr_bp1_tid != sr_bp2_tid:
-            newAlmt.tid_2 = sr_bp2_tid
+        newAlmt = (sr_bp1_tid, sr_bp2_tid, sr_bp1)
         if newAlmt in SVHashPE and (SVHashPE[newAlmt].bp2_1 < sr_bp2 < SVHashPE[newAlmt].bp2_2):
             varNumPE = SVHashPE[newAlmt].num
             varType = SVHashPE[newAlmt].typeSV
@@ -255,12 +234,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 newBp = [sr_bp1, -1, sr_bp2]
         # if not found, try other side of SR
         else:
-            newAlmt = SRAlmt()
-            newAlmt.bp = sr_bp2
-            newAlmt.tid = sr_bp2_tid
-            newAlmt.tid_2 = -1
-            if sr_bp1_tid != sr_bp2_tid:
-                newAlmt.tid_2 = sr_bp1_tid
+            newAlmt = (sr_bp2_tid, sr_bp1_tid, sr_bp2)
             if newAlmt in SVHashPE and (SVHashPE[newAlmt].bp2_1 < sr_bp1 < SVHashPE[newAlmt].bp2_2):
                 varNumPE = SVHashPE[newAlmt].num
                 varType = SVHashPE[newAlmt].typeSV
@@ -322,11 +296,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         else:
             almtMatchesSVbps = 0
             almtSupportsSV = 0
-            newAlmt = SRAlmt()
-            newAlmt.bp = sr_bp1
-            newAlmt.tid = sr_bp1_tid
+            newAlmt = (sr_bp1_tid, sr_bp2_tid, sr_bp1)
             # bp1 is left bp, bp2 is right bp if same chr
-            newAlmt.tid_2 = sr_bp2_tid
             l_orient = minsr.is_reverse
             r_orient = maxsr.is_reverse
 
@@ -336,10 +307,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 other_bp_tid = sr_bp2_tid
             else:
                 # hashing -- safe to declare new object
-                newAlmt = SRAlmt()
-                newAlmt.bp = sr_bp2
-                newAlmt.tid = sr_bp2_tid
-                newAlmt.tid_2 = sr_bp1_tid
+                newAlmt = (sr_bp2_tid, sr_bp1_tid, sr_bp2) 
                 if newAlmt in SRVarHash:
                     almtMatchesSVbps = 1
                     other_bp = sr_bp1
@@ -455,9 +423,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                             SRVarHash[newAlmt].insToInv=1
             ## FORM NEW SR VARIANT
             else:
-                newAlmt.bp = sr_bp1
-                newAlmt.tid = sr_bp1_tid
-                newAlmt.tid_2 = sr_bp2_tid
+                newAlmt = (sr_bp1_tid, sr_bp2_tid, sr_bp1)
                 newVariant = newSRVar()
                 newVariant.bp2 = sr_bp2
                 newVariant.support.append(SRFrag)
@@ -494,10 +460,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                     newVariant2.r_orient = newVariant.r_orient
                     newVariant2.typeSV = newVariant.typeSV
                     newVariant2.swapped = newVariant.swapped
-                    newAlmtExt = SRAlmt()
-                    newAlmtExt.tid = newAlmt.tid
-                    newAlmtExt.tid_2 = newAlmt.tid_2
-                    newAlmtExt.bp = x
+                    newAlmtExt = (newAlmt[0], newAlmt[1], x)
                     if newAlmtExt not in SRVarHash:
                         SRVarHash[newAlmtExt] = newVariant2
                 for x in list2:
@@ -508,10 +471,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                     newVariant2.r_orient = newVariant.l_orient
                     newVariant2.typeSV = newVariant.typeSV
                     newVariant2.swapped = newVariant.swapped
-                    newAlmtExt = SRAlmt()
-                    newAlmtExt.tid = newAlmt.tid_2
-                    newAlmtExt.tid_2 = newAlmt.tid
-                    newAlmtExt.bp = x
+                    newAlmtExt = (newAlmt[1], newAlmt[0], x) 
                     if newAlmtExt not in SRVarHash:
                         SRVarHash[newAlmtExt] = newVariant2
 
@@ -567,22 +527,19 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         if SRVarHash[SRVar].count > 0:
             bpTemp = SRVar.bp
             bpTempMate = SRVarHash[SRVar].bp2
-            chosenVar = SRAlmt()
+            chosenVar = (-1,-1,-1) 
             neighborSupport = []
             origSV = SRVar
             # check neighbor hash pairs and transfer to one with change in type (bona fide)
             # else pick 1 at random
             if SRVarHash[SRVar].write == -1:
                 for x in range(int(bpTemp-slop-1), int(bpTemp + slop+1)):
-                    SRVarExt = SRAlmt()
-                    SRVarExt.tid = SRVar.tid
-                    SRVarExt.tid_2 = SRVar.tid_2
-                    SRVarExt.bp = x
+                    SRVarExt = (SRVar.tid, SRVar.tid_2, x) 
                 # if in same variant "symmetry group"
                 if SRVarExt in SRVarHash and \
                     SRVarHash[SRVarExt].support[0] == SRVarHash[SRVar].support[0]:
 
-                    if SRVarHash[SRVarExt].n_changes > 0 and chosenVar.bp == -1:
+                    if SRVarHash[SRVarExt].n_changes > 0 and chosenVar[2] == -1:
                         chosenVar = SRVarExt
                         SRVarHash[SRVarExt].write = 1
                     else:
@@ -595,13 +552,10 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 # if none, check mate hash pairs and transfer to one with most changes in type
                 # else pick 1 randomly
                 for x in range(int(bpTempMate-slop -1), int(bpTempMate + slop +1)):
-                    SRVarExt = SRAlmt()
-                    SRVarExt.tid = SRVar.tid_2
-                    SRVarExt.tid_2 = SRVar.tid
-                    SRVarExt.bp = x
+                    SRVarExt = (SRVar.tid_2, SRVar.tid, x) 
                     if SRVarExt in SRVarHash and \
                         SRVarHash[SRVarExt].support[0] == SRVarHash[SRVar].support[0]:
-                        if SRVarHash[SRVarExt].n_changes > 0 and chosenVar.bp == -1:
+                        if SRVarHash[SRVarExt].n_changes > 0 and chosenVar[2] == -1:
                             chosenVar = SRVarExt
                             SRVarHash[SRVarExt].write = 1
                         else:
@@ -612,7 +566,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                             origSV = SRVarExt
 
                 # if all neighbors unchanged, pick the original one among all neighbors
-                if chosenVar.bp == -1:
+                if chosenVar[2] == -1:
                     chosenVar = origSV
                     SRVarHash[chosenVar].write = 1
                 SRVarHash[chosenVar].support = \
