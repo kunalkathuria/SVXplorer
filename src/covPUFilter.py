@@ -487,7 +487,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     #or (conf_12 and covLoc_12 > DUP_THRESH)):
                     bnd = 1
 
-                elif (svtype == "INS" or svtype == "INS_I") or \
+                elif (svtype == "INS" or svtype == "INS_I") and \
                    (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
                     bnd = 1
 
