@@ -62,6 +62,8 @@ def readBamStats(statFile):
                 break
     return rdl, sd, coverage
 
+def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, 
+        GOOD_REG_THRESH, outerBPs):
     global covHash
     bin_size = 100
     if chr_n not in covHash:
@@ -492,7 +494,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
             ## write in BED files
             lineAV_split[1] = svtype
             writeVariants(lineAV_split, swap, bnd, support, GT, fAVN,
-                    PE_DEL_THRESH, SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
+                    SR_DEL_THRESH, MIX_DEL_THRESH, UNIV_VAR_THRESH)
 
     fAV.close()
     fAVN.close()
