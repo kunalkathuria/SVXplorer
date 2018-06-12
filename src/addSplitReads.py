@@ -349,8 +349,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                             #print "TD 1", SRVarHash[newAlmt].count
 
                     elif l_orient == r_orient and swap==0 and not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                            <= SRVarHash[newAlmt].bp2+slop/2 or SRVarHash[newAlmt].bp2 < newAlmt.bp < other_bp or \
-                            other_bp < newAlmt.bp < SRVarHash[newAlmt].bp2) and not ( (l_orient != SRVarHash[newAlmt].l_orient \
+                            <= SRVarHash[newAlmt].bp2+slop/2 or SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp or \
+                            other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2) and not ( (l_orient != SRVarHash[newAlmt].l_orient \
                             and SRVarHash[newAlmt].r_orient == r_orient) or (l_orient == SRVarHash[newAlmt].l_orient \
                             and SRVarHash[newAlmt].r_orient != r_orient) ):
 
@@ -375,7 +375,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                             SRVarHash[newAlmt].count+=1
                             SRVarHash[newAlmt].support.append(SRFrag)
                         elif not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 or \
-                            SRVarHash[newAlmt].bp2 < newAlmt.bp < other_bp or other_bp < newAlmt.bp < SRVarHash[newAlmt].bp2) \
+                            SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp or other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2) \
                             and not ((l_orient != SRVarHash[newAlmt].l_orient and SRVarHash[newAlmt].r_orient == r_orient) \
                             or (l_orient == SRVarHash[newAlmt].l_orient and SRVarHash[newAlmt].r_orient != r_orient)):
 
@@ -395,8 +395,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         SRVarHash[newAlmt].count+=1
                         SRVarHash[newAlmt].support.append(SRFrag)
                         if SRVarHash[newAlmt].bp3 == -1 and not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                            <= SRVarHash[newAlmt].bp2+slop/2 or SRVarHash[newAlmt].bp2 < newAlmt.bp < other_bp \
-                            or other_bp < newAlmt.bp < SRVarHash[newAlmt].bp2):
+                            <= SRVarHash[newAlmt].bp2+slop/2 or SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp \
+                            or other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2):
 
                             SRVarHash[newAlmt].bp3 = other_bp
                             SRVarHash[newAlmt].bp3tid = other_bp_tid
@@ -411,13 +411,13 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         SRVarHash[newAlmt].support.append(SRFrag)
 
                         if SRVarHash[newAlmt].bp3 == -1 and not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                            <= SRVarHash[newAlmt].bp2+slop/2 or SRVarHash[newAlmt].bp2 < newAlmt.bp < other_bp \
-                            or other_bp < newAlmt.bp < SRVarHash[newAlmt].bp2):
+                            <= SRVarHash[newAlmt].bp2+slop/2 or SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp \
+                            or other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2):
 
                             SRVarHash[newAlmt].bp3 = other_bp
                             SRVarHash[newAlmt].bp3tid = other_bp_tid
                             SRVarHash[newAlmt].n_changes+=1
-                        elif newAlmt.tid == newAlmt.tid_2 and SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
+                        elif newAlmt[0] == newAlmt[1] and SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
                             <= SRVarHash[newAlmt].bp2+slop/2 and l_orient != SRVarHash[newAlmt].l_orient:
                             #if 3rd bp unset till end, then call it an inversion if this condition is fulfilled
                             SRVarHash[newAlmt].insToInv=1
@@ -429,19 +429,19 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 newVariant.support.append(SRFrag)
                 newVariant.l_orient = l_orient
                 newVariant.r_orient = r_orient
-                if newAlmt.tid == newAlmt.tid_2 and swap==0:
+                if newAlmt[0] == newAlmt[1] and swap==0:
                     newVariant.swapped = 0
                     if l_orient == r_orient:
                         newVariant.typeSV = "DEL_INS"
                     else:
                         newVariant.typeSV = "INV_POSS"
-                elif newAlmt.tid == newAlmt.tid_2 and swap==1:
+                elif newAlmt[0] == newAlmt[1] and swap==1:
                     newVariant.typeSV = "TD_I"
                     newVariant.swapped = 1
                     #$handle this case in INS_I matches
                     if l_orient != r_orient:
                         newVariant.typeSV = "INS_I"
-                elif newAlmt.tid != newAlmt.tid_2:
+                elif newAlmt[0] != newAlmt[1]:
                     newVariant.typeSV = "INS"
                     newVariant.swapped = 0
                     if l_orient != r_orient:
@@ -525,7 +525,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     for SRVar in SRVarHash:
         #print SRVar, SRVarHash[SRVar],SRVarHash[SRVar].typeSV, SRVarHash[SRVar].count
         if SRVarHash[SRVar].count > 0:
-            bpTemp = SRVar.bp
+            bpTemp = SRVar[2]
             bpTempMate = SRVarHash[SRVar].bp2
             chosenVar = (-1,-1,-1) 
             neighborSupport = []
@@ -534,7 +534,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
             # else pick 1 at random
             if SRVarHash[SRVar].write == -1:
                 for x in range(int(bpTemp-slop-1), int(bpTemp + slop+1)):
-                    SRVarExt = (SRVar.tid, SRVar.tid_2, x) 
+                    SRVarExt = (SRVar[0], SRVar[1], x) 
                 # if in same variant "symmetry group"
                 if SRVarExt in SRVarHash and \
                     SRVarHash[SRVarExt].support[0] == SRVarHash[SRVar].support[0]:
@@ -552,7 +552,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 # if none, check mate hash pairs and transfer to one with most changes in type
                 # else pick 1 randomly
                 for x in range(int(bpTempMate-slop -1), int(bpTempMate + slop +1)):
-                    SRVarExt = (SRVar.tid_2, SRVar.tid, x) 
+                    SRVarExt = (SRVar[1], SRVar[0], x) 
                     if SRVarExt in SRVarHash and \
                         SRVarHash[SRVarExt].support[0] == SRVarHash[SRVar].support[0]:
                         if SRVarHash[SRVarExt].n_changes > 0 and chosenVar[2] == -1:
@@ -583,27 +583,27 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                     #$can make this "INV" from "INV_POSS" if wish to be liberal
                     SRVarHash[SRVar].typeSV == "INV_POSS"
                 elif (SRVarHash[SRVar].typeSV == "INS_I" or SRVarHash[SRVar].typeSV == "INS") \
-                    and SRVar.tid_2 == SRVarHash[SRVar].bp3tid and abs(SRVarHash[SRVar].bp2 - \
+                    and SRVar[1] == SRVarHash[SRVar].bp3tid and abs(SRVarHash[SRVar].bp2 - \
                     SRVarHash[SRVar].bp3) < minSizeINS:
                     SRVarHash[SRVar].typeSV = "INS_POSS"
                 elif (SRVarHash[SRVar].typeSV == "INS_I" or SRVarHash[SRVar].typeSV == "INS") \
-                    and SRVar.tid_2 == SRVarHash[SRVar].bp3tid and SRVarHash[SRVar].bp2 > \
+                    and SRVar[1] == SRVarHash[SRVar].bp3tid and SRVarHash[SRVar].bp2 > \
                     SRVarHash[SRVar].bp3:
                     SRVarHash[SRVar].bp2, SRVarHash[SRVar].bp3 = SRVarHash[SRVar].bp3,\
                         SRVarHash[SRVar].bp2
 
                 if (SRVarHash[SRVar].typeSV == "DEL_INS" or SRVarHash[SRVar].typeSV == "TD_I" \
                     or SRVarHash[SRVar].typeSV == "INV" or SRVarHash[SRVar].typeSV \
-                    == "INV_POSS") and SRVar.bp > SRVarHash[SRVar].bp2:
-                        output = [k+varNumPE+1, SRVarHash[SRVar].typeSV, SRVar.tid_2, 
-                                 SRVarHash[SRVar].bp2, SRVarHash[SRVar].bp2+1, SRVar.tid, 
-                                 SRVar.bp, SRVar.bp + 1, SRVarHash[SRVar].bp3tid, SRVarHash[SRVar].bp3, 
+                    == "INV_POSS") and SRVar[2] > SRVarHash[SRVar].bp2:
+                        output = [k+varNumPE+1, SRVarHash[SRVar].typeSV, SRVar[1], 
+                                 SRVarHash[SRVar].bp2, SRVarHash[SRVar].bp2+1, SRVar[0], 
+                                 SRVar[2], SRVar[2] + 1, SRVarHash[SRVar].bp3tid, SRVarHash[SRVar].bp3, 
                                  SRVarHash[SRVar].bp3 + 1, "SR", "0", "0", SRVarHash[SRVar].count]
                         outputN = map(str, output)
                         fAVN.write("%s\n" %("\t".join(outputN)))
                 else:
-                        output = [k+varNumPE+1, SRVarHash[SRVar].typeSV, SRVar.tid, SRVar.bp, 
-                                 SRVar.bp + 1, SRVar.tid_2, SRVarHash[SRVar].bp2, SRVarHash[SRVar].bp2 + 1,
+                        output = [k+varNumPE+1, SRVarHash[SRVar].typeSV, SRVar[0], SRVar[2], 
+                                 SRVar[2] + 1, SRVar[1], SRVarHash[SRVar].bp2, SRVarHash[SRVar].bp2 + 1,
                                  SRVarHash[SRVar].bp3tid, SRVarHash[SRVar].bp3, SRVarHash[SRVar].bp3
                                  + 1, "SR", "0", "0", SRVarHash[SRVar].count]
                         outputN = map(str, output)
