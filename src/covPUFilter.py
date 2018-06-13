@@ -14,6 +14,8 @@ from shared import readChromosomeLengths
 DEL_THRESH_GT = .125
 DUP_THRESH_S = 1.15
 DEL_THRESH_S = .85
+DEL_THRESH_H = .6
+DUP_THRESH_H = 1.3
 MIN_PILEUP_THRESH = 80
 CALC_THRESH = 2000000
 chrHash = {}
@@ -352,17 +354,17 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         covLoc_13, conf_13 = 0,0
 
                     if conf_23:
-                        if covLoc_23 > DUP_THRESH_S:
+                        if covLoc_23 > DUP_THRESH:
                             dup_23 = 1
                         elif covLoc_23 < DEL_THRESH:
                             del_23 =1
                     if conf_12:
-                        if covLoc_12 > DUP_THRESH_S:
+                        if covLoc_12 > DUP_THRESH:
                             dup_12 = 1
                         elif covLoc_12 < DEL_THRESH:
                             del_12 =1
                     if conf_13:
-                        if covLoc_13 > DUP_THRESH_S:
+                        if covLoc_13 > DUP_THRESH:
                             dup_13 = 1
                         elif covLoc_13 < DEL_THRESH:
                             del_13 =1
@@ -372,14 +374,14 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                         # bp2-3
                         #diploid deletion + copy-paste in 2-3 region possible, so use DEL_THRESH below not DUP_THRESH
-                        if (conf_12 and covLoc_12 < DEL_THRESH) or \
-                           (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
+                        if (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH) or \
+                            (conf_23 and covLoc_23 < 1.0): 
                             bnd = 1
-                        elif (conf_23 and covLoc_23 < DUP_THRESH_S):
-                            if svtype == "INS_I":
-                                svtype = "INS_C_I_P"
-                            else:
-                                svtype = "INS_C_P"
+                        #elif (conf_23 and covLoc_23 < DUP_THRESH_S):
+                            #if svtype == "INS_I":
+                                #svtype = "INS_C_I_P"
+                            #else:
+                                #svtype = "INS_C_P"
                             
                     elif svtype.startswith("INS_C") and lineAV_split[11].find("PE") != -1 and \
                         lineAV_split[8] != "-1":
@@ -480,11 +482,16 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                                 svtype+="_P"
                                 swap = 1
                 
-                #NPE_CLUSTERS_SUPP = int(lineAV_split[12])
+                        #NPE_CLUSTERS_SUPP = int(lineAV_split[12])
+                        if (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
+                            ((0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH) or \
+                            (conf_23 and covLoc_23 < DEL_THRESH_H)):
+                            # or (conf_12 and not (DEL_THRESH_H < covLoc_12 < DUP_THRESH_H))
+                            # or NPE_CLUSTERS < 3
+                            bnd = 1
+
                 if (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
-                    (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH): #or \
-                    #NPE_CLUSTERS_SUPP < 3): 
-                    #or (conf_12 and covLoc_12 > DUP_THRESH)):
+                    (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
                     bnd = 1
 
                 elif (svtype == "INS" or svtype == "INS_I") and \
