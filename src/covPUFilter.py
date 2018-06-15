@@ -15,6 +15,7 @@ DEL_THRESH_GT = .125
 DUP_THRESH_S = 1.15
 DEL_THRESH_S = .85
 MIN_PILEUP_THRESH = 80
+MIN_PILEUP_THRESH_NH = 100
 CALC_THRESH = 2000000
 chrHash = {}
 covHash = {}
@@ -93,7 +94,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                           chr_n, covHash[chr_n], avgCov)
         else:
             logging.debug("Unable to calculate coverage in chromosome %s", chr_n)
-            print >> stderr, "Note: unable to calculate coverage in chromosome", chr_n
+            print >> stderr, "Note: unable to calculate coverage, likely using good regions file, in chromosome", chr_n
             covHash[chr_n] = 0
 
     if bpSecond - bpFirst < 1.25*MIN_PILEUP_THRESH:
@@ -106,31 +107,44 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     gap = bpSecondL - bpFirstL
     start = .25*gap + bpFirstL
     stop = min(start+.5*gap,start +3*PILEUP_THRESH)
-    covLoc, counter, confRegion = 0,0,0
+    covLoc,covLocNH, counter, counterNH, confRegion = 0,0,0,0,0
     if stop > start:
         for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
+            puVal = pileupcolumn.n
+            covLocNH+= puVal
+            counterNH+=1
             if NH_REGIONS_FILE is None or \
             (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
-                covLoc+= pileupcolumn.n
+                covLoc+= puVal
                 counter+=1
                 if counter > PILEUP_THRESH:
                     break
         # pile-up does not step through loop if no portion of reads lies in variant region
         if counter < MIN_PILEUP_THRESH:
+            updateNH = 0
+            if counterNH < 3*MIN_PILEUP_THRESH_NH:
+                counterNH, updateNH = 0,1
             counter = 0
             for x in range(int(start), int(stop)):
                 if NH_REGIONS_FILE is None or \
                     (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x]):
-                    counter+=1         
+                    counter+=1
+                    if updateNH == 1:
+                        counterNH+=1
                 if counter > PILEUP_THRESH:
                     break
 
         # add sides also if not enough statistics in middle
         if counter < 2*MIN_PILEUP_THRESH and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
             gbCount = counter 
-            counter = 0
+            counter, counterNH_prev = 0,0
             start, stop = bpFirstL, bpFirstL + .25*gap
             for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
+                # we wish to avoid adding coverage from boundaries, especially if it's not a good region 
+                # but also need more stats/evidence if counterNH doesn't have many bases from good region
+                if counterNH < 3*MIN_PILEUP_THRESH_NH:
+                    covLocNH+=1
+                    counterNH+=1
                 if NH_REGIONS_FILE is None or \
                 (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                     covLoc+= pileupcolumn.n
@@ -139,18 +153,26 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                         break
             # pile-up does not step through loop if no portion of reads lies in variant region
             if counter < MIN_PILEUP_THRESH:
-                counter = 0
+                counter, updateNH = 0,0
+                if counterNH < 3*MIN_PILEUP_THRESH_NH:
+                    counterNH_prev, counterNH, updateNH = counterNH,0,1
                 for x in range(int(start), int(stop)):
                     if NH_REGIONS_FILE is None or \
                         (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x]):
                         counter+=1         
+                        if updateNH == 1:
+                            counterNH+=1
                     if counter > PILEUP_THRESH:
                         break
 
             gbCount+= counter
+            counterNH+= counterNH_prev
             counter = 0
             start, stop = bpSecondL - .25*gap, bpSecondL
             for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
+                if counterNH < 3*MIN_PILEUP_THRESH_NH:
+                    covLocNH+=1
+                    counterNH+=1
                 if NH_REGIONS_FILE is None or \
                 (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                     covLoc = covLoc + pileupcolumn.n
@@ -159,19 +181,28 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                         break
             # pile-up does not step through loop if no portion of reads lies in variant region
             if counter < MIN_PILEUP_THRESH:
+                updateNH = 0
+                if counterNH < 3*MIN_PILEUP_THRESH_NH:
+                    counterNH_prev, counterNH, updateNH = counterNH,0,1
                 counter = 0
                 for x in range(int(start), int(stop)):
                     if NH_REGIONS_FILE is None or \
                         (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x]):
                         counter+=1         
+                        if updateNH == 1:
+                            counterNH+=1
                     if counter > PILEUP_THRESH:
                         break
             gbCount+= counter
+            counterNH+= counterNH_prev
             counter = gbCount
 
         if (counter > MIN_PILEUP_THRESH and (counter > GOOD_REG_THRESH*(stop-start) or counter > PILEUP_THRESH)):
             confRegion = 1
             covLoc = (1.0*covLoc)/(1.0*counter)
+        elif counterNH > MIN_PILEUP_THRESH_NH:
+            confRegion = 1
+            covLoc = (1.0*covLocNH)/(1.0*counterNH)
 
     logging.debug("Good bases found, conf, cov: %s, %s, %s, %s", counter, confRegion, covLoc, covHash[chr_n])
     if covHash[chr_n] != 0:
@@ -280,36 +311,30 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             int(lineAV_split[4]), int(lineAV_split[6]),
                             PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[3]), int(lineAV_split[7])])
 
-                    if confMiddle == 1:
-                        if svtype[0:2] == "TD" and covLocM > DUP_THRESH: 
+                    if svtype[0:2] == "TD" and confMiddle == 1 and covLocM > DUP_THRESH: 
 
-                            logging.debug("TD confirmed using pileup")
-                            svtype = "TD"
+                        logging.debug("TD confirmed using pileup")
+                        svtype = "TD"
 
-                        elif svtype[0:2] == "TD" and covLocM < DUP_THRESH_S:
-                            # since bp3 = -1, this will be written as a BND event
-                            svtype = "INS_halfRF"
+                    elif svtype[0:2] == "TD" and (confMiddle == 0 or covLocM < DUP_THRESH_S):
+                        logging.debug("Rejected %s due to low cvg or insufficient evidence of coverage due to small variant region", lineAV)
+                        # since bp3 = -1, this will be written as a BND event
+                        svtype = "INS_halfRF"
 
-                        elif svtype[0:3] == "DEL" and covLocM < DEL_THRESH: 
+                    elif svtype[0:3] == "DEL" and confMiddle == 1 and covLocM < DEL_THRESH: 
 
-                            logging.debug("DEL confirmed using pileup")
-                            svtype = "DEL"
-                            if covLocM < DEL_THRESH_GT:
-                                GT="GT:1/1"
-                            elif covLocM > 3*DEL_THRESH_GT:
-                                GT="GT:0/1"
+                        logging.debug("DEL confirmed using pileup")
+                        svtype = "DEL"
+                        if covLocM < DEL_THRESH_GT:
+                            GT="GT:1/1"
+                        elif covLocM > 3*DEL_THRESH_GT:
+                            GT="GT:0/1"
 
-                        elif svtype[0:3] == "DEL" and covLocM > DEL_THRESH_S:
-                            logging.debug("Rejected %s due to high cvg", lineAV)
-                            # since bp3 = -1, this will be written as a BND event
-                            svtype = "INS_halfFR"
-
-                        elif svtype[0:3] == "DEL":
-                            logging.debug("Rejected %s due to middle cvg", lineAV)
+                    elif svtype[0:3] == "DEL" and (confMiddle == 0 or covLocM > DEL_THRESH_S):
+                        logging.debug("Rejected %s due to high cvg or insufficient evidence of coverage due to small variant region", lineAV)
+                        # since bp3 = -1, this will be written as a BND event
+                        svtype = "INS_halfFR"
                         
-                    elif svtype[0:3] == "DEL":
-                        logging.debug("Not enough good bases in %s", lineAV)
-
                 elif svtype in ["INS", "INS_I"] or svtype.startswith("INS_C"):
 
                     del_23, del_12, del_13, dup_23, dup_12, dup_13 = 0, 0, 0, 0, 0, 0
