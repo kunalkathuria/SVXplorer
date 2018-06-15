@@ -14,8 +14,6 @@ from shared import readChromosomeLengths
 DEL_THRESH_GT = .125
 DUP_THRESH_S = 1.15
 DEL_THRESH_S = .85
-DEL_THRESH_H = .85
-DUP_THRESH_H = 1.3
 MIN_PILEUP_THRESH = 80
 CALC_THRESH = 2000000
 chrHash = {}
@@ -373,15 +371,9 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     if svtype in ["INS", "INS_I"] and lineAV_split[8] != "-1":
 
                         # bp2-3
-                        #diploid deletion + copy-paste in 2-3 region possible, so use DEL_THRESH below not DUP_THRESH
                         if (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH) or \
-                            (conf_23 and covLoc_23 < 1.0): 
+                            (conf_23 and covLoc_23 < DUP_THRESH_S): 
                             bnd = 1
-                        #elif (conf_23 and covLoc_23 < DUP_THRESH_S):
-                            #if svtype == "INS_I":
-                                #svtype = "INS_C_I_P"
-                            #else:
-                                #svtype = "INS_C_P"
                             
                     elif svtype.startswith("INS_C") and lineAV_split[11].find("PE") != -1 and \
                         lineAV_split[8] != "-1":
@@ -485,8 +477,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         #NPE_CLUSTERS_SUPP = int(lineAV_split[12])
                         if (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
                             ((0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH) or \
-                            (conf_23 and covLoc_23 < DEL_THRESH_H)):
-                            # or (conf_12 and not (DEL_THRESH_H < covLoc_12 < DUP_THRESH_H))
+                            (conf_23 and covLoc_23 < DEL_THRESH_S)):
+                            # or (conf_12 and not (DEL_THRESH < covLoc_12 < DUP_THRESH))
                             # or NPE_CLUSTERS < 3
                             bnd = 1
 

@@ -810,6 +810,8 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 anyMatch = 1
                 elem.bp1_orient = -1
                 elem.bp3_orient = -1
+                elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.l_start, cluster1.l_end])[1:3]
+                elem.bp3_start, elem.bp3_end = sorted([elem.bp3_start, elem.bp3_end, cluster1.r_start, cluster1.r_end])[1:3]
                 # bp has 2 overlapping reads now
                 #print "INS_C 1", elem.count
             elif cluster1.lTID == elem.bp3TID and cluster1.rTID == elem.bp1TID and elem.bp1_orient != -1 \
@@ -822,6 +824,8 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 anyMatch = 1
                 elem.bp1_orient = -1
                 elem.bp3_orient = -1
+                elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.r_start, cluster1.r_end])[1:3]
+                elem.bp3_start, elem.bp3_end = sorted([elem.bp3_start, elem.bp3_end, cluster1.l_start, cluster1.l_end])[1:3]
                 #print "INS_C 2", elem.count
             elif cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp2TID and elem.bp1_orient != -1 \
                 and elem.bp2_orient != -1 and isOverlapping("V",cluster1,elem,"L1", slop) and \
@@ -833,6 +837,8 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 anyMatch = 1
                 elem.bp1_orient = -1
                 elem.bp3_orient = -1
+                elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.l_start, cluster1.l_end])[1:3]
+                elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.r_start, cluster1.r_end])[1:3]
                 # bp has 2 overlapping reads now
                 #print "INS_C 1", elem.count
             elif cluster1.lTID == elem.bp2TID and cluster1.rTID == elem.bp1TID and elem.bp1_orient != -1 \
@@ -845,6 +851,8 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 anyMatch = 1
                 elem.bp1_orient = -1
                 elem.bp3_orient = -1
+                elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.r_start, cluster1.r_end])[1:3]
+                elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.l_start, cluster1.l_end])[1:3]
             # the _P subscript denotes that the breakpoints are confirmed.
             # bp1 is indeed the pasted location for this INS_C
             # small cluster overlap to confirm paste location-- overlaps both bp 1 and 2
@@ -903,6 +911,8 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                     elem.bp3TID = cluster1.rTID
                     if elem.SVType == "INS":
                         elem.SVType = "INS_C"
+                    elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.r_start, cluster1.r_end])[1:3]
+                    elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.l_start, cluster1.l_end])[1:3]
                 elif cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
                     cluster1.rTID == elem.bp2TID and (cluster1.lTID != elem.bp1TID or \
                     not isOverlapping("V", cluster1, elem, "L1", slop)) and \
@@ -916,21 +926,8 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                     elem.bp3TID = cluster1.lTID
                     if elem.SVType == "INS":
                         elem.SVType = "INS_C"
-                elif (cluster1.lTID == elem.bp1TID and isOverlapping("V", cluster1, elem, "L1", slop)\
-                    and elem.bp1_hasAlmtF and cluster1.l_orient == 1)\
-                    or (cluster1.rTID == elem.bp1TID and isOverlapping("V", cluster1, elem, "R1", slop)\
-                    and elem.bp1_hasAlmtR and cluster1.l_orient == 0):
-
-                    if elem.SVType == "INS" and cluster1.l_orient != cluster1.r_orient:
-                        match = 1
-                        elem.count+=1
-                        anyMatch = 1
-                        if elem.bp1_hasAlmtF and cluster1.l_orient == 1:
-                            elem.bp3_start, elem.bp3_end = cluster1.r_start, cluster1.r_end
-                            elem.bp3TID = cluster1.rTID
-                        elif elem.bp1_hasAlmtR and cluster1.l_orient == 0:
-                            elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
-                            elem.bp3TID = cluster1.lTID
+                    elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.l_start, cluster1.l_end])[1:3]
+                    elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.r_start, cluster1.r_end])[1:3]
             elif elem.bp2TID == cluster1.lTID == cluster1.rTID and isOverlapping("V", cluster1, \
                 elem, "L2", slop) and isOverlapping("V", cluster1, elem, "R3", slop) and \
                 cluster1.l_orient != elem.bp2_orient and cluster1.r_orient != elem.bp3_orient:
@@ -947,6 +944,8 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                     else:
                         if elem.SVType == "INS":
                             elem.SVType = "INS_C_P"
+                    elem.bp3_start, elem.bp3_end = sorted([elem.bp3_start, elem.bp3_end, cluster1.r_start, cluster1.r_end])[1:3]
+                    elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.l_start, cluster1.l_end])[1:3]
             # small cluster check
             elif cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp1TID and \
                 isOverlapping("V", cluster1, elem, "L1",slop) and isOverlapping("V", cluster1, elem, "R1", slop):
