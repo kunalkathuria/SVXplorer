@@ -14,15 +14,19 @@ from shared import readChromosomeLengths
 DEL_THRESH_GT = .125
 DUP_THRESH_S = 1.15
 DEL_THRESH_S = .85
-MIN_PILEUP_THRESH = 80
-MIN_PILEUP_THRESH_NH = 100
 CALC_THRESH = 2000000
+MQT_COV = 5
 chrHash = {}
 covHash = {}
+MQ0_Set = set()
 # empirical calculation of DEL_THRESH b/w 15 and 25 stdev of IL
 SD_S = 14
 SD_L = 24
 MIN_SPLIT_INS_COV = 7
+
+def countCvg(fBAM, start, stop, chr_n):
+    covOut = fBAM.count_coverage(chr_n, start, stop, read_callback="all", quality_threshold = MQT_COV)
+    #covTotal = sum(map(covOut[0][1][:][,int))
 
 def formChrHash(NH_REGIONS_FILE, RDL, chrLengths):
     global chrHash
@@ -64,7 +68,7 @@ def readBamStats(statFile):
     return rdl, sd, coverage
 
 def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, 
-        GOOD_REG_THRESH, outerBPs):
+        GOOD_REG_THRESH, outerBPs, MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH):
     global covHash
     bin_size = 100
     if chr_n not in covHash:
@@ -94,10 +98,10 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                           chr_n, covHash[chr_n], avgCov)
         else:
             logging.debug("Unable to calculate coverage in chromosome %s", chr_n)
-            print >> stderr, "Note: unable to calculate coverage, likely using good regions file, in chromosome", chr_n
+            print >> stderr, "Note: unable to calculate coverage in chromosome", chr_n
             covHash[chr_n] = 0
 
-    if bpSecond - bpFirst < 1.25*MIN_PILEUP_THRESH:
+    if bpSecond - bpFirst < 2*MIN_PILEUP_THRESH_NH:
         bpFirstL = outerBPs[0]
         bpSecondL = outerBPs[1]
     else:
@@ -113,98 +117,152 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             puVal = pileupcolumn.n
             covLocNH+= puVal
             counterNH+=1
-            if NH_REGIONS_FILE is None or \
+            
+            badReadCount, allBadReads = 0,0
+            for read in pileupcolumn.pileups:
+                if read.alignment.mapping_quality == 0:
+                    covLocNH-= 1
+                    badReadCount+=1
+            if badReadCount == len(pileupcolumn.pileups) and badReadCount != 0:
+                allBadReads = 1
+                counterNH-=1
+                MQ0_Set.add((chr_n,pileupcolumn.pos))
+
+            if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
+                break
+            logging.debug("PU pos, val: %s %s", pileupcolumn.pos, puVal)
+            if (NH_REGIONS_FILE is not None) and \
             (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
+                logging.debug("PUval, pu.n: %s, %s", puVal, pileupcolumn.n)
                 covLoc+= puVal
                 counter+=1
+                covLoc-= badReadCount
+                if allBadReads:
+                    counter-= 1
                 if counter > PILEUP_THRESH:
                     break
-        # pile-up does not step through loop if no portion of reads lies in variant region
-        if counter < MIN_PILEUP_THRESH:
-            updateNH = 0
-            if counterNH < 3*MIN_PILEUP_THRESH_NH:
-                counterNH, updateNH = 0,1
-            counter = 0
-            for x in range(int(start), int(stop)):
-                if NH_REGIONS_FILE is None or \
-                    (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x]):
-                    counter+=1
-                    if updateNH == 1:
-                        counterNH+=1
-                if counter > PILEUP_THRESH:
-                    break
+        logging.debug("CounterNH, covLocNH 1: %s, %s", counterNH, covLocNH)
 
-        # add sides also if not enough statistics in middle
-        if counter < 2*MIN_PILEUP_THRESH and bpSecond - bpFirst > 1.25*MIN_PILEUP_THRESH:
+        # pile-up does not step through loop if no portion of reads lies in variant region
+        counterNH = 0
+        counter = 0
+        for x in range(int(start), int(stop)):
+            if (NH_REGIONS_FILE is not None and \
+                (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x])) and \
+                (chr_n,x) not in MQ0_Set:
+                counter+=1
+            counterNH+=1
+            if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
+                break
+            if counter > PILEUP_THRESH:
+                break
+
+        # add sides also 
+        if bpSecond - bpFirst >= 2*MIN_PILEUP_THRESH_NH:
             gbCount = counter 
             counter, counterNH_prev = 0,0
             start, stop = bpFirstL, bpFirstL + .25*gap
             for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
                 # we wish to avoid adding coverage from boundaries, especially if it's not a good region 
                 # but also need more stats/evidence if counterNH doesn't have many bases from good region
-                if counterNH < 3*MIN_PILEUP_THRESH_NH:
-                    covLocNH+=1
-                    counterNH+=1
-                if NH_REGIONS_FILE is None or \
+                covLocNH+=1
+                counterNH+=1
+                
+                badReadCount, allBadReads = 0,0 
+                for read in pileupcolumn.pileups:
+                    if read.alignment.mapping_quality == 0:
+                        covLocNH-= 1
+                        badReadCount+=1
+                if badReadCount == len(pileupcolumn.pileups) and badReadCount != 0:
+                    allBadReads = 1
+                    counterNH-=1
+                    MQ0_Set.add((chr_n,pileupcolumn.pos))
+
+                if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
+                    break
+
+                if NH_REGIONS_FILE is not None and \
                 (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                     covLoc+= pileupcolumn.n
                     counter+=1
+                    covLoc-= badReadCount
+                    if allBadReads:
+                        counter-= 1
                     if counter > PILEUP_THRESH:
                         break
             # pile-up does not step through loop if no portion of reads lies in variant region
-            if counter < MIN_PILEUP_THRESH:
-                counter, updateNH = 0,0
-                if counterNH < 3*MIN_PILEUP_THRESH_NH:
-                    counterNH_prev, counterNH, updateNH = counterNH,0,1
-                for x in range(int(start), int(stop)):
-                    if NH_REGIONS_FILE is None or \
-                        (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x]):
-                        counter+=1         
-                        if updateNH == 1:
-                            counterNH+=1
-                    if counter > PILEUP_THRESH:
-                        break
+            counter = 0
+            counterNH_prev, counterNH = counterNH,0
+            for x in range(int(start), int(stop)):
+                if (NH_REGIONS_FILE is not None and \
+                    (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x])) and \
+                    (chr_n,x) not in MQ0_Set:
+                    counter+=1         
+                counterNH+=1
+                if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
+                    break
+                if counter > PILEUP_THRESH:
+                    break
 
             gbCount+= counter
             counterNH+= counterNH_prev
             counter = 0
             start, stop = bpSecondL - .25*gap, bpSecondL
             for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
-                if counterNH < 3*MIN_PILEUP_THRESH_NH:
-                    covLocNH+=1
-                    counterNH+=1
-                if NH_REGIONS_FILE is None or \
+                covLocNH+=1
+                counterNH+=1
+                
+                badReadCount, allBadReads = 0,0
+                for read in pileupcolumn.pileups:
+                    if read.alignment.mapping_quality == 0:
+                        covLocNH-= 1
+                        badReadCount+=1
+                if badReadCount == len(pileupcolumn.pileups) and badReadCount != 0:
+                    allBadReads = 1
+                    counterNH-=1
+                    MQ0_Set.add((chr_n,pileupcolumn.pos))
+
+                if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
+                    break
+                if NH_REGIONS_FILE is not None and \
                 (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
                     covLoc = covLoc + pileupcolumn.n
                     counter+=1
+                    covLoc-= badReadCount
+                    if allBadReads:
+                        counter-= 1
                     if counter > PILEUP_THRESH:
                         break
+
             # pile-up does not step through loop if no portion of reads lies in variant region
-            if counter < MIN_PILEUP_THRESH:
-                updateNH = 0
-                if counterNH < 3*MIN_PILEUP_THRESH_NH:
-                    counterNH_prev, counterNH, updateNH = counterNH,0,1
-                counter = 0
-                for x in range(int(start), int(stop)):
-                    if NH_REGIONS_FILE is None or \
-                        (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x]):
-                        counter+=1         
-                        if updateNH == 1:
-                            counterNH+=1
-                    if counter > PILEUP_THRESH:
-                        break
+            counterNH_prev, counterNH = counterNH,0
+            counter = 0
+            for x in range(int(start), int(stop)):
+                if (NH_REGIONS_FILE is not None and \
+                    (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x])) and \
+                    (chr_n,x) not in MQ0_Set:
+                    counter+=1         
+                counterNH+=1
+                if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
+                    break
+                if counter > PILEUP_THRESH:
+                    break
             gbCount+= counter
             counterNH+= counterNH_prev
             counter = gbCount
 
-        if (counter > MIN_PILEUP_THRESH and (counter > GOOD_REG_THRESH*(stop-start) or counter > PILEUP_THRESH)):
+        logging.debug("CounterNH final: %s", counterNH)
+        if NH_REGIONS_FILE is not None and counter >= MIN_PILEUP_THRESH:
             confRegion = 1
             covLoc = (1.0*covLoc)/(1.0*counter)
-        elif counterNH > MIN_PILEUP_THRESH_NH:
+            logging.debug("Good Reg used. confRegion, covLoc: %s, %s", confRegion, covLoc)
+        elif counterNH >= MIN_PILEUP_THRESH_NH:
             confRegion = 1
             covLoc = (1.0*covLocNH)/(1.0*counterNH)
+            logging.debug("NH used. confNH, covLocNH: %s, %s", confRegion, covLoc)
 
-    logging.debug("Good bases found, conf, cov: %s, %s, %s, %s", counter, confRegion, covLoc, covHash[chr_n])
+    logging.debug("CounterNH, covNH final: %s, %s", counterNH, covLocNH/(counterNH+.0001))
+    logging.debug("Good bases found, conf, cov: %s, %s, %s, %s", counter, confRegion, covLoc/(counter +.0001), covHash[chr_n])
     if covHash[chr_n] != 0:
         return 1.0*covLoc/covHash[chr_n], confRegion
     else:
@@ -242,7 +300,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     INS_VAR_THRESH = minVariantSize
     SR_DEL_THRESH = max(80, minVariantSize)
     MIX_DEL_THRESH = max(50, minVariantSize)
-
     fAV = open(avFile,"r")
     fVM=open(vmFile,"r")
     fUF = open(ufFile,"r")
@@ -252,11 +309,13 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     RDL,SD,COV = readBamStats(statFile)
     logging.info("Some stats from BAM. RDL: %d, Sd: %f", 
                   RDL, SD)
+    MIN_PILEUP_THRESH = RDL/2.
+    MIN_PILEUP_THRESH_NH = RDL/2.
 
     # calculate min PE size based on insert length standard deviation under empirical model
     # aligner tends to mark concordants as discordants when SD is small unless distr v good, seemingly sharp effects
     # around sig_IL of 20 and lower for generally well-behaved distributions. Without rigor, though.
-    logging.info("DEL_THRESH, DEL_THRESH_S, DUP_THRESH, DUP_THRESH_S: %s, %s, %s, %s", DEL_THRESH, DEL_THRESH_S, DUP_THRESH, DUP_THRESH_S)
+    logging.info("DEL_THRESH, DEL_THRESH_S, DUP_THRESH, DUP_THRESH_S, MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH: %s, %s, %s, %s, %s, %s", DEL_THRESH, DEL_THRESH_S, DUP_THRESH, DUP_THRESH_S, MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH)
 
     uniqueFilterSVs = set()
     global chrHash
@@ -309,7 +368,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                     covLocM, confMiddle = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[2],
                             int(lineAV_split[4]), int(lineAV_split[6]),
-                            PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[3]), int(lineAV_split[7])])
+                            PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[3]), int(lineAV_split[7])],
+                            MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH)
 
                     if svtype[0:2] == "TD" and confMiddle == 1 and covLocM > DUP_THRESH: 
 
@@ -344,7 +404,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     start = int(lineAV_split[7])
                     stop = int(lineAV_split[9])
                     covLoc_23, conf_23 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                            start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[6]), int(lineAV_split[10])])
+                            start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, 
+                            [int(lineAV_split[6]), int(lineAV_split[10])], MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH)
 
                     #bp1-2 ("12" will here refer to 1, the paste bp, and the closest of the other 2)
                     start = int(lineAV_split[4])
@@ -357,7 +418,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         outerBPs = [int(lineAV_split[9]), int(lineAV_split[4])]
                     if lineAV_split[2] == lineAV_split[5]:
                         covLoc_12, conf_12 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs)
+                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs, 
+                                MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH)
                     else:
                         covLoc_12, conf_12 = 0,0
                    
@@ -372,7 +434,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         outerBPs = [int(lineAV_split[6]), int(lineAV_split[4])]
                     if lineAV_split[2] == lineAV_split[5]:
                         covLoc_13, conf_13 = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
-                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs)
+                                start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, outerBPs, 
+                                MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH)
                     else:
                         covLoc_13, conf_13 = 0,0
 
