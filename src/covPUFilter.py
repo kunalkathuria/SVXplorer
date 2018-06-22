@@ -70,6 +70,7 @@ def readBamStats(statFile):
 def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, 
         GOOD_REG_THRESH, outerBPs, MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH):
     global covHash
+    MIN_BP_SPAN = 100
     bin_size = 100
     if chr_n not in covHash:
         logging.debug("Calculating coverage for %s", chr_n)
@@ -158,7 +159,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                 break
 
         # add sides also 
-        if bpSecond - bpFirst >= 2*MIN_PILEUP_THRESH_NH:
+        if bpSecond - bpFirst >= MIN_BP_SPAN:
             gbCount = counter 
             counter, counterNH_prev = 0,0
             start, stop = bpFirstL, bpFirstL + .25*gap
