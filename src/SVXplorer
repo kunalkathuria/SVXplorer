@@ -246,7 +246,7 @@ def processFragments():
     # 3. clusterCliques.txt in debug mode 
     statFile = "%s/bamStats.txt" % WORKSPACE 
     binFile = "%s/binDist.txt" % WORKSPACE
-    formPEClusters(WORKSPACE, statFile, binFile, MIN_CS, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.subsample, ARGS.d)
+    formPEClusters(WORKSPACE, statFile, binFile, ARGS.minClusterSize, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.subsample, ARGS.d)
 
     # run cluster clean-up
     clusterFile = WORKSPACE + "/allClusters.txt"
@@ -271,7 +271,7 @@ def processFragments():
         data = data.sort_values(by = ['chr', 'start'])
         data.to_csv(badRegionsFileS, header=None, index=None, sep='\t')
         
-        #$$$ throwing error "mergeBed not on path" -- resolve if possible and avoid shell call below
+        #$$$ throwing error "mergeBed not on path" -- revise if possible and avoid shell call below
         #pybedtools.set_bedtools_path(ARGS.bedtoolsPath)
         #brFile = pybedtools.BedTool(badRegionsFileS)
         #brFileM = brFile.merge(d=100)
@@ -302,42 +302,18 @@ def processFragments():
         pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", "-o", splitfile, ARGS.split)
         logging.info('Finished name sorting the splitters file')
 
-    preserveSmallClusters(splitfile, clusterFile, MQ_SR, PRESERVE_SIZE, SLOP_SR, ARGS.w)
-    clusterFile = clusterFile + ".p"
-    logging.info('Finished preserve-cluster routine')
+    if ARGS.minClusterSize < PRESERVE_SIZE:
+        preserveSmallClusters(splitfile, clusterFile, MQ_SR, PRESERVE_SIZE, SLOP_SR, ARGS.w)
+        clusterFile = clusterFile + ".p"
+        logging.info('Finished preserve-cluster routine')
 
     # collect the clusters that pass requirements -> allClusters.thresh.txt
     data = pd.read_table(clusterFile, 
                          names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
                                 'rchr', 'rpos', 'rend', 'small'],
                          dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
-    data = data[data['ns'] >= MIN_CS]
+    data = data[data['ns'] >= ARGS.minClusterSize]
     data.to_csv("%s/allClusters.thresh.txt" % WORKSPACE, header=None, index=None, sep='\t')
-
-    # calculate the distance you should walk back to compare variants to each 
-    # other
-    df = data['lend'] - data['lpos']
-    max_cl_comb_gap = df.max()
-    logging.info('Setting max_cl_comb_gap to %f', max_cl_comb_gap)
-
-
-    # sort the clusters based on left chr and pos -> allClusters.ls.txt
-    clusterFileLS = "%s/allClusters.ls.txt" % WORKSPACE
-    data = pd.read_table("%s/allClusters.thresh.txt" % WORKSPACE,
-                         names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
-                                'rchr', 'rpos', 'rend', 'small'],
-                         dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
-    data = data.sort_values(by = ['lchr', 'lpos'])
-    data.to_csv(clusterFileLS, header=None, index=None, sep='\t')
-
-    # sort the clusters based on the right breakpoint -> allClusters.rs.txt
-    clusterFileRS = "%s/allClusters.rs.txt" % WORKSPACE
-    data = pd.read_table("%s/allClusters.thresh.txt" % WORKSPACE,
-                         names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
-                                'rchr', 'rpos', 'rend', 'small'],
-                         dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
-    data = data.sort_values(by = ['rchr', 'rpos'])
-    data.to_csv(clusterFileRS, header=None, index=None, sep='\t')
 
     # consolidate those clusters in to variants. Creates
     # 1. allVariants.pe.txt
@@ -345,8 +321,8 @@ def processFragments():
     # 3. claimedClusters.txt
     clusterMapFile = "%s/clusterMap.txt" % WORKSPACE
     logging.info("Starting consolidation of PE clusters.")
-    consolidatePEClusters(WORKSPACE, statFile, clusterFileLS, clusterFileRS,
-                          clusterMapFile, max_cl_comb_gap, SLOP_PE, REF_RATE_PE, AS_RELATIVE_THRESH)
+    consolidatePEClusters(WORKSPACE, statFile, clusterFile, 
+                          clusterMapFile, SLOP_PE, REF_RATE_PE, AS_RELATIVE_THRESH)
     logging.info("Done with consolidating clusters.")
 
     # filter and format the results
@@ -402,7 +378,8 @@ if __name__ == '__main__':
     PARSER.add_argument('-m', default=None,
                         help='mappable intervals in a BED file')
     PARSER.add_argument('-w', default="svxplorer", help='use dir as workspace')
-    PARSER.add_argument('-s', default=100, dest='minVarSize', type=int, help='minimum size of variants called')
+    PARSER.add_argument('-s', default=100, dest='minVarSize', type=int, help='minimum size in bps of variants called')
+    PARSER.add_argument('-z', default=3, dest='minClusterSize', type=int, help='minimum fragment support required for discordant clusters -- smaller size may increase run time')
 
     PARSER.add_argument('disc', help='bam file of discordant pairs')
     PARSER.add_argument('split', help='bam file of split reads')
@@ -424,9 +401,8 @@ if __name__ == '__main__':
     AS_RELATIVE_THRESH=2
     
     # formPEClusters
-    MIN_CS=3
-    DISC_ENHANCER=1.67
-    MIN_PE_BPMARGIN=25
+    DISC_ENHANCER=1.0
+    MIN_PE_BPMARGIN=20
     PRESERVE_SIZE=3
 
     # consolidatePEClusters
@@ -505,7 +481,7 @@ if __name__ == '__main__':
                         filemode=LOGMODE)
 
     WORKSPACE = "%s/workspace" % ARGS.w
-    logging.info("Using MAP_THRESH, MAP_THRESH_U, MIN_CS, SPLIT_INS: %s, %s, %s, %s", MAP_THRESH, MAP_THRESH_U, MIN_CS, SPLIT_INS)
+    logging.info("Using MAP_THRESH, MAP_THRESH_U, minClusterSize, SPLIT_INS: %s, %s, %s, %s", MAP_THRESH, MAP_THRESH_U, ARGS.minClusterSize, SPLIT_INS)
 
     # process PE and SR information
     processFragments()
