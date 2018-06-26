@@ -45,7 +45,7 @@ All SVXplorer command line options are accessed via ./SVXplorer -h. A file to ig
 
 A typical (and recommended) call on sequenced data might be, with appropriate path replacement:
 
-./bin/SVXplorer discordant.bam splitters.bam sample.bam reference.fa -i exclude.bed -c ignore_CHR.txt -m non_repeat_regions.bed -f -w pathToworkDir -s 100
+path_to_SVXplorer/bin/SVXplorer discordant.bam splitters.bam sample.bam reference.fa -i exclude.bed -c ignore_CHR.txt -m non_repeat_regions.bed -f -w pathToworkDir -s 100
 
 Option -m expects a file listing regions not containing frequently repeated sequences, for use in assessing coverage, and SVC provides one.
 
