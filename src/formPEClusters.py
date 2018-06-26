@@ -331,10 +331,9 @@ def runSubsample(almt, block_hash):
             break
     return found, process
 
-def processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights,
-                   wt_calc_thresh, edgeStore, fragmentGraph,
+def processNewFrag(fragList, almt, IL_BinTotalEntries, fragmentGraph,
                    edge_weight_thresh, dist_penalty, dist_end, rdl,
-                   IL_BinDistHash, mean_IL, wtThresh_perc, debug):
+                   IL_BinDistHash, mean_IL, debug):
     """Include the new fragment into the graph.
     """
 
@@ -391,16 +390,6 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
     max_cluster_length = mean_IL + disc_enhancer*disc_thresh - 2*rdl + SR_GRACE_MARGIN
     logging.info('max_cluster_length is %f', max_cluster_length)
 
-    # maximal-clique-based cluster formation routine variables
-    # simple empirical weight thresholding Poisson model
-    wt_thresh_low = 0
-    wt_thresh_high = .05
-    stdIL_high = 70
-    sdtIL_low = 15
-
-    wt_calc_thresh = 30000
-    wtThresh_perc = .001
-
     # subsampling routine variables -- should be rarely required if at all
     block_gap_thresh = 25
     block_thresh = 3*min_cluster_size
@@ -414,8 +403,6 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
     fragHash = {}
     secCounter = {}
     fragmentGraph = nx.Graph()
-    cnnxnWeights = []
-    edgeStore = []
     clusterNum = 1
     newClusterBlock = 0
 
@@ -476,7 +463,7 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
         fragList.append(almt)
 
         # process new PE alignment
-        processNewFrag(fragList, almt, IL_BinTotalEntries, cnnxnWeights, wt_calc_thresh, edgeStore, fragmentGraph, edge_weight_thresh, dist_penalty, dist_end, rdl, IL_BinDistHash,mean_IL,wtThresh_perc, debug)
+        processNewFrag(fragList, almt, IL_BinTotalEntries, fragmentGraph, edge_weight_thresh, dist_penalty, dist_end, rdl, IL_BinDistHash,mean_IL, debug)
 
         # refresh fragment list
         fragList, clusterNum, newClusterBlock, fragHash = refreshFragList(fragList, almt, fragmentGraph, fragHash, fCliques,  fClusters, fClusterMap, max_cluster_length, clusterNum, newClusterBlock, mean_IL, disc_thresh, bp_margin, debug, min_cluster_size)
