@@ -4,48 +4,8 @@
 
 import argparse
 import logging
-
-class Vertex:
-    def __init__(self, node):
-        self.id = node
-        self.adjacent = {}
-    def __str__(self):
-        return str(self.id) + ' adjacent: ' + str([x.id for x in self.adjacent])
-    def add_neighbor(self, neighbor, weight=0):
-        self.adjacent[neighbor] = weight
-    def get_connections(self):
-        return self.adjacent.keys()
-    def get_id(self):
-        return self.id
-    def get_weight(self, neighbor):
-        return self.adjacent[neighbor]
-
-class Graph:
-    def __init__(self):
-        self.vert_dict = {}
-        self.num_vertices = 0
-    def __iter__(self):
-        return iter(self.vert_dict.values())
-    def add_vertex(self, node):
-        self.num_vertices = self.num_vertices + 1
-        new_vertex = Vertex(node)
-        self.vert_dict[node] = new_vertex
-        return new_vertex
-    def get_vertex(self, n):
-        if n in self.vert_dict:
-            return self.vert_dict[n]
-        else:
-            return None
-    def add_edge(self, frm, to, cost = 0):
-        if frm not in self.vert_dict:
-            self.add_vertex(frm)
-        if to not in self.vert_dict:
-            self.add_vertex(to)
-
-        self.vert_dict[frm].add_neighbor(to, cost)
-        self.vert_dict[to].add_neighbor(frm, cost)
-    def get_vertices(self):
-        return self.vert_dict
+from interlap import InterLap
+from collections import OrderedDict
 
 class clusterI(object):
     # "imported" cluster object read from allClusters.txt
@@ -232,10 +192,11 @@ def formCutPasteINS(newVariant, cluster1, clusterP, LR):
     # note: if bp1 (overlapping bp) is on different chr from other 2 then could be cut or copy
     # in this case, don't change SV type till further evidence seen
 
-def writeVariants(varList, fpAV, fpCVM, hashedVM, offset):
-    for g, item in enumerate(varList):
+def writeVariants(varHash, fpAV, fpCVM, hashedVM, offset):
+    for g, varNum in enumerate(varHash):
         num = offset + 1 + g
         fpCVM.write("%s" %(num))
+        item = varHash[varNum]
         if item.SVType == "INS" or item.SVType == "INS_C_P":
                 # just to be safe, but should be ensured anyway
                 if item.bp2TID == item.bp3TID and item.bp3_start < item.bp2_start:
@@ -258,32 +219,18 @@ def writeVariants(varList, fpAV, fpCVM, hashedVM, offset):
         fpAV.write("%s\t%s\t%s\t%s\n" %(num,item,suppCount,"0"))
         fpCVM.write("\n")
 
-def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consolidatedCls, 
-                    slop, RDL_Factor, RDL, as_relative_thresh):
+def compareCluster(cluster1, clusters, claimedCls, consolidatedCls, 
+                    slop, RDL_Factor, RDL, as_relative_thresh, interVariant, dontCompareSet):
     anyMatch = 0
     cl1 = 'c' + str(cluster1.mapNum)
     logging.debug('Start loop to compare this cluster to all clusters in list')
     for clusterP in clusters:
-        if cluster1.mapNum == clusterP.mapNum:
-            continue
         cl2 = 'c' + str(clusterP.mapNum)
-        logging.debug("Comparing cluster %s and cluster %s as %s", cl1, cl2, LR)
-        # If 2 clusters have been compared do not compare them again
-        if graph_c.get_vertex(cl1) != None:
-            if cl2 in graph_c.get_vertex(cl1).get_connections():
-                logging.debug('Continue as these 2 clusters were compared before')
-                continue
-        # If 2 clusters share variant, then comparing them is redundant.
-        # Any subtleties can be addressed when comparing to existing variant, e.g. variant branches.
-        skip = 0
-        if graph_m.get_vertex(cl1) != None and graph_m.get_vertex(cl2) != None:
-            for variant in graph_m.get_vertex(cl1).get_connections():
-                if variant in graph_m.get_vertex(cl2).get_connections():
-                    skip = 1
-                    break
-        if skip:
-            logging.debug('Continue as these 2 clusters already part of same consolidated cluster')
+        if cluster1.mapNum == clusterP.mapNum or (dontCompareSet is not None and \
+            ((cluster1.mapNum, clusterP.mapNum) in dontCompareSet or (clusterP.mapNum, cluster1.mapNum) in dontCompareSet)):
+            logging.debug("Not comparing cluster %s and cluster %s", cl1, cl2)
             continue
+        logging.debug("Comparing cluster %s and cluster %s", cl1, cl2)
 
         # determine which sides of clusters overlap
         logging.debug('Determining signature of 2-cluster overlap: left with left (LL) etc.')
@@ -306,7 +253,6 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             continue
 
         # initialize all variables
-        graph_c.add_edge(cl1, cl2, 1)
         newSVFlag = 0
         newVariant = consCluster()
         newVariant.SVType = None
@@ -667,74 +613,40 @@ def compareCluster(cluster1, clusters, claimedCls, graph_c, graph_m, LR, consoli
             newVariant.clusterNums.append(clusterP.mapNum)
             # should never occur after start, so okay to refresh variant buffer
             if len(consolidatedCls) > 0:
-                newVariant.variantNum = 1 + consolidatedCls[-1].variantNum
+                newVariant.variantNum = 1 + consolidatedCls.keys()[-1]
             else:
                 logging.debug("CC list empty, about to write new variant")
                 newVariant.variantNum = 1
            
-            consolidatedCls.append(newVariant)
+            consolidatedCls[newVariant.variantNum] = newVariant
             claimedCls.add(clusterP.mapNum)
+            interVariant.add((newVariant.bp1_start, newVariant.bp1_end, newVariant.variantNum, newVariant.bp1TID))
+            interVariant.add((newVariant.bp2_start, newVariant.bp2_end, newVariant.variantNum, newVariant.bp2TID))
+            if newVariant.bp3TID != -1:
+                interVariant.add((newVariant.bp3_start, newVariant.bp3_end, newVariant.variantNum, newVariant.bp3TID))
             anyMatch = 1
             v1 = 'v' + str(newVariant.variantNum)
             logging.debug("Writing new complex variant %s, type: %s", v1, newVariant.SVType)
-            graph_m.add_edge(cl2,v1,1)
-            graph_m.add_edge(cl1,v1,1)
-            graph_c.add_edge(cl2,v1,1)
-            graph_c.add_edge(cl1,v1,1)
-            logging.debug('Breaking loop after match for primary almts -- rethink for cancer genome')
             if as_relative_thresh > 1:
+                logging.debug('Breaking loop after match for primary almts')
                 break
     if anyMatch:
         logging.debug('Adding cluster to claimed list')
         claimedCls.add(cluster1.mapNum)
 
-def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCombGap, slop, as_relative_thresh):
+def compareVariant(cluster1, varList, claimedCls, slop, as_relative_thresh,
+                  consolidatedCls, dontCompareSet):
     anyMatch = 0
-    cl1 = 'c' + str(cluster1.mapNum)
+    cl1 = cluster1.mapNum
     logging.debug('Start loop to compare cluster %s to all complex variants in list', cl1)
     for g,elem in enumerate(varList):
         match = 0
-        v1 = 'v' + str(elem.variantNum)
-        logging.debug("Trying to compare cluster %s and variant %s", cl1, v1)
-        # If cluster has been compared to variant, do not compare
-        if graph_c.get_vertex(cl1) != None and graph_c.get_vertex(v1) != None:
-            if cl1 in graph_c.get_vertex(v1).get_connections():
-                logging.debug('Do not compare cluster to variant: compared before')
-                continue
-        # if cluster compared to all clusters currently in variant, no need to compare again.
-        # implement variant branching later to resolve unlikely exceptions to this, if any.
-        skip = 0
-        if graph_c.get_vertex(cl1) !=None and graph_m.get_vertex(v1) != None:
-            skip = 1
-            for connection in graph_m.get_vertex(v1).get_connections():
-                if connection not in graph_c.get_vertex(cl1).get_connections():
-                    skip = 0
-                    break
-        if skip:
-            logging.debug('Do not compare cluster to variant: compared to all members of variant individually already')
-            continue
-
-        # don't compare if exceeds left-sorted comparison bounds.
-        exceedsL = 0
-        exceedsR = 0
-        if (elem.bp1TID != cluster1.lTID or abs(elem.bp1_start - cluster1.l_start) \
-            > maxClCombGap) and (elem.bp2TID != cluster1.lTID or abs(elem.bp2_start - cluster1.l_start) \
-            > maxClCombGap) and (elem.bp3TID != cluster1.lTID or abs(elem.bp3_start - cluster1.l_start) \
-            > maxClCombGap):
-            exceedsL = 1
-        # analogous to above for right
-        if (elem.bp1TID != cluster1.rTID or abs(elem.bp1_start - cluster1.r_start) \
-            > maxClCombGap) and (elem.bp2TID != cluster1.rTID or abs(elem.bp2_start - cluster1.r_start) \
-            > maxClCombGap) and (elem.bp3TID != cluster1.rTID or abs(elem.bp3_start - cluster1.r_start) \
-            > maxClCombGap):
-            exceedsR = 1
-        if exceedsL == 1 and exceedsR == 1:
-            logging.debug('Do not compare to variant: gap exceeds necessary comparison bounds')
-            continue
-        graph_c.add_edge(cl1,v1,1)
-
+        logging.debug("Trying to compare cluster %s and variant %s", cl1, elem.variantNum)
+        # if using primary almts only, then no need to form multiple variants with same clusters
+        if as_relative_thresh > 1:
+            for clusterDCNum in elem.clusterNums:
+                dontCompareSet.add((cl1, clusterDCNum))
         # check for this cluster's signature and location match with existing variants
-        logging.debug('Comparing cluster %s against variant %s', cl1, v1)
         if elem.SVType == "TD_I":
             logging.debug('Check conditions for match: cluster against variant for TD_I')
             # small-medium TD's: second small cluster overlap on other side possible with TD's
@@ -954,134 +866,90 @@ def compareVariant(cluster1, varList, claimedCls, graph_c, graph_m, LR, maxClCom
                 elem.count+=1
                 anyMatch = 1
         if match:
-            logging.debug('Append cluster %s to complex variant %s', cl1, v1)
+            logging.debug('Append cluster %s to complex variant %s', cluster1.mapNum, elem.variantNum)
             if cluster1.mapNum not in elem.clusterNums:
                 elem.clusterNums.append(cluster1.mapNum)
-            graph_m.add_edge(cl1,v1,1)
-            logging.debug('Breaking loop after match for primary almts -- rethink for cancer genome')
+            # if using secondary almts, don't compare to clusters in variant again if match
+            # done for primaries in comparison stage itself
+            if as_relative_thresh <= 1:    
+                for clusterDCNum in elem.clusterNums:
+                    dontCompareSet.add((cl1, clusterDCNum))
+            logging.debug('Breaking loop after match for primary almts')
             if as_relative_thresh > 1:
                 break
     if anyMatch:
         logging.debug('Write cluster %s to claimed list', cl1)
         claimedCls.add(cluster1.mapNum)
 
-def refreshCCList(consolidatedCls, tidListL, tidListR, maxClCombGap, cluster_L, cluster_R, \
-    refRate, consolidatedCls_C):
-    logging.debug("Length of CC list before refresh: %d", len(consolidatedCls))
-    if len(consolidatedCls) % refRate == 0:
-        for h,item in enumerate(consolidatedCls):
-            varTIDs = set([item.bp1TID, item.bp2TID, item.bp3TID])
-            # if ref IDs in variant have occurred in both cluster lists
-            if varTIDs.issubset(tidListL) and varTIDs.issubset(tidListR):
-                if cluster_L.lTID not in varTIDs and cluster_R.rTID not in varTIDs and (h < len(consolidatedCls) - 1):
-                    consolidatedCls_C.append(item)
-                    del consolidatedCls[h]
-                elif (cluster_L.l_start - item.bp1_start > maxClCombGap or cluster_L.lTID != item.bp1TID) and \
-                    (cluster_R.rTID != item.bp1TID or cluster_R.r_start - item.bp1_start > maxClCombGap):
-                    if (cluster_L.l_start - item.bp2_start > maxClCombGap or cluster_L.lTID != item.bp2TID) and \
-                        (cluster_R.rTID != item.bp2TID or cluster_R.r_start - item.bp2_start > maxClCombGap):
-                        if (cluster_L.l_start - item.bp3_start > maxClCombGap or cluster_L.lTID != item.bp3TID) and \
-                            (cluster_R.rTID != item.bp3TID or cluster_R.r_start - item.bp3_start > maxClCombGap):
-                            if h < len(consolidatedCls) -1:
-                                consolidatedCls_C.append(item)
-                                del consolidatedCls[h]
-    logging.debug("Length of CC list after refresh: %d", len(consolidatedCls))
-
-def refreshClusterBuffer(clusters, LR, tidListL, tidListR, cluster_L, cluster_R,  maxClCombGap):
-    counter=0
-    for item in clusters:
-        if LR == "L":
-            relevTID = item.lTID
-            relevStart = item.l_start
-        elif LR == "R":
-            relevTID = item.rTID
-            relevStart = item.r_start
-        if relevTID in tidListL and relevTID in tidListR:
-            if cluster_L.lTID != relevTID and cluster_R.rTID != relevTID:
-                counter+=1
-            elif (cluster_L.lTID != relevTID or cluster_L.l_start - relevStart > maxClCombGap) and \
-                    (cluster_R.rTID != relevTID or cluster_R.r_start - relevStart > maxClCombGap):
-                counter+=1
-            else:
-                break
-    clusters = clusters[counter:]
-
-def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
-                          clusterMapFile, maxClCombGap, slop, refRate, as_relative_thresh):
-    variantNum = 1
+def consolidatePEClusters(workDir, statFile, clusterFile,
+                          clusterMapFile, slop, refRate, as_relative_thresh):
     RDL_Factor=1.2 # default recommended
     fStat = open(statFile,"r")
     RDL = int(fStat.readline().split()[0])
     disc_thresh = int(fStat.readlines()[5].split()[0])
     # clusters sorted by left TID and position and right TID and position for faster comparison
-    fClustersLS = open(clusterFileLS,"r")
-    fClustersRS = open(clusterFileRS,"r")
+    fClusters = open(clusterFile,"r")
     fClusterMap = open(clusterMapFile, "r")
     fVariantsPE = open(workDir+"/allVariants.pe.txt","w")
     fVariantMapPE = open(workDir+"/variantMap.pe.txt", "w")
-    clusters_LS = []
-    clusters_RS = []
-    consolidatedCls = []
-    consolidatedCls_C = []
-    # maintain list of reference IDs that have been read in clusters
-    tidListL = set([-1]) #"-1" represents unset 3rd breakpoint in variant
-    tidListR = set([-1])
+    consolidatedCls = OrderedDict()
     claimedCls = set() # clusters that have matched with other clusters or variants
-    newBlockL = 0
-    newBlockR = 0
-    matchGraph = Graph() # stores all cluster and variant matches thus far
-    # compareGraph graph stores all comparisons between variants and clusters
-    # to prevent repeat comparisons
-    compareGraph = Graph()
-    loopCount = 0
+    interCluster = InterLap()
+    interVariant = InterLap()
+    clusterHash = {}
 
     # form all possible complex variants from PE clusters
     logging.debug('Started comparison of clusters')
-    for lineLC in fClustersLS:
+    for lineC in fClusters:
+        lineC_split = lineC.split()
+        mapNum = int(lineC_split[0])
+        clusterHash[mapNum] = clusterI(lineC)
+    fClusters.seek(0)
+
+    for lineC in fClusters:
         # Both files are same size so will reach end at same time
-        lineRC = fClustersRS.readline()
-        cluster_L = clusterI(lineLC)
-        cluster_R = clusterI(lineRC)
-        if cluster_L.lTID not in tidListL:
-            tidListL.add(cluster_L.lTID)
-        if cluster_R.rTID not in tidListR:
-            tidListR.add(cluster_R.rTID)
-
+        cluster = clusterI(lineC)
         # refresh and match clusters to variants in complex variant buffer
+        dontCompareClSet = None
         if len(consolidatedCls) > 0:
-            # refresh complex variant buffer list for necessary comparisons only
-            refreshCCList(consolidatedCls, tidListL, tidListR, maxClCombGap,
-                          cluster_L, cluster_R, refRate, consolidatedCls_C)
+            dontCompareClSet = set()
+            variants_M = []
+            comparedSet = set()
+            for variantM in list(interVariant.find((cluster.l_start, cluster.l_end))):
+                varNum = variantM[2]
+                if varNum not in comparedSet and variantM[3] == cluster.lTID:
+                    variants_M.append(consolidatedCls[varNum])
+                    comparedSet.add(varNum)
+            for variantM in list(interVariant.find((cluster.r_start, cluster.r_end))):
+                varNum = variantM[2]
+                if varNum not in comparedSet and variantM[3] == cluster.rTID:
+                    variants_M.append(consolidatedCls[varNum])
+                    comparedSet.add(varNum)
             # may need both L,R cluster comparisons since variant buffer is small
-            compareVariant(cluster_L, consolidatedCls, claimedCls, compareGraph,
-                           matchGraph, "L", maxClCombGap, slop, as_relative_thresh)
-            compareVariant(cluster_R, consolidatedCls, claimedCls, compareGraph,
-                           matchGraph, "R", maxClCombGap, slop, as_relative_thresh)
+            compareVariant(cluster, variants_M, claimedCls, slop, as_relative_thresh,
+                           consolidatedCls, dontCompareClSet)
+        
+        clusters_M = []
+        comparedSet = set()
+        for clusterM in list(interCluster.find((cluster.l_start, cluster.l_end))):
+            mapNum = clusterM[2]
+            if mapNum not in comparedSet and clusterM[3] == cluster.lTID:
+                clusters_M.append(clusterHash[mapNum])
+                comparedSet.add(mapNum)
+        for clusterM in list(interCluster.find((cluster.r_start, cluster.r_end))):
+            mapNum = clusterM[2]
+            if mapNum not in comparedSet and clusterM[3] == cluster.rTID:
+                clusters_M.append(clusterHash[mapNum])
+        interCluster.add((cluster.l_start, cluster.l_end, cluster.mapNum, cluster.lTID))
+        interCluster.add((cluster.r_start, cluster.r_end, cluster.mapNum, cluster.rTID))
 
-        # refresh left and right cluster buffers and mutually match
-        if len(clusters_LS) > 0:
-            refreshClusterBuffer(clusters_LS, "L", tidListL, tidListR,
-                                 cluster_L, cluster_R, maxClCombGap)
-        if len(clusters_RS) > 0:
-            refreshClusterBuffer(clusters_RS, "R", tidListL, tidListR,
-                                 cluster_L, cluster_R, maxClCombGap)
-        compareCluster(cluster_L, clusters_LS, claimedCls, compareGraph,
-                       matchGraph, "LL", consolidatedCls, slop, RDL_Factor, RDL, as_relative_thresh)
-        compareCluster(cluster_L, clusters_RS, claimedCls, compareGraph,
-                       matchGraph, "LR", consolidatedCls, slop, RDL_Factor, RDL, as_relative_thresh)
-        clusters_LS.append(cluster_L)
-        compareCluster(cluster_R, clusters_LS, claimedCls, compareGraph,
-                       matchGraph, "RL", consolidatedCls, slop, RDL_Factor, RDL, as_relative_thresh)
-        compareCluster(cluster_R, clusters_RS, claimedCls, compareGraph,
-                       matchGraph, "RR", consolidatedCls, slop, RDL_Factor, RDL, as_relative_thresh)
-        clusters_RS.append(cluster_R)
+        compareCluster(cluster, clusters_M, claimedCls, consolidatedCls, 
+                      slop, RDL_Factor, RDL, as_relative_thresh, interVariant, dontCompareClSet)
     logging.debug('Finished comparison of clusters')
 
     # write list of complex variants and complex variant map to 2 sep files
     fVariantsPE.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\tstart3\tstop3\t SupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\n") 
     hashedVM = {}
-    consolidatedCls_C = consolidatedCls_C + consolidatedCls
-    consolidatedCls = []
     for line in fClusterMap:
         line_split = line.split()
         clNum = int(line_split[0])
@@ -1089,18 +957,19 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
         hashedVM[clNum] = clList
         #print clNum
     logging.debug('Started writing complex variants to output files')
-    writeVariants(consolidatedCls_C, fVariantsPE, fVariantMapPE, hashedVM, 0)
+    writeVariants(consolidatedCls, fVariantsPE, fVariantMapPE, hashedVM, 0)
     logging.debug('Finished writing complex variants to output files')
 
     # write unmatched clusters as appropriate variants
+    varNum = 0
     TDStore = []
     TDArtefacts = []
-    varCount = len(consolidatedCls_C)
-    consolidatedCls_C = []
+    varCount = len(consolidatedCls)
+    consolidatedCls = {}
     fClaimed = open(workDir+"/claimedClusters.txt","w")
-    fClustersLS.seek(0)
+    fClusters.seek(0)
     logging.debug('Started recording unclaimed clusters')
-    for line in fClustersLS:
+    for line in fClusters:
         clusterC = clusterI(line)
         if not clusterC.mapNum in claimedCls:
             #print "Unclaimed", clusterC.mapNum
@@ -1150,13 +1019,14 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
                 newSimpleSV.SVType = "Unknown"
             # store if appropriate
             if store:
-                consolidatedCls_C.append(newSimpleSV)
+                consolidatedCls[varNum] = newSimpleSV
+                varNum+=1
         else:
             fClaimed.write("%s\t%s\n" %(clusterC.mapNum,str(clusterC.l_orient)+\
                 str(clusterC.r_orient)))
     logging.debug('Finished recording unclaimed clusters')
 
-    # $$$ Denovo insertions should not called unless there is SR support
+    # Unnec now it seems: $$$ Denovo insertions should not called unless there is SR support
     for elem in TDArtefacts:
         storeTD = 1
         for TD in TDStore:
@@ -1168,14 +1038,14 @@ def consolidatePEClusters(workDir, statFile, clusterFileLS, clusterFileRS,
         # store as de novo INS if was not due to existing TD    
         if storeTD:
             newSimpleSV.SVType = "DN_INS"
-            consolidatedCls_C.append(elem)
+            consolidatedCls[varNum] = elem
+            varNum+=1
 
     logging.debug('Started writing unclaimed variants')
-    writeVariants(consolidatedCls_C, fVariantsPE, fVariantMapPE, hashedVM,
+    writeVariants(consolidatedCls, fVariantsPE, fVariantMapPE, hashedVM,
                   varCount)
     logging.debug('Finished writing unclaimed variants')
-    fClustersLS.close()
-    fClustersRS.close()
+    fClusters.close()
     fVariantsPE.close()
     fClusterMap.close()
     fVariantMapPE.close()
@@ -1186,8 +1056,7 @@ if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(description='Consolidate clusters, formed by formPEClusters.py, into variants', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     PARSER.add_argument('workDir', help='Work directory')
     PARSER.add_argument('statFile', help='File containing BAM statistics, typically bamStats.txt')
-    PARSER.add_argument('clusterFileLS', help='File containing clusters sorted by left chr and position, typically allClusters.ls.txt')
-    PARSER.add_argument('clusterFileRS', help='File containing clusters sorted by right chr and position, typically allClusters.rs.txt')
+    PARSER.add_argument('clusterFile', help='File containing discordant clusters')
     PARSER.add_argument('clusterMapFile', help='File containing list of clusters and their supporting fragments, typically clusterMap.txt')
     PARSER.add_argument('-d', action='store_true', dest='debug',
         help='print debug information')
@@ -1210,6 +1079,6 @@ if __name__ == "__main__":
                         format='%(asctime)s %(levelname)s %(message)s',
                         datefmt='%m/%d/%Y %I:%M:%S %p')
 
-    consolidatePEClusters(ARGS.workDir, ARGS.statFile, ARGS.clusterFileLS, ARGS.clusterFileRS, ARGS.clusterMapFile, ARGS.maxClCombGap, ARGS.slop, ARGS.refRate, ARGS.as_relative_thresh)
+    consolidatePEClusters(ARGS.workDir, ARGS.statFile, ARGS.clusterFile, ARGS.clusterMapFile, ARGS.slop, ARGS.refRate, ARGS.as_relative_thresh)
 
     logging.shutdown()
