@@ -95,8 +95,8 @@ def markDuplicateClusterRegions(clusterFile, wdir):
                                  'rchr', 'rpos', 'rend', 'small'],
                          dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
     data = data.sort_values(by = ['rchr', 'rpos'])
-    data.to_csv(wdir + "/allClusters.rs.cleanup.txt", header=None, index=None, sep='\t')
-    fCNR = open(wdir + "/allClusters.rs.cleanup.txt", "r")
+    data.to_csv(wdir + "/allClusters.rs.txt", header=None, index=None, sep='\t')
+    fCNR = open(wdir + "/allClusters.rs.txt", "r")
 
     for line in fCNR:
         line_split = line.split()
