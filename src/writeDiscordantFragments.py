@@ -41,7 +41,7 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
             meanQL: mean query length
             maxIL: maximum insert length
             dist_penalty: IL value of the input distribution at PENALTY_PERC
-            dist_end: IL value of the input distribution at DISC_PERC
+            dist_end: IL value of the input distribution at DIST_END_PERC
         'Alignment' here always refers to PE alignment unless otherwise specified
     """
     bamfile = ps.Samfile(bamfile1, "rb")
@@ -436,7 +436,8 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
 
             # check discordancy even though discordant flag set by aligner
             if newAlmt.cMapType == 1 or \
-                    (newAlmt.cMapType == 0 and ( abs(outerIL - mean_IL) > disc_thresh or \
+                    (newAlmt.cMapType == 0 and ( outerIL - mean_IL > disc_thresh or \
+                    outerIL - mean_IL < disc_thresh_neg or \
                     newAlmt.cType != "01" or newAlmt.lTID != newAlmt.rTID )):
 
                     if newAlmt.lBound == -1 and newAlmt.rBound == -1:
