@@ -189,7 +189,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
 
                 if NH_REGIONS_FILE is not None and \
                 (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
-                    covLoc+= puval
+                    covLoc+= puVal
                     counter+=1
                     covLoc-= badReadCount
                     if allBadReads:
@@ -217,8 +217,8 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             start, stop = bpSecondL - .25*gap, bpSecondL
             logging.debug("Start, stop 3:%s, %s", start, stop)
             for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
-                puval = pileupcolumn.n
-                covLocNH+=puval
+                puVal = pileupcolumn.n
+                covLocNH+=puVal
                 counterNH+=1
                 
                 badReadCount, allBadReads = 0,0
@@ -235,7 +235,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     break
                 if NH_REGIONS_FILE is not None and \
                 (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
-                    covLoc+=puval
+                    covLoc+=puVal
                     counter+=1
                     covLoc-= badReadCount
                     if allBadReads:
