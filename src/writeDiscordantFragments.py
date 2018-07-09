@@ -508,10 +508,10 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
                 chrI = line.strip().split()[0]
                 if not chrI.startswith("*"):
                     ignoreTIDs.add(chrI)
-                    logging.info("Chromosome %s will be ignored.", chrI)
+                    logging.debug("Chromosome %s will be ignored.", chrI)
                 else:
                     ignoreTIDAll.add(chrI[1:])
-                    logging.info("Chr names starting with %s will be ignored", chrI[1:])
+                    logging.debug("Chr names starting with %s will be ignored", chrI[1:])
 
     ignoreBuffer = 0*rdl
     if ignoreBED is not None:

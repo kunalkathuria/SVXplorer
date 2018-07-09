@@ -416,7 +416,7 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
     logging.info('Started PE cluster formation')
     for line_num,line in enumerate(fDiscAlmts):
         if line_num % 1000 == 0:
-            logging.info("Processed %s alignments", line_num)
+            logging.debug("Processed %s alignments", line_num)
 
         parsed = line.strip().split()
         almt = cluster()

@@ -89,6 +89,7 @@ def printVCFHeader(f):
 ##INFO=<ID=SUPPORT,Number=.,Type=Integer,Description="PE+SR">
 ##INFO=<ID=PE,Number=.,Type=Integer,Description="Number of paired-end reads supporting the variant">
 ##INFO=<ID=SR,Number=.,Type=Integer,Description="Number of split reads supporting the variant">
+##INFO=<ID=CR,Number=.,Type=String,Description="Reason for rejection of variant as putative DEL/TD due to corresponding local read depth relative to chromosome in question">
 ##ALT=<ID=<DEL>,Description="Deletion">
 ##ALT=<ID=<DUP>,Description="Duplication">
 ##ALT=<ID=<INV>,Description="Inversion">
@@ -122,6 +123,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
             cl_support = tokens[21]
             cipos = str(int(chr1End)-int(chr1Start))
             svlen = str(abs(int(chr2End) - int(chr1Start)))
+            covInfo = float(tokens[25])
 
             if precise == -1:
                 precise = "IMPRECISE"
@@ -147,9 +149,15 @@ def writeVCFFromBedpe(inputFile, outputFile):
                     tokens[23].replace("p", chr1 + ":" + chr1Start)
                 else:
                     BNDAlt1, BNDAlt2 = ".", "."
+                
+                covRejInfo = ""
+                if covInfo > 0 and CM == "INS_halfRF":
+                    covRejInfo= ";CR:TD rejected due to relative coverage " + str(covInfo)
+                elif covInfo > 0 and CM == "INS_halfFR":
+                    covRejInfo= ";CR:DEL rejected due to relative coverage " + str(covInfo)
 
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", BNDAlt1, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter + 1) + ";" + GROUPID + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", BNDAlt2, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter) + ";" + GROUPID + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", BNDAlt1, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter + 1) + ";" + GROUPID + support + precise + covRejInfo)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", BNDAlt2, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter) + ";" + GROUPID + support + precise + covRejInfo)
                 counter+= 1
             elif name == "DN_INS":
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INS>",".","PASS", "SVTYPE=INS;CIPOS=0," + cipos + ";CM=DE NOVO INS;" + support + precise)

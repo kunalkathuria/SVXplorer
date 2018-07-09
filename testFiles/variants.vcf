@@ -16,6 +16,7 @@
 ##INFO=<ID=SUPPORT,Number=.,Type=Integer,Description="PE+SR">
 ##INFO=<ID=PE,Number=.,Type=Integer,Description="Number of paired-end reads supporting the variant">
 ##INFO=<ID=SR,Number=.,Type=Integer,Description="Number of split reads supporting the variant">
+##INFO=<ID=CR,Number=.,Type=String,Description="Reason for rejection of variant as putative DEL/TD and corresponding local read depth relative to chromosome in question">
 ##ALT=<ID=<DEL>,Description="Deletion">
 ##ALT=<ID=<DUP>,Description="Duplication">
 ##ALT=<ID=<INV>,Description="Inversion">
