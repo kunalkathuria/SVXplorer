@@ -318,9 +318,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 # do not look for inverted insertions due to ambiguity of swap parameter
                 if SRVarHash[newAlmt].typeSV == "DEL_INS" or SRVarHash[newAlmt].typeSV == "DEL":
                     if l_orient == r_orient and swap==1 and not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                        <= SRVarHash[newAlmt].bp2+slop/2) and not ( (l_orient != SRVarHash[newAlmt].l_orient \
-                        and SRVarHash[newAlmt].r_orient == r_orient) or (l_orient == SRVarHash[newAlmt].l_orient \
-                        and SRVarHash[newAlmt].r_orient != r_orient) ):
+                        <= SRVarHash[newAlmt].bp2+slop/2) and (newAlmt[2] < SRVarHash[newAlmt].bp2 < other_bp or \
+                        newAlmt[2] > SRVarHash[newAlmt].bp2 > other_bp): 
 
                         SRVarHash[newAlmt].typeSV = "INS"
                         SRVarHash[newAlmt].bp3 = other_bp
@@ -339,20 +338,18 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         and l_orient == r_orient and l_orient != SRVarHash[newAlmt].l_orient:
                         SRVarHash[newAlmt].count+=1
                         SRVarHash[newAlmt].support.append(SRFrag)
-                    #TD_I
-                    elif SRVarHash[newAlmt].typeSV == "TD_I":
-                    #cannot update type here
-                        if swap==1 and l_orient == r_orient and SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                            <= SRVarHash[newAlmt].bp2+slop/2:
-                            SRVarHash[newAlmt].count+=1
-                            SRVarHash[newAlmt].support.append(SRFrag)
-                            #print "TD 1", SRVarHash[newAlmt].count
+                #TD_I
+                elif SRVarHash[newAlmt].typeSV == "TD_I":
+                #cannot update type here
+                    if swap==1 and l_orient == r_orient and SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
+                        <= SRVarHash[newAlmt].bp2+slop/2:
+                        SRVarHash[newAlmt].count+=1
+                        SRVarHash[newAlmt].support.append(SRFrag)
+                        #print "TD 1", SRVarHash[newAlmt].count
 
                     elif l_orient == r_orient and swap==0 and not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                            <= SRVarHash[newAlmt].bp2+slop/2 or SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp or \
-                            other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2) and not ( (l_orient != SRVarHash[newAlmt].l_orient \
-                            and SRVarHash[newAlmt].r_orient == r_orient) or (l_orient == SRVarHash[newAlmt].l_orient \
-                            and SRVarHash[newAlmt].r_orient != r_orient) ):
+                        <= SRVarHash[newAlmt].bp2+slop/2) and (newAlmt[2] < other_bp < SRVarHash[newAlmt].bp2 or \
+                        newAlmt[2] > other_bp > SRVarHash[newAlmt].bp2): 
 
                         SRVarHash[newAlmt].count+=1
                         SRVarHash[newAlmt].support.append(SRFrag)
@@ -360,32 +357,32 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         SRVarHash[newAlmt].bp3 = other_bp
                         SRVarHash[newAlmt].bp3tid = other_bp_tid
                         SRVarHash[newAlmt].n_changes+=1
-                    elif SRVarHash[newAlmt].typeSV[:3] == "INV" and l_orient != r_orient:
-                        #cannot update type if INV_POSS currently, as only one half of inversion reported thus far
-                        if SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 and \
-                            l_orient == SRVarHash[newAlmt].l_orient:
-                            SRVarHash[newAlmt].count+=1
-                            SRVarHash[newAlmt].support.append(SRFrag)
-                        elif SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 and \
-                            l_orient != SRVarHash[newAlmt].l_orient:
-                            # minor gamble -- inversions more likely than inverted insertions
-                            if SRVarHash[newAlmt].typeSV == "INV_POSS":
-                                SRVarHash[newAlmt].typeSV = "INV"
-                                SRVarHash[newAlmt].n_changes+=1
-                            SRVarHash[newAlmt].count+=1
-                            SRVarHash[newAlmt].support.append(SRFrag)
-                        elif not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 or \
-                            SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp or other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2) \
-                            and not ((l_orient != SRVarHash[newAlmt].l_orient and SRVarHash[newAlmt].r_orient == r_orient) \
-                            or (l_orient == SRVarHash[newAlmt].l_orient and SRVarHash[newAlmt].r_orient != r_orient)):
-
-                            SRVarHash[newAlmt].typeSV = "INS_I"
-                            SRVarHash[newAlmt].count+=1
-                            SRVarHash[newAlmt].support.append(SRFrag)
-                            SRVarHash[newAlmt].bp3 = other_bp
-                            SRVarHash[newAlmt].bp3tid = other_bp_tid
+                elif SRVarHash[newAlmt].typeSV[:3] == "INV" and l_orient != r_orient:
+                    #cannot update type if INV_POSS currently, as only one half of inversion reported thus far
+                    if SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 and \
+                        l_orient == SRVarHash[newAlmt].l_orient:
+                        SRVarHash[newAlmt].count+=1
+                        SRVarHash[newAlmt].support.append(SRFrag)
+                    elif SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 and \
+                        l_orient != SRVarHash[newAlmt].l_orient:
+                        # minor gamble -- inversions more likely than inverted insertions
+                        if SRVarHash[newAlmt].typeSV == "INV_POSS":
+                            SRVarHash[newAlmt].typeSV = "INV"
                             SRVarHash[newAlmt].n_changes+=1
-                            #print "INV INS"
+                        SRVarHash[newAlmt].count+=1
+                        SRVarHash[newAlmt].support.append(SRFrag)
+                    elif not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 or \
+                        SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp or other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2) \
+                        and not ((l_orient != SRVarHash[newAlmt].l_orient and SRVarHash[newAlmt].r_orient == r_orient) \
+                        or (l_orient == SRVarHash[newAlmt].l_orient and SRVarHash[newAlmt].r_orient != r_orient)):
+
+                        SRVarHash[newAlmt].typeSV = "INS_I"
+                        SRVarHash[newAlmt].count+=1
+                        SRVarHash[newAlmt].support.append(SRFrag)
+                        SRVarHash[newAlmt].bp3 = other_bp
+                        SRVarHash[newAlmt].bp3tid = other_bp_tid
+                        SRVarHash[newAlmt].n_changes+=1
+                        #print "INV INS"
                 elif SRVarHash[newAlmt].typeSV == "INS":
                     #print "INS"
                     if l_orient == r_orient and (SRVarHash[newAlmt].bp3 == -1 or SRVarHash[newAlmt].bp2-slop/2 \

@@ -18,13 +18,17 @@ AS_THRESH = 0
 DISC_PERC = .9985
 # %ile of insert-length dist. where IL value indicates discordant alignment
 DISC_PERC_NEG = .0001
-#min almt score required to use concordant almt in calculating BAM statistics
+# min almt score required to use concordant almt in calculating BAM statistics
 AS_CALC_THRESH = .999
 BIG_NUM = 100000
 # %ile of (concordant) IL dist. where the IL value is considered too large
 PENALTY_PERC = .999995
 # %tile of IL dist. to start distance penalty assessment
 DIST_END_PERC = .99
+# mapping quality threshold for RF alignments, which tend to be in less mappable regions
+MAP_THRESH_DUP = 20
+# min gap b/w "arrow tips" of RF almt to count as reasonable
+RF_RDL_FACTOR = 2.1
 
 def calcMeanSig(bamfile1, workDir, calc_thresh):
     """Calculate mean & std of insert-length dist. (and other stats listed below)
@@ -227,7 +231,7 @@ def findTotalNMatches(al):
 
 def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                    nMatchPct_thresh, nMatch_relative_thresh, as_relative_thresh,
-                   map_thresh, permutation_thresh, ignoreBED, ignoreTIDList, ignoreTIDAll):
+                   map_thresh, permutation_thresh, ignoreBED, ignoreTIDList, ignoreTIDAll, rdl):
     """ Analyze all discordant alignment pairs, filter them and write to file those that pass in alignedFragment() format
     Inputs:
         aln1s: list of left alignments with same query name
@@ -434,6 +438,15 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
             else:
                 continue
 
+            # RF alignments should be higher mapping quality and sufficiently apart to be reliable
+            if newAlmt.cType == "10" and \
+                (newAlmt.mapQual < MAP_THRESH_DUP or \
+                newAlmt.rBound - newAlmt.lBound < RF_RDL_FACTOR*rdl):
+                continue
+            
+            if newAlmt.cType == "01" and newAlmt.lBound > newAlmt.rBound:
+                continue
+
             # check discordancy even though discordant flag set by aligner
             if newAlmt.cMapType == 1 or \
                     (newAlmt.cMapType == 0 and ( outerIL - mean_IL > disc_thresh or \
@@ -513,7 +526,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
                     ignoreTIDAll.add(chrI[1:])
                     logging.debug("Chr names starting with %s will be ignored", chrI[1:])
 
-    ignoreBuffer = 0*rdl
+    ignoreBuffer = 1*rdl
     if ignoreBED is not None:
         logging.info("Regions in %s will be ignored", ignoreBED)
         chrHash = formExcludeHash(chrHash, ignoreBuffer, ignoreBED, chromosome_lengths)
@@ -537,7 +550,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
             dList1, dList2 = formDiscordant(aln1s, aln2s, disc_thresh,
                     disc_thresh_neg, mean_IL, chrHash, nMatchPct_thresh,
                     nMatch_relative_thresh, as_relative_thresh, map_thresh,
-                    permutation_thresh, ignoreBED, ignoreTIDs, ignoreTIDAll)
+                    permutation_thresh, ignoreBED, ignoreTIDs, ignoreTIDAll, rdl)
             for item in dList1:
                 print >> almtFile, "%s\t%s" %(currentFrag, item)
             for item in dList2:
