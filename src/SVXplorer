@@ -434,7 +434,7 @@ if __name__ == '__main__':
 
     # covPUFilter
     DEL_CN_SUPP_THRESH=.8 
-    DUP_CN_SUPP_THRESH=1.2
+    DUP_CN_SUPP_THRESH=1.15
     PILEUP_THRESH=1000.0
     GOOD_REG_THRESH=.8
     SPLIT_INS=False
