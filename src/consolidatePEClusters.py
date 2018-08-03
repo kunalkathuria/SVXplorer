@@ -50,6 +50,7 @@ class consCluster(object):
         self.bp1TID = -1
         self.bp2TID = -1
         self.bp3TID = -1
+        self.orient = "22"
 
     def __str__(self):
         return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.SVType, self.bp1TID, self.bp1_start, self.bp1_end, self.bp2TID , self.bp2_start, self.bp2_end, self.bp3TID, self.bp3_start, self.bp3_end, self.support, self.count)
@@ -216,7 +217,7 @@ def writeVariants(varHash, fpAV, fpCVM, hashedVM, offset):
             except:
                 print "Exception writing in Variant Map from cluster", elem
                 exit(1)
-        fpAV.write("%s\t%s\t%s\t%s\n" %(num,item,suppCount,"0"))
+        fpAV.write("%s\t%s\t%s\t%s\t%s\n" %(num,item,suppCount,"0",item.orient))
         fpCVM.write("\n")
 
 def compareCluster(cluster1, clusters, claimedCls, consolidatedCls, 
@@ -996,6 +997,7 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
                 TDStore.append(newSimpleSV)
             elif clusterC.l_orient == clusterC.r_orient and clusterC.lTID == clusterC.rTID:
                 newSimpleSV.SVType = "INV"
+                newSimpleSV.orient = str(clusterC.l_orient) + str(clusterC.r_orient)
             elif clusterC.l_orient == 0 and clusterC.r_orient ==1 and \
                 clusterC.l_start < clusterC.r_end and \
                 clusterC.lTID == clusterC.rTID and \

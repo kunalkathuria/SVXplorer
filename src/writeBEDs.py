@@ -49,7 +49,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
             support = "0"
             GROUPID = "."
             covInfo = "-1"
-            if len(tokens) > 15:
+            if len(tokens) > 17:
                 swap = tokens[15]
                 bnd = tokens[16]
                 support = tokens[17]
@@ -72,8 +72,9 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 bp2_s, bp2_e = max(start1, start2), max(end1, end2)
                 output = [chrom1, bp1_s, bp1_e, chrom2, bp2_s, bp2_e]
                 name = 'TD_INV'
-            elif svtype == "INV" and \
-                 ((libINV and support_tag.find("SR") != -1) or cl_support == "2"):
+            elif svtype == "INV_B" or (svtype == "INV" and \
+                 ((libINV and support_tag.find("SR") != -1 and support_tag.find("PE") != -1) \
+                 or cl_support == "2")):
                 output = tokens[2:8]
                 name = 'INV'
             elif svtype in ["BND", "Unknown", "INV", "INS_POSS", "TD_I", "INV_POSS", "INS_C",

@@ -422,7 +422,7 @@ if __name__ == '__main__':
     MIN_UNIQUE_SUPP=3
 
     # writeBEDs
-    LIB_INV=True
+    LIB_INV=False
 
     # addSplitReads
     SLOP_SR=16
