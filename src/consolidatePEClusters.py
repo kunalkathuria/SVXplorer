@@ -107,13 +107,12 @@ def setBPs(clus1, clus2, LR):
     return -1,-1
 
 def formCutPasteINS(newVariant, cluster1, clusterP, LR):
-    newSVFlag=1
     # if middle breakpoint is overlapping, then has to be a cut insertion
-    lBP_end = min(newVariant.bp2_end, newVariant.bp3_end)
-    rBP_start = max(newVariant.bp2_start, newVariant.bp3_start)
+    lBP_start = min(newVariant.bp2_start, newVariant.bp3_start)
+    rBP_end = max(newVariant.bp2_end, newVariant.bp3_end)
 
     if (LR == "RL" or LR == "LR") and newVariant.bp1TID == newVariant.bp2TID == newVariant.bp3TID:
-        if lBP_end <  newVariant.bp1_start < newVariant.bp1_end < rBP_start:
+        if lBP_start <  newVariant.bp1_start < newVariant.bp1_end < rBP_end:
             if newVariant.SVType == "INS":
                 newVariant.SVType = "INS_C"
             newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, \
@@ -281,7 +280,7 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
 
         # small insertions
         elif LROverlap and RROverlap and not LLOverlap and not RLOverlap and cluster1.isSmall \
-            and not clusterP.isSmall:
+            and not clusterP.isSmall and clusterP.l_orient != clusterP.r_orient:
             logging.debug('Tagged as Small INS')
             if clusterP.l_orient != clusterP.r_orient:
                 if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID) \
@@ -300,7 +299,7 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
             newVariant.bp1TID, newVariant.bp2TID = cluster1.lTID, clusterP.lTID
 
         elif RLOverlap and RROverlap and not LLOverlap and not LROverlap and \
-            clusterP.isSmall and not cluster1.isSmall:
+            clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
 
             if cluster1.l_orient != cluster1.r_orient:
                 if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
@@ -317,7 +316,7 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
             newVariant.bp2TID = cluster1.lTID
 
         elif LLOverlap and RLOverlap and not LROverlap and not RROverlap and \
-            cluster1.isSmall and not clusterP.isSmall:
+            cluster1.isSmall and not clusterP.isSmall and clusterP.l_orient != clusterP.r_orient:
 
             if clusterP.l_orient != clusterP.r_orient:
                 if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
@@ -334,7 +333,7 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
             newVariant.bp2TID = clusterP.rTID
 
         elif LLOverlap and LROverlap and not RLOverlap and not RROverlap and \
-            clusterP.isSmall and not cluster1.isSmall:
+            clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
 
             if cluster1.l_orient != cluster1.r_orient:
                 if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
@@ -352,7 +351,8 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
 
         # Large insertions
         elif LLOverlap and cluster1.l_orient != clusterP.l_orient and (cluster1.lTID == \
-            cluster1.rTID or cluster1.lTID == clusterP.rTID or cluster1.rTID == clusterP.rTID):
+            cluster1.rTID or cluster1.lTID == clusterP.rTID or cluster1.rTID == clusterP.rTID) and \
+            clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
             logging.debug('Large INS check 1: left with left overlap')
 
             # if mate between the reads that overlap, then not a bona fide match
@@ -390,7 +390,8 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
                     continue
 
         elif RROverlap and cluster1.r_orient != clusterP.r_orient and \
-            (cluster1.rTID == cluster1.lTID or cluster1.rTID == clusterP.lTID or cluster1.lTID == clusterP.lTID):
+            (cluster1.rTID == cluster1.lTID or cluster1.rTID == clusterP.lTID or cluster1.lTID == clusterP.lTID) and \
+            clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
             logging.debug('Large INS check 2: right with right overlap')
 
             # if mate between the reads that overlap, then not a bona fide match
@@ -429,7 +430,8 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
         
         elif LROverlap and not RLOverlap and (cluster1.rTID == cluster1.lTID or \
             clusterP.lTID == cluster1.lTID or cluster1.rTID == clusterP.lTID) and \
-            cluster1.l_orient != clusterP.r_orient:
+            cluster1.l_orient != clusterP.r_orient and \
+            clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
             logging.debug('Large INS check 3: left mate of cluster 1 overlapping with right of 2')
 
             # if mate between the reads that overlap, then not a bona fide match
@@ -520,7 +522,8 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
 
         elif RLOverlap and not LROverlap and (cluster1.rTID == cluster1.lTID or \
             clusterP.rTID == cluster1.rTID or cluster1.lTID == clusterP.rTID) and \
-            cluster1.r_orient != clusterP.l_orient:
+            cluster1.r_orient != clusterP.l_orient and \
+            clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
             logging.debug('Large INS check 4: right mate of cluster 1 overlapping with left mate of cluster 2')
 
             # if mate between the reads that overlap, then not a bona fide match
