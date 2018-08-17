@@ -11,6 +11,7 @@ from shared import formExcludeHash, ignoreRead, readChromosomeLengths
 
 #global variables
 SVHashPE = {}
+detectIntraChrCopyInv = 1
 
 class newSRVar(object):
     def __init__(self):
@@ -323,8 +324,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 # do not look for inverted insertions due to ambiguity of swap parameter
                 if SRVarHash[newAlmt].typeSV == "DEL_INS" or SRVarHash[newAlmt].typeSV == "DEL":
                     if l_orient == r_orient and swap==1 and not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                        <= SRVarHash[newAlmt].bp2+slop/2) and (newAlmt[2] < SRVarHash[newAlmt].bp2 < other_bp or \
-                        newAlmt[2] > SRVarHash[newAlmt].bp2 > other_bp): 
+                        <= SRVarHash[newAlmt].bp2+slop/2) and not (SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp or \
+                        SRVarHash[newAlmt].bp2 > newAlmt[2] > other_bp): 
 
                         SRVarHash[newAlmt].typeSV = "INS"
                         SRVarHash[newAlmt].bp3 = other_bp
@@ -353,8 +354,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         #print "TD 1", SRVarHash[newAlmt].count
 
                     elif l_orient == r_orient and swap==0 and not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                        <= SRVarHash[newAlmt].bp2+slop/2) and (newAlmt[2] < other_bp < SRVarHash[newAlmt].bp2 or \
-                        newAlmt[2] > other_bp > SRVarHash[newAlmt].bp2): 
+                        <= SRVarHash[newAlmt].bp2+slop/2) and not (other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2 or \
+                        other_bp > newAlmt[2] > SRVarHash[newAlmt].bp2): 
 
                         SRVarHash[newAlmt].count+=1
                         SRVarHash[newAlmt].support.append(SRFrag)
@@ -379,10 +380,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                     if SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2:
                         SRVarHash[newAlmt].count+=1
                         SRVarHash[newAlmt].support.append(SRFrag)
-                    elif not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 or \
-                        SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp or other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2) \
-                        and not ((l_orient != SRVarHash[newAlmt].l_orient and SRVarHash[newAlmt].r_orient == r_orient) \
-                        or (l_orient == SRVarHash[newAlmt].l_orient and SRVarHash[newAlmt].r_orient != r_orient)):
+                    elif detectIntraChrCopyInv and (SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 or \
+                        SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp or other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2):
 
                         SRVarHash[newAlmt].typeSV = "INS_I"
                         SRVarHash[newAlmt].count+=1
@@ -407,21 +406,20 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                             SRVarHash[newAlmt].bp3tid = other_bp_tid
                             SRVarHash[newAlmt].n_changes+=1
                 #$ if 3rd bp absent write as inversion
-                elif SRVarHash[newAlmt].typeSV == "INS_I":
+                elif SRVarHash[newAlmt].typeSV == "INS_I" and l_orient != r_orient:
                     #print "INS_I"
-                    if l_orient != r_orient and (SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                        <= SRVarHash[newAlmt].bp2+slop/2 or SRVarHash[newAlmt].bp3 == -1 or \
+                    if (SRVarHash[newAlmt].bp2-slop/2 <= other_bp <= SRVarHash[newAlmt].bp2+slop/2 or \
                         SRVarHash[newAlmt].bp3-slop/2 <= other_bp <= SRVarHash[newAlmt].bp3+slop/2):
                         SRVarHash[newAlmt].count+=1
                         SRVarHash[newAlmt].support.append(SRFrag)
 
-                        if SRVarHash[newAlmt].bp3 == -1 and not (SRVarHash[newAlmt].bp2-slop/2 <= other_bp \
-                            <= SRVarHash[newAlmt].bp2+slop/2 or SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp \
-                            or other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2):
-
-                            SRVarHash[newAlmt].bp3 = other_bp
-                            SRVarHash[newAlmt].bp3tid = other_bp_tid
-                            SRVarHash[newAlmt].n_changes+=1
+                    elif SRVarHash[newAlmt].bp3 == -1 and not (SRVarHash[newAlmt].bp2 < newAlmt[2] < other_bp \
+                        or other_bp < newAlmt[2] < SRVarHash[newAlmt].bp2):
+                        SRVarHash[newAlmt].count+=1
+                        SRVarHash[newAlmt].support.append(SRFrag)
+                        SRVarHash[newAlmt].bp3 = other_bp
+                        SRVarHash[newAlmt].bp3tid = other_bp_tid
+                        SRVarHash[newAlmt].n_changes+=1
             ## FORM NEW SR VARIANT
             else:
                 newAlmt = (sr_bp1_tid, sr_bp2_tid, sr_bp1)
