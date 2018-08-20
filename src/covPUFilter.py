@@ -154,7 +154,8 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                 if allBadReads:
                     refLoopLoc-=1
 
-                if refLoopLoc == bin_size_loc:
+                if isTD == 1 and refLoopLoc == bin_size_loc and \
+                    bpSecond - bpFirst > TD_SIZE_SUSPECT_BOUND:
                     #logging.debug("Covg for chr %s in bin %s: %s", chr_n, 1 + len(covList), cov_100bp)  
                     logging.debug("Appending %s to covBinLoc", 1.0*covBinLoc/refLoopLoc)
                     covListLoc.append(1.0*covBinLoc/refLoopLoc)
@@ -218,7 +219,8 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     if allBadReads:
                         refLoopLoc-=1
 
-                    if refLoopLoc == bin_size_loc:
+                    if isTD == 1 and refLoopLoc == bin_size_loc and \
+                        bpSecond - bpFirst > TD_SIZE_SUSPECT_BOUND:
                         logging.debug("Appending %s to covBinLoc", 1.0*covBinLoc/refLoopLoc)
                         covListLoc.append(1.0*covBinLoc/refLoopLoc)
                         covBinLoc, refLoopLoc = 0,0
@@ -277,7 +279,8 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     if allBadReads:
                         refLoopLoc-=1
                 
-                    if refLoopLoc == bin_size_loc:
+                    if isTD == 1 and refLoopLoc == bin_size_loc and \
+                        bpSecond - bpFirst > TD_SIZE_SUSPECT_BOUND:
                         logging.debug("Appending %s to covBinLoc", 1.0*covBinLoc/refLoopLoc)
                         covListLoc.append(1.0*covBinLoc/refLoopLoc)
                         covBinLoc, refLoopLoc = 0,0
@@ -438,7 +441,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH, isTD)
 
                     if svtype.startswith("TD") and lineAV_split[11].find("PE") == -1 and \
-                        confMiddle == 1 and ((largeDupRet == 0 and covLocM > DUP_THRESH_S) \
+                        confMiddle == 1 and ((largeDupRet == 0 and covLocM >= DUP_THRESH_S) \
                         or largeDupRet == 2): 
 
                         logging.debug("TD confirmed using pileup")
@@ -451,7 +454,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         # since bp3 = -1, this will be written as a BND event
                         svtype = "INS_halfRF"
 
-                    elif svtype.startswith("DEL") and confMiddle == 1 and covLocM < DEL_THRESH: 
+                    elif svtype.startswith("DEL") and confMiddle == 1 and covLocM <= DEL_THRESH: 
 
                         logging.debug("DEL confirmed using pileup")
                         svtype = "DEL"
@@ -460,7 +463,9 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         elif covLocM > 3*DEL_THRESH_GT:
                             GT="GT:0/1"
 
-                    elif svtype.startswith("DEL") and (confMiddle == 0 or covLocM > DEL_THRESH_S):
+                    elif svtype.startswith("DEL") and ((lineAV_split[11].find("PE") != -1 and \
+                        (confMiddle == 0 or covLocM > DEL_THRESH_S)) or \
+                        (lineAV_split[11].find("PE") == -1 and (confMiddle == 0 or covLocM > DEL_THRESH))):
                         logging.debug("Rejected %s due to high cvg or insufficient evidence of coverage due to small variant region", lineAV)
                         # since bp3 = -1, this will be written as a BND event
                         svtype = "INS_halfFR"

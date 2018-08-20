@@ -207,8 +207,12 @@ def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
         # 1. variants.uniqueFilter.txt
         # 2. variants.uniqueSupport.txt
         uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
-                         "%s/allDiscordants.txt" % WORKSPACE, MAP_THRESH_U, 
-                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 4, 3000000, 100000000, -1)
+                         "%s/allDiscordants.txt" % WORKSPACE, ARGS.mapQual, 
+                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 3000000, 100000000, -1, True)
+    else:
+        uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
+                         "%s/allDiscordants.txt" % WORKSPACE, ARGS.mapQual, 
+                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 3000000, 100000000, -1, False)
 
     # write the results. This writes
     # 1. variants.bedpe
@@ -388,6 +392,7 @@ if __name__ == '__main__':
     PARSER.add_argument('-w', default="svxplorer", help='use dir as workspace')
     PARSER.add_argument('-s', default=100, dest='minVarSize', type=int, help='minimum size in bps of variants called')
     PARSER.add_argument('-z', default=3, dest='minClusterSize', type=int, help='minimum fragment support required for discordant clusters -- smaller size may increase run time')
+    PARSER.add_argument('-q', default=-1, dest='mapQual', type=int, help='minimum mapping quality required ofat least NSupportThreshold reads for every variant')
 
     PARSER.add_argument('disc', help='bam file of discordant pairs')
     PARSER.add_argument('split', help='bam file of split reads')
@@ -418,7 +423,6 @@ if __name__ == '__main__':
     REF_RATE_PE=5
 
     # uniqueSuppFilter (PE)
-    MAP_THRESH_U=-1
     MIN_UNIQUE_SUPP=3
 
     # writeBEDs
@@ -489,7 +493,7 @@ if __name__ == '__main__':
                         filemode=LOGMODE)
 
     WORKSPACE = "%s/workspace" % ARGS.w
-    logging.info("Using MAP_THRESH, MAP_THRESH_U, minClusterSize, SPLIT_INS: %s, %s, %s, %s", MAP_THRESH, MAP_THRESH_U, ARGS.minClusterSize, SPLIT_INS)
+    logging.info("Using MAP_THRESH, MAP_THRESH_U, minClusterSize, SPLIT_INS: %s, %s, %s, %s", MAP_THRESH, ARGS.mapQual, ARGS.minClusterSize, SPLIT_INS)
 
     # process PE and SR information
     processFragments()

@@ -11,7 +11,7 @@ from shared import formExcludeHash, ignoreRead, readChromosomeLengths
 
 #global variables
 SVHashPE = {}
-detectIntraChrCopyInv = 1
+detectIntraChrCopyInv = 0
 
 class newSRVar(object):
     def __init__(self):

@@ -21,7 +21,11 @@ class clusterI(object):
         self.lTID = data_split[3]
         self.rTID = data_split[6]
         self.mapNum = int(data_split[0])
-        self.isSmall = int(data_split[9])
+        if int(data_split[9]) == 1:
+            self.isSmall = True
+        else:
+            self.isSmall = False
+
     def __str__(self):
         return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.mapNum, self.l_start,self.l_end, self.r_start, self.r_end, self.typeC, self.lTID, self.rTID, self.l_orient, self.r_orient)
 
@@ -952,7 +956,7 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
     logging.debug('Finished comparison of clusters')
 
     # write list of complex variants and complex variant map to 2 sep files
-    fVariantsPE.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\tstart3\tstop3\t SupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\n") 
+    fVariantsPE.write("VariantNum\tType\tchr1\tstart1\tstop1\tchr2\tstart2\tstop2\tchr3\tstart3\tstop3\tSupportBy\tNPEClusterSupp\tNFragPESupp\tNFragSRSupp\tOrientation\n") 
     hashedVM = {}
     for line in fClusterMap:
         line_split = line.split()
@@ -1020,6 +1024,8 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
             elif clusterC.lTID != clusterC.rTID and clusterC.l_orient == 1 and \
                 clusterC.r_orient == 0:
                 newSimpleSV.SVType = "INS_halfRF"
+            elif clusterC.lTID != clusterC.rTID and clusterC.l_orient == clusterC.r_orient:
+                newSimpleSV.SVType = "INS_I_half"
             else:
                 newSimpleSV.SVType = "Unknown"
             # store if appropriate
