@@ -1025,7 +1025,7 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
                 clusterC.r_orient == 0:
                 newSimpleSV.SVType = "INS_halfRF"
             elif clusterC.lTID != clusterC.rTID and clusterC.l_orient == clusterC.r_orient:
-                newSimpleSV.SVType = "INS_I_half"
+                newSimpleSV.SVType = "INS_half_I"
             else:
                 newSimpleSV.SVType = "Unknown"
             # store if appropriate
@@ -1048,7 +1048,7 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
                 break
         # store as de novo INS if was not due to existing TD    
         if storeTD:
-            newSimpleSV.SVType = "DN_INS"
+            elem.SVType = "DN_INS"
             consolidatedCls[varNum] = elem
             varNum+=1
 

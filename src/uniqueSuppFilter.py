@@ -13,9 +13,7 @@ def readBamStats(statFile):
     for i,line in enumerate(f):
         if i==3:
             break
-        elif i==2:
-            sigIL = float(line.split()[0])
-    return float(line.split()[0]), sigIL
+    return float(line.split()[0])
 
 def formMQSet(mapThresh, mqSet, allDiscordantsFile):
     f=open(allDiscordantsFile,"r")
@@ -42,7 +40,7 @@ def calculateSVThresh(SVType, SVSupp, complex_thresh, sr_thresh, pe_thresh,
 
 def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
                      mapThresh,variantMapFile, allVariantFile, 
-                     rdFragIndex, rdVarIndex, workDir, complex_thresh, 
+                     rdFragIndex, workDir, complex_thresh, 
                      sr_thresh, pe_thresh, mix_thresh):
 
     nSVs = 0
@@ -114,10 +112,10 @@ def readVariantMap(filename, allFrags):
     return index + 1
 
 def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile, 
-                     allDiscordantsFile, map_thresh, single_thresh,
+                     allDiscordantsFile, map_thresh,
                      pe_thresh_max, sr_thresh_max, 
                      pe_thresh_min, sr_thresh_min,
-                     rdVarIndex, rdFragIndex, argsILBoost, unfilter):
+                     rdFragIndex, unfilter):
     allFrags = []
     mqSet = set()
 
@@ -131,12 +129,9 @@ def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile,
     sr_high = 5
     il_low1 = 25
     il_low2 = 35
-    ILBoost = 0
     covg_cusp = 8
     # apply above-mentioned support threshold model
-    [covg,sig_il] = readBamStats(statFile)
-    if il_low1 <= int(sig_il) <= il_low2:
-        ILBoost = argsILBoost 
+    covg = readBamStats(statFile)
     if covg <= covg_cusp or unfilter:
         complex_thresh, mix_thresh = 3, 3
     else:
@@ -144,7 +139,7 @@ def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile,
 
     if not unfilter:
         sr_thresh = math.floor(sr_low + (covg-covg_low)*1.0*(sr_high - sr_low)/(covg_high - covg_low))
-        pe_thresh = round(ILBoost + pe_low + (covg-covg_low)*1.0*(pe_high - pe_low)/(covg_high - covg_low))
+        pe_thresh = round(pe_low + (covg-covg_low)*1.0*(pe_high - pe_low)/(covg_high - covg_low))
     else:
         sr_thresh, pe_thresh = 3,3
 
@@ -161,7 +156,7 @@ def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile,
     nInputVariants = readVariantMap(variantMapFile, allFrags)
     nSVs = uniquenessFilter(allFrags, nInputVariants, mqSet, allDiscordantsFile, 
                             map_thresh, variantMapFile, allVariantFile,
-                            rdFragIndex, rdVarIndex, workDir, complex_thresh, 
+                            rdFragIndex, workDir, complex_thresh, 
                             sr_thresh, pe_thresh, mix_thresh)
     fNSVs= open(workDir+"/NSVs.txt","w")
     fNSVs.write("%s\n" %nSVs)
@@ -185,14 +180,7 @@ if __name__ == "__main__":
         help='Minimum allowed support threshold for SR-only variants')
     PARSER.add_argument('-g', default=10, dest='map_thresh', type=int,
         help='Mapping quality threshold for fragments uniquely supporting variant')
-    PARSER.add_argument('-k', default=4, dest='single_thresh', type=int,
-        help='If using one universal support threshold (will need to look at code to use)')
-
-    PARSER.add_argument('-l', default=3000000, dest='rdVarIndex', type=int,
-        help=argparse.SUPPRESS)
     PARSER.add_argument('-i', default=100000000, dest='rdFragIndex', type=int,
-        help=argparse.SUPPRESS)
-    PARSER.add_argument('-j', default=-1, dest='ILBoost', type=int,
         help=argparse.SUPPRESS)
     ARGS = PARSER.parse_args()
 
@@ -206,9 +194,9 @@ if __name__ == "__main__":
 
     uniqueSuppFilter(ARGS.workDir, ARGS.statFile, ARGS.variantMapFile, 
                      ARGS.allVariantFile, ARGS.allDiscordantsFile,
-                     ARGS.map_thresh, ARGS.single_thresh,
-                     ARGS.pe_thresh_max, ARGS.sr_thresh_max, ARGS.pe_thresh_min,
+                     ARGS.map_thresh, ARGS.pe_thresh_max,
+                     ARGS.sr_thresh_max, ARGS.pe_thresh_min,
                      ARGS.sr_thresh_min,
-                     ARGS.rdVarIndex, ARGS.rdFragIndex, ARGS.ILBoost, False)
+                     ARGS.rdFragIndex, False)
 
     logging.shutdown()

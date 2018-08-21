@@ -471,7 +471,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         svtype = "INS_halfFR"
                         covInfo = covLocM
                         
-                elif svtype in ["INS", "INS_I"] or svtype.startswith("INS_C"):
+                elif (svtype in ["INS", "INS_I"] or svtype.startswith("INS_C")) and lineAV_split[8] != "-1":
 
                     del_23, del_12, del_13, dup_23, dup_12, dup_13 = 0, 0, 0, 0, 0, 0
                     swap_12, swap_13 = 0,0
@@ -479,7 +479,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     #use inner bounds for all
                     start = int(lineAV_split[7])
                     stop = int(lineAV_split[9])
-                    covLoc_23, conf_23, largeDupRet = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
+                    covLoc_23, conf_23, _ = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                             start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, 
                             [int(lineAV_split[6]), int(lineAV_split[10])], MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH, isTD)
 
@@ -645,14 +645,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             # or (conf_12 and not (DEL_THRESH < covLoc_12 < DUP_THRESH))
                             # or NPE_CLUSTERS < 3
                             bnd = 1
-
-                if (svtype == "INS_C_P" or svtype == "INS_C_I_P") and \
-                    (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
-                    bnd = 1
-
-                elif (svtype == "INS" or svtype == "INS_I") and \
-                   (0 < int(lineAV_split[10])-int(lineAV_split[6]) < INS_VAR_THRESH):
-                    bnd = 1
 
             ## write in BED files
             lineAV_split[1] = svtype

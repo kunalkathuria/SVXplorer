@@ -78,7 +78,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 output = tokens[2:8]
                 name = 'INV'
             elif svtype in ["BND", "Unknown", "INV", "INS_POSS", "TD_I", "INV_POSS", "INS_C",
-                            "INS_C_I", "INS_halfFR", "INS_halfRF", "INS_I_half"] or \
+                            "INS_C_I", "INS_halfFR", "INS_halfRF", "INS_half_I"] or \
                 (svtype in ["INS", "INS_I", "INS_C_P", "INS_C_I_P"] and \
                 (start3 == -1 or bnd == "1")):
 
@@ -128,7 +128,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                         BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
                     elif svtype == "INS_halfRF":
                         BNDAlt1, BNDAlt2 = "]p]N", "N[p["
-                    elif svtype in ["INV","INS_I_half"]:
+                    elif svtype in ["INV","INS_half_I"]:
                         BNDAlt1, BNDAlt2 = "N]p]", "[p[N"
 
             elif svtype.startswith("INS"):

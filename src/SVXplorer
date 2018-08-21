@@ -204,24 +204,34 @@ def writeVCFFromBedpe(inputFile, outputFile):
 def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
     if variantMapFile is not None:
         # pick variants that have the minimum unique support. This writes
+        # liberal (unfilter=True) or regular version of:
         # 1. variants.uniqueFilter.txt
-        # 2. variants.uniqueSupport.txt
         uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
                          "%s/allDiscordants.txt" % WORKSPACE, ARGS.mapQual, 
-                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 3000000, 100000000, -1, True)
-    else:
-        uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
-                         "%s/allDiscordants.txt" % WORKSPACE, ARGS.mapQual, 
-                          MIN_UNIQUE_SUPP, 6, 6, 3, 3, 3000000, 100000000, -1, False)
+                          PE_THRESH_MAX, SR_THRESH_MAX, PE_THRESH_MIN, 
+                          SR_THRESH_MIN, RD_FRAG_INDEX, True)
 
-    # write the results. This writes
-    # 1. variants.bedpe
+        # write the results. This writes
+        # 1. variants.bedpe
+        passedFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
+        bedpeFile = "%s/variants.%s.unfiltered.bedpe" % (WORKSPACE, midfix)
+        writeBEDs(allVariantFile, passedFile, bedpeFile, LIB_INV)
+
+        # write a VCF file
+        # 1. variants.vcf
+        vcfFile = "%s/variants.%s.unfiltered.vcf" % (WORKSPACE, midfix)
+        writeVCFFromBedpe(bedpeFile, vcfFile)
+
+        # pick variants: regular version
+        uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
+                         "%s/allDiscordants.txt" % WORKSPACE, ARGS.mapQual, 
+                          PE_THRESH_MAX, SR_THRESH_MAX, PE_THRESH_MIN, 
+                          SR_THRESH_MIN, RD_FRAG_INDEX, False)
+
     passedFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
     bedpeFile = "%s/variants.%s.bedpe" % (WORKSPACE, midfix)
     writeBEDs(allVariantFile, passedFile, bedpeFile, LIB_INV)
 
-    # write a VCF file
-    # 1. variants.vcf
     vcfFile = "%s/variants.%s.vcf" % (WORKSPACE, midfix)
     writeVCFFromBedpe(bedpeFile, vcfFile)
 
@@ -423,7 +433,11 @@ if __name__ == '__main__':
     REF_RATE_PE=5
 
     # uniqueSuppFilter (PE)
-    MIN_UNIQUE_SUPP=3
+    PE_THRESH_MIN=3
+    PE_THRESH_MAX=6
+    SR_THRESH_MIN=3
+    SR_THRESH_MAX=6
+    RD_FRAG_INDEX=100000000
 
     # writeBEDs
     LIB_INV=False
