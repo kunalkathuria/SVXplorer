@@ -439,6 +439,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             int(lineAV_split[4]), int(lineAV_split[6]),
                             PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[3]), int(lineAV_split[7])],
                             MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH, isTD)
+                    covInfo = covLocM
 
                     if svtype.startswith("TD") and lineAV_split[11].find("PE") == -1 and \
                         confMiddle == 1 and ((largeDupRet == 0 and covLocM >= DUP_THRESH_S) \
@@ -446,7 +447,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
                         logging.debug("TD confirmed using pileup")
                         svtype = "TD"
-                        covInfo = covLocM
 
                     elif svtype.startswith("TD") and (confMiddle == 0 or \
                         (largeDupRet == 0 and covLocM < DUP_THRESH_S) or largeDupRet == 1):
@@ -469,7 +469,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                         logging.debug("Rejected %s due to high cvg or insufficient evidence of coverage due to small variant region", lineAV)
                         # since bp3 = -1, this will be written as a BND event
                         svtype = "INS_halfFR"
-                        covInfo = covLocM
                         
                 elif (svtype in ["INS", "INS_I"] or svtype.startswith("INS_C")) and lineAV_split[8] != "-1":
 
@@ -482,6 +481,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                     covLoc_23, conf_23, _ = calculateLocCovg(NH_REGIONS_FILE,lineAV_split[5],
                             start, stop, PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, 
                             [int(lineAV_split[6]), int(lineAV_split[10])], MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH, isTD)
+                    covInfo = covLoc_23
 
                     #bp1-2 ("12" will here refer to 1, the paste bp, and the closest of the other 2)
                     start = int(lineAV_split[4])

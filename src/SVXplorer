@@ -89,7 +89,8 @@ def printVCFHeader(f):
 ##INFO=<ID=SUPPORT,Number=.,Type=Integer,Description="PE+SR">
 ##INFO=<ID=PE,Number=.,Type=Integer,Description="Number of paired-end reads supporting the variant">
 ##INFO=<ID=SR,Number=.,Type=Integer,Description="Number of split reads supporting the variant">
-##INFO=<ID=CR,Number=.,Type=String,Description="Reason for rejection of variant as putative DEL/TD due to corresponding local read depth relative to chromosome in question">
+##INFO=<ID=CR,Number=.,Type=String,Description="Reason for rejection of variant as putative DEL/TD due to corresponding local read depth relative to median of chromosome in question">
+##INFO=<ID=CINFO,Number=.,Type=Float,Description=\"Local read depth of SV 'source' location relative to chromosome median coverage\">
 ##ALT=<ID=<DEL>,Description="Deletion">
 ##ALT=<ID=<DUP>,Description="Duplication">
 ##ALT=<ID=<INV>,Description="Inversion">
@@ -133,6 +134,13 @@ def writeVCFFromBedpe(inputFile, outputFile):
             chr2=""
             if chr1 != chr2:
                 chr2="CHR2="+ tokens[3] + ";"
+            covRejInfo = ""
+            if covInfo > 0 and CM == "INS_halfRF":
+                covRejInfo= ";CR:TD rejected due to relative coverage " + str(covInfo)
+            elif covInfo > 0 and CM == "INS_halfFR":
+                covRejInfo= ";CR:DEL rejected due to relative coverage " + str(covInfo)
+            elif covInfo > 0:
+                covRejInfo= ";CINFO:" + str(covInfo)
 
             if name == "BND":
                 GROUPID = ""
@@ -150,25 +158,19 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 else:
                     BNDAlt1, BNDAlt2 = ".", "."
                 
-                covRejInfo = ""
-                if covInfo > 0 and CM == "INS_halfRF":
-                    covRejInfo= ";CR:TD rejected due to relative coverage " + str(covInfo)
-                elif covInfo > 0 and CM == "INS_halfFR":
-                    covRejInfo= ";CR:DEL rejected due to relative coverage " + str(covInfo)
-
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", BNDAlt1, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter + 1) + ";" + GROUPID + support + precise + covRejInfo)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", BNDAlt2, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter) + ";" + GROUPID + support + precise + covRejInfo)
                 counter+= 1
             elif name == "DN_INS":
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INS>",".","PASS", "SVTYPE=INS;CIPOS=0," + cipos + ";CM=DE NOVO INS;" + support + precise)
             elif name == "DEL":
-                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise)
+                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise + covRejInfo)
             elif name == "TD" or name == "TD_INV":
                 isinv=""
                 svlen = str(abs(int(chr2Start) - int(chr1End)))
                 if name=="TD_INV":
                     isinv="ISINV;"
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + isinv + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + isinv + support + precise + covRejInfo)
             elif name == "INV":
                 ciend = int(chr2End) - int(chr2Start)
                 pos = int((int(chr1Start) + int(chr1End))/2.0)
@@ -191,7 +193,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
                  
                 BNDAlt1, BNDAlt2 = "N[" + chr1 + ":" + chr1Start + "[", "]" + tokens[3] + ":" + chr2Start + "]N"
                 BNDAlt3, BNDAlt4 = "]" + tokens[3] + ":" + chr2Start + "]N", "N[" + chr1 + ":" + chr1End + "["
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + support + precise + covRejInfo)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", BNDAlt1,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 2) + ";" + isinv + ";" + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", BNDAlt2, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 1) + isinv + ";" + support + precise)
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", BNDAlt3, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 4) + ";" + isinv + ";" + support + precise)
