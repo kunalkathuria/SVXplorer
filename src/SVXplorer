@@ -71,6 +71,16 @@ def createDiscordants():
     logging.info('Finished writing the BAM files')
 
 def printVCFHeader(f):
+
+    #read sample name
+    samfile = pysam.AlignmentFile(ARGS.samplebam, "rb")
+    try:
+        sampleName = samfile.header['RG'][0]['ID']
+    except KeyError:
+        print >> stderr, "Missing headers. Please check if BAM was correctly written."
+        exit(1)
+    samfile.close()
+
     print >> f, "##fileformat=VCF4.3"
     print >> f, "##source=SVXplorer-" + VERSION
     print >> f, """##INFO=<ID=END, Number=1, Type=Integer, Description=\"end point of SV\">
@@ -97,10 +107,14 @@ def printVCFHeader(f):
 ##ALT=<ID=<DUP:TANDEM>,Description="Tandem duplication">
 ##ALT=<ID=INS,Description="Insertion of novel sequence">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=SU,Number=1,Type=Integer,Description="PE+SR">
+##FORMAT=<ID=PE,Number=1,Type=Integer,Description="Number of paired-end reads supporting the variant">
+##FORMAT=<ID=SR,Number=1,Type=Integer,Description="Number of split reads supporting the variant">
 """
-    print >> f, "\t".join(["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO"])
+    print >> f, "\t".join(["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sampleName])
 
 def writeVCFFromBedpe(inputFile, outputFile):
+    
     """Read the BEDPE and convert to VCF."""
     with open(inputFile, 'r') as inpt, open(outputFile,'w') as otpt:
         counter = -1
@@ -112,7 +126,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 continue
             tokens = line.split()
             precise=tokens[11].find("SR")
-            support="SUPPORT=" + tokens[16] + ";PE=" + tokens[19] + ";SR=" + tokens[20] + ";"  
+            support="SUPPORT=" + tokens[16] + ";PE=" + tokens[19] + ";SR=" + tokens[20] + ";"
             chr1 = tokens[0]
             chr1Start = tokens[1]
             chr1End = tokens[2]
@@ -158,25 +172,25 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 else:
                     BNDAlt1, BNDAlt2 = ".", "."
                 
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", BNDAlt1, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter + 1) + ";" + GROUPID + support + precise + covRejInfo)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", BNDAlt2, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter) + ";" + GROUPID + support + precise + covRejInfo)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", BNDAlt1, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter + 1) + ";" + GROUPID + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", BNDAlt2, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter) + ";" + GROUPID + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
                 counter+= 1
             elif name == "DN_INS":
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INS>",".","PASS", "SVTYPE=INS;CIPOS=0," + cipos + ";CM=DE NOVO INS;" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INS>",".","PASS", "SVTYPE=INS;CIPOS=0," + cipos + ";CM=DE NOVO INS;" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name == "DEL":
-                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise + covRejInfo)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name == "TD" or name == "TD_INV":
                 isinv=""
                 svlen = str(abs(int(chr2Start) - int(chr1End)))
                 if name=="TD_INV":
                     isinv="ISINV;"
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + isinv + support + precise + covRejInfo)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + isinv + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name == "INV":
                 ciend = int(chr2End) - int(chr2Start)
                 pos = int((int(chr1Start) + int(chr1End))/2.0)
                 end = int((int(chr2Start) + int(chr2End))/2.0)
                 svlen = str(abs(end - pos))
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, pos, counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + str(end) + ";SVLEN=" + svlen + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, pos, counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + str(end) + ";SVLEN=" + svlen + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name in ["INS","INS_I","INS_C_P","INS_C_I_P"]:
                 if name in ["INS","INS_I"]:
                     field1 = "DUP"
@@ -193,11 +207,11 @@ def writeVCFFromBedpe(inputFile, outputFile):
                  
                 BNDAlt1, BNDAlt2 = "N[" + chr1 + ":" + chr1Start + "[", "]" + tokens[3] + ":" + chr2Start + "]N"
                 BNDAlt3, BNDAlt4 = "]" + tokens[3] + ":" + chr2Start + "]N", "N[" + chr1 + ":" + chr1End + "["
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + support + precise + covRejInfo)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", BNDAlt1,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 2) + ";" + isinv + ";" + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", BNDAlt2, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 1) + isinv + ";" + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", BNDAlt3, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 4) + ";" + isinv + ";" + support + precise)
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 4,"N", BNDAlt4, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 3) + isinv + ";" + support + precise)
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", BNDAlt1,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 2) + ";" + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", BNDAlt2, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 1) + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", BNDAlt3, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 4) + ";" + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 4,"N", BNDAlt4, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 3) + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
                 counter+= 4
             else:
                 print>>stderr, "Unrecognized SV type"
@@ -217,7 +231,7 @@ def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
         # 1. variants.bedpe
         passedFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
         bedpeFile = "%s/variants.%s.unfiltered.bedpe" % (WORKSPACE, midfix)
-        writeBEDs(allVariantFile, passedFile, bedpeFile, LIB_INV)
+        writeBEDs(allVariantFile, passedFile, bedpeFile, ARGS.l)
 
         # write a VCF file
         # 1. variants.vcf
@@ -232,7 +246,7 @@ def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
 
     passedFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
     bedpeFile = "%s/variants.%s.bedpe" % (WORKSPACE, midfix)
-    writeBEDs(allVariantFile, passedFile, bedpeFile, LIB_INV)
+    writeBEDs(allVariantFile, passedFile, bedpeFile, ARGS.l)
 
     vcfFile = "%s/variants.%s.vcf" % (WORKSPACE, midfix)
     writeVCFFromBedpe(bedpeFile, vcfFile)
@@ -250,7 +264,7 @@ def processFragments():
                              ARGS.d, ARGS.i, ARGS.c, PE_ALMT_COMB_THRESH, 
                              CALC_THRESH, NMATCH_PCT_THRESH,
                              NMATCH_RELATIVE_THRESH, AS_RELATIVE_THRESH, 
-                             MAP_THRESH)
+                             MAP_THRESH, ARGS.u)
 
     # sort the allDiscordants.us.txt file -> allDiscordants.txt
     logging.info('Started sorting the discordants')
@@ -404,7 +418,9 @@ if __name__ == '__main__':
     PARSER.add_argument('-w', default="svxplorer", help='use dir as workspace')
     PARSER.add_argument('-s', default=100, dest='minVarSize', type=int, help='minimum size in bps of variants called')
     PARSER.add_argument('-z', default=3, dest='minClusterSize', type=int, help='minimum fragment support required for discordant clusters -- smaller size may increase run time')
-    PARSER.add_argument('-q', default=-1, dest='mapQual', type=int, help='minimum mapping quality required ofat least NSupportThreshold reads for every variant')
+    PARSER.add_argument('-q', default=-1, dest='mapQual', type=int, help='minimum mapping quality required of at least NSupportThreshold reads for every variant')
+    PARSER.add_argument('-l', action='store_true', help='liberal inversion calls: call even if only evidence for one end of inversion seen')
+    PARSER.add_argument('-u', action='store_true', help='liberal duplication calls: use user-defined mapping quality instead of 20')
 
     PARSER.add_argument('disc', help='bam file of discordant pairs')
     PARSER.add_argument('split', help='bam file of split reads')
@@ -440,9 +456,6 @@ if __name__ == '__main__':
     SR_THRESH_MIN=3
     SR_THRESH_MAX=6
     RD_FRAG_INDEX=100000000
-
-    # writeBEDs
-    LIB_INV=False
 
     # addSplitReads
     SLOP_SR=16

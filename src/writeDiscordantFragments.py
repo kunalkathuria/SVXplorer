@@ -231,7 +231,7 @@ def findTotalNMatches(al):
 
 def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                    nMatchPct_thresh, nMatch_relative_thresh, as_relative_thresh,
-                   map_thresh, permutation_thresh, ignoreBED, ignoreTIDList, ignoreTIDAll, rdl):
+                   map_thresh, permutation_thresh, ignoreBED, ignoreTIDList, ignoreTIDAll, rdl, libDup):
     """ Analyze all discordant alignment pairs, filter them and write to file those that pass in alignedFragment() format
     Inputs:
         aln1s: list of left alignments with same query name
@@ -439,12 +439,12 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                 continue
 
             # RF alignments should be higher mapping quality and sufficiently apart to be reliable
-            if newAlmt.cType == "10" and \
+            if (not libDup) and newAlmt.cType == "10" and \
                 (newAlmt.mapQual < MAP_THRESH_DUP or \
                 newAlmt.rBound - newAlmt.lBound < RF_RDL_FACTOR*rdl):
                 continue
             
-            if newAlmt.cType == "01" and newAlmt.lBound > newAlmt.rBound:
+            if (not libDup) and newAlmt.cType == "01" and newAlmt.lBound > newAlmt.rBound:
                 continue
 
             # check discordancy even though discordant flag set by aligner
@@ -504,7 +504,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
                              ignoreBED, ignoreChr, permutation_thresh,
                              calc_thresh, nMatchPct_thresh,
                              nMatch_relative_thresh, as_relative_thresh,
-                             map_thresh):
+                             map_thresh, libDup):
     ignoreTIDs = set()
     ignoreTIDAll = set()
     chrHash = {}
@@ -550,7 +550,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
             dList1, dList2 = formDiscordant(aln1s, aln2s, disc_thresh,
                     disc_thresh_neg, mean_IL, chrHash, nMatchPct_thresh,
                     nMatch_relative_thresh, as_relative_thresh, map_thresh,
-                    permutation_thresh, ignoreBED, ignoreTIDs, ignoreTIDAll, rdl)
+                    permutation_thresh, ignoreBED, ignoreTIDs, ignoreTIDAll, rdl, libDup)
             for item in dList1:
                 print >> almtFile, "%s\t%s" %(currentFrag, item)
             for item in dList2:
@@ -606,6 +606,6 @@ if __name__ == "__main__":
                              ARGS.calc_thresh, ARGS.nMatchPct_thresh,
                              ARGS.nMatch_relative_thresh,
                              ARGS.as_relative_thresh,
-                             ARGS.map_thresh)
+                             ARGS.map_thresh, False)
 
     logging.shutdown()
