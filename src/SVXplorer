@@ -89,7 +89,7 @@ def printVCFHeader(f):
 ##INFO=<ID=PROBTYPE, Number=1, Type=String, Description=\"Likely or possible SV Type for BND event\"> 
 ##INFO=<ID=ISINV, Number=1, Type=Flag, Description=\"Whether on inverted or positive strand\">
 ##INFO=<ID=CHR2, Number=1, Type=Integer, Description=\"For BNDs the reference ID of the 'END' breakpoint if different from that of start 'POS'\">
-##INFO=<ID=GROUPID, Number=1, Type=String, Description=\"GROUPID correlating 2 translocation or non-tandem-duplication events\">
+##INFO=<ID=GROUPID, Number=1, Type=String, Description=\"ID tag correlating events arising from a single complex event, e.g. translocation, copy-paste insertion etc; also used for adjacencies of BND events\">
 ##INFO=<ID=SVLEN,Number=.,Type=Integer,Description="Difference in length between REF and ALT alleles">
 ##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">
 ##INFO=<ID=PRECISE,Number=0,Type=Flag,Description="Precise structural variation">
@@ -156,11 +156,9 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 covRejInfo= ";CINFO:" + str(covInfo)
 
             if name == "BND":
-                GROUPID = ""
+                GROUPID = "GROUPID=" + tokens[24] + ";"
                 if CM.startswith("INS_C"):
                     CM = "Translocation"
-                    if tokens[24][0] == "T":
-                        GROUPID = "GROUPID=" + tokens[24] + ";"
                 elif CM.startswith("INS") or CM.startswith("TD"):
                     CM = "Duplication"
                 elif CM.startswith("INV"):
@@ -191,6 +189,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 svlen = str(abs(end - pos))
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, pos, counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + str(end) + ";SVLEN=" + svlen + ";CIPOS=-" + str(int(cipos)/2.0) +"," + str(int(cipos)/2.0) + ";CIEND=-" + str(int(ciend)/2.0) +"," + str(int(ciend)/2.0) + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name in ["INS","INS_I","INS_C_P","INS_C_I_P"]:
+                GROUPID= "GROUPID=" + tokens[24] + ";"
                 if name in ["INS","INS_I"]:
                     field1 = "DUP"
                     svlen = str(abs(int(chr1End)-int(chr1Start)))
@@ -206,11 +205,11 @@ def writeVCFFromBedpe(inputFile, outputFile):
                  
                 BNDAlt1, BNDAlt2 = "N[" + chr1 + ":" + chr1Start + "[", "]" + tokens[3] + ":" + chr2Start + "]N"
                 BNDAlt3, BNDAlt4 = "]" + tokens[3] + ":" + chr2Start + "]N", "N[" + chr1 + ":" + chr1End + "["
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;GROUPID=" + str(counter) + ";" + isinv + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", BNDAlt1,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 2) + ";" + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", BNDAlt2, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 1) + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", BNDAlt3, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 4) + ";" + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 4,"N", BNDAlt4, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";GROUPID=" + str(counter) + ";MATEID=" + str(counter + 3) + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;" + GROUPID + isinv + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", BNDAlt1,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";" + GROUPID + "MATEID=" + str(counter + 2) + ";" + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", BNDAlt2, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";" + GROUPID + "MATEID=" + str(counter + 1) + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", BNDAlt3, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";" + GROUPID + "MATEID=" + str(counter + 4) + ";" + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 4,"N", BNDAlt4, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";" + GROUPID + "MATEID=" + str(counter + 3) + isinv + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
                 counter+= 4
             else:
                 print>>stderr, "Unrecognized SV type"
