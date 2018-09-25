@@ -264,7 +264,7 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
             if al1.is_unmapped and al2.is_unmapped:
                 return dList1, dList2
             # if primary alignment and below mapping quality threshold, return nothing
-            if (al1.mapping_quality < map_thresh or al2.mapping_quality < map_thresh) and counterLoop == 1:
+            if (al1.mapping_quality < map_thresh and al2.mapping_quality < map_thresh) and counterLoop == 1:
                 return dList1, dList2
             # if too many mappings of one fragment, return nothing
             if counterLoop > permutation_thresh:
@@ -288,23 +288,44 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                al2_reference_start == None and al2_reference_end == None:
                 return dList1, dList2
 
-            if al1_reference_name in ignoreTIDList or al2_reference_name in ignoreTIDList:
+            nf1, nf2 = False,False
+            if al1_reference_name in ignoreTIDList and al2_reference_name in ignoreTIDList:
                 logging.debug("Ignoring almt combination %s and %s", al1_reference_name, al2_reference_name)
                 continue
+            elif al1_reference_name in ignoreTIDList:
+                nf1 = True
+            elif al2_reference_name in ignoreTIDList:
+                nf2 = True
 
-            skip = 0
+            #$WARNING: do not use if desire to label one read as unmapped if in ignore list
             for chrI in ignoreTIDAll:
-                if al1_reference_name.startswith(chrI) or al2_reference_name.startswith(chrI):
+                if al1_reference_name.startswith(chrI):
+                    nf1 = True
+                if al2_reference_name.startswith(chrI):
+                    nf2 = True
+
+                if nf1 and nf2:
                     skip = 1
                     break
             if skip:
                 logging.debug("Ignoring almt combination %s and %s as occurs as * entry in ignoreTIDs", al1, al2)
                 continue
 
-            if ignoreBED is not None and ignoreRead(al1_reference_name, al1_reference_start, al2_reference_name, al2_reference_start, chrHash):
+            if ignoreBED is not None:
+                if ignoreRead(al1_reference_name, al1_reference_start, al1_reference_name, al1_reference_start, chrHash):
+                    nf1 = True
+                if ignoreRead(al2_reference_name, al2_reference_start, al2_reference_name, al2_reference_start, chrHash):
+                    nf2 = True
+            if nf1 and nf2:        
                 if counterLoop == 1:
                     return dList1, dList2
                 continue
+            elif nf1:
+                al1_is_unmapped = True
+                al1_score = -1
+            elif nf2:
+                al2_is_unmapped = True
+                al2_score = -1
 
             if nMatchPct_thresh != 0 or nMatch_relative_thresh != 0:
                 al1_nMatches, al1_nMatchRatio = findTotalNMatches(al1)

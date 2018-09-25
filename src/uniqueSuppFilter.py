@@ -27,8 +27,12 @@ def formMQSet(mapThresh, mqSet, allDiscordantsFile):
     f.close()
 
 def calculateSVThresh(SVType, SVSupp, complex_thresh, sr_thresh, pe_thresh, 
-                      mix_thresh):
-    if SVType == "INV" or SVType.startswith("INS"):
+                      mix_thresh, NPEClusters, pe_min):
+    #pe-based unknown events listed here; last INV will be listed as BND unless SR-supported as INV_B (thus supp will be > 3)
+    if SVType == "Unknown" or SVType.startswith("INS_half") or SVType == "BND" or \
+        SVType == "DN_INS" or (SVType == "INV" and NPEClusters == 1):
+        disjThresh = pe_min
+    elif SVType == "INV" or SVType.startswith("INS"):
         disjThresh = complex_thresh
     elif SVSupp.find("PE") == -1 and SVSupp.find("SR") != -1:
         disjThresh = sr_thresh
@@ -41,7 +45,7 @@ def calculateSVThresh(SVType, SVSupp, complex_thresh, sr_thresh, pe_thresh,
 def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
                      mapThresh,variantMapFile, allVariantFile, 
                      rdFragIndex, workDir, complex_thresh, 
-                     sr_thresh, pe_thresh, mix_thresh):
+                     sr_thresh, pe_thresh, mix_thresh, pe_min):
 
     nSVs = 0
     disjointness = [0]*nInputVariants
@@ -65,8 +69,9 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
         for line in fAV:
             SVType = line.split()[1]
             SVSupp = line.split()[11]
+            NPEClusters = int(line.split()[12])
             disjThresh = calculateSVThresh(SVType, SVSupp, complex_thresh, 
-                                           sr_thresh, pe_thresh, mix_thresh)
+                                           sr_thresh, pe_thresh, mix_thresh, NPEClusters, pe_min)
             break
 
         for elem in currentSet:
@@ -75,6 +80,7 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
                 if nFragOccrns[elem] == 1:
                     disjointness[counter]+=1
                 pickV[counter] = 2
+                #$why didn't break here and avoid next fAV loop?
             #if SR, no secondaries so is above MQ_THRESH automatically
             elif nFragOccrns[elem] == 1 and (elem in mqSet or elem < 0):
                 disjointness[counter]+=1
@@ -88,7 +94,7 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
             SVType = line.split()[1]
             SVSupp = line.split()[11]
             disjThresh = calculateSVThresh(SVType, SVSupp, complex_thresh,
-                                           sr_thresh, pe_thresh, mix_thresh)
+                                           sr_thresh, pe_thresh, mix_thresh, NPEClusters, pe_min)
             break
 
         if (item >= disjThresh) or (item >= 1 and pickV[g] == 2):

@@ -419,8 +419,7 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
 
             ## skip SV if size thresholds not met
             if svtype.startswith("TD") or svtype.startswith("INV") or svtype.startswith("DEL") or\
-                (svtype.startswith("INS_half") and lineAV_split[2] == lineAV_split[5]) or\
-                svtype == "DN_INS":
+                (svtype.startswith("INS_half") and lineAV_split[2] == lineAV_split[5]):
                 if int(lineAV_split[7])-int(lineAV_split[3]) < UNIV_VAR_THRESH:
                     continue
 
