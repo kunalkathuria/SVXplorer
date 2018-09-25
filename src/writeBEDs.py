@@ -57,7 +57,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 covInfo = tokens[19]
 
             if svtype == "DN_INS":
-                output = tokens[2:8]
+                output = [chrom1, start1, end1, chrom1, start1, end1]
                 name = "DN_INS"
             if svtype == "DEL":
                 output = tokens[2:8]

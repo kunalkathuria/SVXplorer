@@ -27,8 +27,8 @@ class cluster(object):
         self.r_bound=None
         self.count=1
         self.cType=None #orientation, e.g. "01" represents "FR" etc.
-        self.lTID = -1
-        self.rTID = -1
+        self.lTID = None
+        self.rTID = None
         self.l_min = -1
         self.lmax = -1
         self.r_min = -1
@@ -107,9 +107,12 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
     # multiply to weight component 2 to get final weight
     # FR or RF clusters from TDs need not have overlapping almts: see crossover TD figure in manuscript methods
     if ildist in IL_BinDistHash and distPen > 0 and \
-        (c_type == "10" or (c_type == "01" and isSmall == 1)) or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
+        (c_type == "10" or c_type[1] == "2" or (c_type == "01" and isSmall == 1)) or \
+        (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
         weight = distPen*IL_BinDistHash[abs(ildist)]/(1.0*IL_BinTotalEntries)
-    elif ildist_L in IL_BinDistHash and distPen > 0 and (c_type == "10" or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
+    elif ildist_L in IL_BinDistHash and distPen > 0 and \
+        ((c_type == "10" or c_type[1] == "2" or (c_type == "01" and isSmall == 1)) or \
+        (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
         weight = distPen*IL_BinDistHash[abs(ildist_L)]/(1.0*IL_BinTotalEntries)
     else:
         weight = 0

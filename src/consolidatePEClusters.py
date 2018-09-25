@@ -238,7 +238,7 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
 
         # determine which sides of clusters overlap
         logging.debug('Determining signature of 2-cluster overlap: left with left (LL) etc.')
-        LLOverlap, LLOverlap2, LROverlap, RLOverlap, RROverlap = 0, 0, 0, 0, 0
+        LLOverlap, LLOverlap2, LROverlap, RLOverlap, RROverlap, LLOverlap3, RLOverlap2, LROverlap2 = 0,0,0,0,0,0,0,0
 
         if cluster1.rTID != "None" and clusterP.rTID != "None":
             if cluster1.lTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "LL", slop):
@@ -252,7 +252,21 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
         elif cluster1.rTID == "None" and clusterP.rTID == "None" and \
             cluster1.lTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "LL", slop):
             LLOverlap2 = 1
-        if not LLOverlap and not LROverlap and not RLOverlap and not RROverlap and not LLOverlap2:
+        elif cluster1.rTID == "None" and clusterP.rTID != "None" and clusterP.isSmall and \
+            cluster1.lTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "LL", slop):
+            LLOverlap3 = 1
+        elif cluster1.rTID == "None" and clusterP.rTID != "None" and clusterP.isSmall and\
+            cluster1.lTID == clusterP.rTID and isOverlapping("C", cluster1, clusterP, "LR", slop):
+            LROverlap2 = 1
+        elif cluster1.rTID != "None" and clusterP.rTID == "None" and cluster1.isSmall and \
+            cluster1.lTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "LL", slop):
+            LLOverlap3 = 1
+        elif cluster1.rTID != "None" and clusterP.rTID == "None" and cluster1.isSmall and \
+            cluster1.rTID == clusterP.lTID and isOverlapping("C", cluster1, clusterP, "RL", slop):
+            RLOverlap2 = 1
+
+        if not LLOverlap and not LROverlap and not RLOverlap and not RROverlap and not LLOverlap2 and\
+            not RLOverlap2 and not LROverlap2 and not LLOverlap3:
             logging.debug('Continue as no overlap between any breakpoints')
             continue
 
@@ -261,15 +275,24 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
         newVariant = consCluster()
         newVariant.SVType = None
 
-        if cluster1.r_orient == 2 and clusterP.r_orient == 2 and LLOverlap2 \
-            and cluster1.l_orient != clusterP.l_orient:
+        if (LLOverlap2 and cluster1.l_orient != clusterP.l_orient) or LLOverlap3:
             logging.debug('Tagged as De Novo INS')
-
             newVariant.SVType = "DN_INS"
             newSVFlag=1
             newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LL")
             newVariant.bp1TID = cluster1.lTID
-
+        elif LROverlap2:
+            logging.debug('Tagged as De Novo INS')
+            newVariant.SVType = "DN_INS"
+            newSVFlag=1
+            newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
+            newVariant.bp1TID = cluster1.lTID
+        elif RLOverlap2:
+            logging.debug('Tagged as De Novo INS')
+            newVariant.SVType = "DN_INS"
+            newSVFlag=1
+            newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
+            newVariant.bp1TID = clusterP.lTID
         elif LLOverlap and RROverlap and cluster1.l_orient != clusterP.l_orient and \
             cluster1.r_orient != clusterP.r_orient and cluster1.r_orient == cluster1.l_orient \
             and cluster1.lTID == cluster1.rTID:
@@ -655,7 +678,13 @@ def compareVariant(cluster1, varList, claimedCls, slop, as_relative_thresh,
             for clusterDCNum in elem.clusterNums:
                 dontCompareSet.add((cl1, clusterDCNum))
         # check for this cluster's signature and location match with existing variants
-        if elem.SVType == "TD_I":
+        if elem.SVType == "DN_INS" and (cluster1.isSmall and cluster1.lTID == elem.bp1TID and \
+            (isOverlapping("V", cluster1, elem, "L1", slop) or isOverlapping("V", cluster1, elem, "R1", slop)) or \
+            (cluster1.r_orient == 2 and cluster1.lTID == elem.bp1TID and isOverlapping("V", cluster1, elem, "L1", slop))):
+            elem.count+=1
+            match = 1
+            anyMatch = 1
+        elif elem.SVType == "TD_I":
             logging.debug('Check conditions for match: cluster against variant for TD_I')
             # small-medium TD's: second small cluster overlap on other side possible with TD's
             # but not with insertions.
@@ -915,9 +944,7 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
     fClusters.seek(0)
 
     for lineC in fClusters:
-        # Both files are same size so will reach end at same time
         cluster = clusterI(lineC)
-        # refresh and match clusters to variants in complex variant buffer
         dontCompareClSet = None
         if len(consolidatedCls) > 0:
             dontCompareClSet = set()
@@ -928,12 +955,13 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
                 if varNum not in comparedSet and variantM[3] == cluster.lTID:
                     variants_M.append(consolidatedCls[varNum])
                     comparedSet.add(varNum)
-            for variantM in list(interVariant.find((cluster.r_start, cluster.r_end))):
-                varNum = variantM[2]
-                if varNum not in comparedSet and variantM[3] == cluster.rTID:
-                    variants_M.append(consolidatedCls[varNum])
-                    comparedSet.add(varNum)
-            # may need both L,R cluster comparisons since variant buffer is small
+            #except de novo INS candidates        
+            if cluster.r_start != -1:
+                for variantM in list(interVariant.find((cluster.r_start, cluster.r_end))):
+                    varNum = variantM[2]
+                    if varNum not in comparedSet and variantM[3] == cluster.rTID:
+                        variants_M.append(consolidatedCls[varNum])
+                        comparedSet.add(varNum)
             compareVariant(cluster, variants_M, claimedCls, slop, as_relative_thresh,
                            consolidatedCls, dontCompareClSet)
         
@@ -944,12 +972,14 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
             if mapNum not in comparedSet and clusterM[3] == cluster.lTID:
                 clusters_M.append(clusterHash[mapNum])
                 comparedSet.add(mapNum)
-        for clusterM in list(interCluster.find((cluster.r_start, cluster.r_end))):
-            mapNum = clusterM[2]
-            if mapNum not in comparedSet and clusterM[3] == cluster.rTID:
-                clusters_M.append(clusterHash[mapNum])
+        if cluster.r_start != -1:        
+            for clusterM in list(interCluster.find((cluster.r_start, cluster.r_end))):
+                mapNum = clusterM[2]
+                if mapNum not in comparedSet and clusterM[3] == cluster.rTID:
+                    clusters_M.append(clusterHash[mapNum])
         interCluster.add((cluster.l_start, cluster.l_end, cluster.mapNum, cluster.lTID))
-        interCluster.add((cluster.r_start, cluster.r_end, cluster.mapNum, cluster.rTID))
+        if cluster.r_start != -1:
+            interCluster.add((cluster.r_start, cluster.r_end, cluster.mapNum, cluster.rTID))
 
         compareCluster(cluster, clusters_M, claimedCls, consolidatedCls, 
                       slop, RDL_Factor, RDL, as_relative_thresh, interVariant, dontCompareClSet)
@@ -992,10 +1022,7 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
             newSimpleSV.count = 1
             newSimpleSV.clusterNums.append(clusterC.mapNum)
             # In case did not match with other half cluster for DN_INS (de novo INS)
-            if clusterC.r_orient == 2 or \
-                (clusterC.lTID == clusterC.rTID and \
-                clusterC.isSmall == 1 and \
-                clusterC.l_start < clusterC.r_end):
+            if clusterC.r_orient == 2:
                 newSimpleSV.SVType = "DN_INS"
                 newSimpleSV.bp2_start = newSimpleSV.bp1_start
                 newSimpleSV.bp2_end = newSimpleSV.bp1_end
