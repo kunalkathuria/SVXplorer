@@ -299,9 +299,9 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
             
             skip = 0
             for chrI in ignoreTIDAll:
-                if al1_reference_name.startswith(chrI):
+                if al1_reference_name is not None and al1_reference_name.startswith(chrI):
                     nf1 = True
-                if al2_reference_name.startswith(chrI):
+                if al1_reference_name is not None and al2_reference_name.startswith(chrI):
                     nf2 = True
 
                 if nf1 and nf2:
