@@ -992,7 +992,10 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
             newSimpleSV.count = 1
             newSimpleSV.clusterNums.append(clusterC.mapNum)
             # In case did not match with other half cluster for DN_INS (de novo INS)
-            if clusterC.r_orient == 2:
+            if clusterC.r_orient == 2 or \
+                (clusterC.lTID == clusterC.rTID and \
+                clusterC.isSmall == 1 and \
+                clusterC.l_start < clusterC.r_end):
                 newSimpleSV.SVType = "DN_INS"
                 newSimpleSV.bp2_start = newSimpleSV.bp1_start
                 newSimpleSV.bp2_end = newSimpleSV.bp1_end
@@ -1005,19 +1008,18 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
             elif clusterC.l_orient == clusterC.r_orient and clusterC.lTID == clusterC.rTID:
                 newSimpleSV.SVType = "INV"
                 newSimpleSV.orient = str(clusterC.l_orient) + str(clusterC.r_orient)
+            #crossover TD cluster
+            elif clusterC.l_orient == 0 and clusterC.r_orient ==1 and \
+                clusterC.lTID == clusterC.rTID and \
+                clusterC.l_start > clusterC.r_end and \
+                clusterC.isSmall == 1:
+                newSimpleSV.SVType = "TD"
+                TDArtefacts.append(newSimpleSV)
             elif clusterC.l_orient == 0 and clusterC.r_orient ==1 and \
                 clusterC.l_start < clusterC.r_end and \
                 clusterC.lTID == clusterC.rTID and \
                 clusterC.isSmall != 1:
                 newSimpleSV.SVType = "DEL"
-            # artefact FR TD cluster
-            elif clusterC.l_start < clusterC.r_end and \
-                clusterC.l_orient == 0 and \
-                clusterC.r_orient == 1 and clusterC.lTID == clusterC.rTID and \
-                clusterC.isSmall == 1:
-                store=0
-                newSimpleSV.SVType = "TD"
-                TDArtefacts.append(newSimpleSV)
             elif clusterC.lTID != clusterC.rTID and clusterC.l_orient == 0 and \
                 clusterC.r_orient == 1:
                 newSimpleSV.SVType = "INS_halfFR"
@@ -1038,6 +1040,7 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
     logging.debug('Finished recording unclaimed clusters')
 
     # Unnec now it seems: $$$ Denovo insertions should not called unless there is SR support
+    #check if TD already stored via cluster of different signature
     for elem in TDArtefacts:
         storeTD = 1
         for TD in TDStore:
@@ -1048,7 +1051,6 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
                 break
         # store as de novo INS if was not due to existing TD    
         if storeTD:
-            elem.SVType = "DN_INS"
             consolidatedCls[varNum] = elem
             varNum+=1
 

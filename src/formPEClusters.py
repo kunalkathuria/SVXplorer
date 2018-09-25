@@ -78,7 +78,7 @@ def calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty):
         distPen = 1
     return distPen
 
-def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_type, dist_penalty, dist_end, rdl, IL_BinDistHash, mean_IL):
+def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_type, dist_penalty, dist_end, rdl, IL_BinDistHash, mean_IL, isSmall):
     # first handle one-mapped-read cases
     if f1_rPos == -1 and f2_rPos == -1:
         # calculate weight component 1
@@ -105,8 +105,9 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
     distPen = calcDistPen(f1_lPos, f2_lPos, rdl, dist_end, mean_IL, dist_penalty)
 
     # multiply to weight component 2 to get final weight
-    # RF clusters from TDs need not have overlapping almts
-    if ildist in IL_BinDistHash and distPen > 0 and (c_type == "10" or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
+    # FR or RF clusters from TDs need not have overlapping almts: see crossover TD figure in manuscript methods
+    if ildist in IL_BinDistHash and distPen > 0 and \
+        (c_type == "10" or (c_type == "01" and isSmall == 1)) or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
         weight = distPen*IL_BinDistHash[abs(ildist)]/(1.0*IL_BinTotalEntries)
     elif ildist_L in IL_BinDistHash and distPen > 0 and (c_type == "10" or (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
         weight = distPen*IL_BinDistHash[abs(ildist_L)]/(1.0*IL_BinTotalEntries)
@@ -349,7 +350,7 @@ def processNewFrag(fragList, almt, IL_BinTotalEntries, fragmentGraph,
             f1_rPos = storedAlmt.r_bound
             f2_lPos = almt.l_bound
             f2_rPos = almt.r_bound
-            edge_weight = calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, almt.cType, dist_penalty, dist_end, rdl, IL_BinDistHash, mean_IL)
+            edge_weight = calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, almt.cType, dist_penalty, dist_end, rdl, IL_BinDistHash, mean_IL, almt.clSmall)
             if edge_weight > 0: logging.debug("Edge weight is: %f", edge_weight)
 
             # only add node if calculation threshold to get edge_weight_thresh
