@@ -296,8 +296,8 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                 nf1 = True
             elif al2_reference_name in ignoreTIDList:
                 nf2 = True
-
-            #$WARNING: do not use if desire to label one read as unmapped if in ignore list
+            
+            skip = 0
             for chrI in ignoreTIDAll:
                 if al1_reference_name.startswith(chrI):
                     nf1 = True
