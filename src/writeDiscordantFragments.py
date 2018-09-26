@@ -20,6 +20,9 @@ DISC_PERC = .9985
 DISC_PERC_NEG = .0001
 # min almt score required to use concordant almt in calculating BAM statistics
 AS_CALC_THRESH = .999
+# min almt score required to use single mappings from PE reads for de novo INS calls
+UNMAPPED_THRESH = .98
+# facilitator
 BIG_NUM = 100000
 # %ile of (concordant) IL dist. where the IL value is considered too large
 PENALTY_PERC = .999995
@@ -316,6 +319,7 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                     nf1 = True
                 if ignoreRead(al2_reference_name, al2_reference_start, al2_reference_name, al2_reference_start, chrHash):
                     nf2 = True
+          
             if nf1 and nf2:        
                 if counterLoop == 1:
                     return dList1, dList2
@@ -326,6 +330,11 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
             elif nf2:
                 al2_is_unmapped = True
                 al2_score = -1
+
+            if al2_is_unmapped and al1_score < UNMAPPED_THRESH*al1_infer_query_length:
+                continue
+            if al1_is_unmapped and al2_score < UNMAPPED_THRESH*al2_infer_query_length:
+                continue
 
             if nMatchPct_thresh != 0 or nMatch_relative_thresh != 0:
                 al1_nMatches, al1_nMatchRatio = findTotalNMatches(al1)

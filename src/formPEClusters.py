@@ -107,11 +107,11 @@ def calcEdgeWeight(f1_lPos, f1_rPos, f2_lPos, f2_rPos, IL_BinTotalEntries, c_typ
     # multiply to weight component 2 to get final weight
     # FR or RF clusters from TDs need not have overlapping almts: see crossover TD figure in manuscript methods
     if ildist in IL_BinDistHash and distPen > 0 and \
-        (c_type == "10" or c_type[1] == "2" or (c_type == "01" and isSmall == 1)) or \
+        (c_type == "10" or c_type[1] == "2" or (c_type == "01" and isSmall == 1) or \
         (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
         weight = distPen*IL_BinDistHash[abs(ildist)]/(1.0*IL_BinTotalEntries)
     elif ildist_L in IL_BinDistHash and distPen > 0 and \
-        ((c_type == "10" or c_type[1] == "2" or (c_type == "01" and isSmall == 1)) or \
+        (c_type == "10" or c_type[1] == "2" or (c_type == "01" and isSmall == 1) or \
         (f1_lPos < f2_rPos and f2_lPos < f1_rPos)):
         weight = distPen*IL_BinDistHash[abs(ildist_L)]/(1.0*IL_BinTotalEntries)
     else:

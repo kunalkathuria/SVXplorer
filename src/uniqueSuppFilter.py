@@ -163,7 +163,7 @@ def uniqueSuppFilter(workDir, statFile, variantMapFile, allVariantFile,
     nSVs = uniquenessFilter(allFrags, nInputVariants, mqSet, allDiscordantsFile, 
                             map_thresh, variantMapFile, allVariantFile,
                             rdFragIndex, workDir, complex_thresh, 
-                            sr_thresh, pe_thresh, mix_thresh)
+                            sr_thresh, pe_thresh, mix_thresh, pe_low)
     fNSVs= open(workDir+"/NSVs.txt","w")
     fNSVs.write("%s\n" %nSVs)
     fNSVs.close()
