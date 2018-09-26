@@ -1039,13 +1039,13 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
             elif clusterC.l_orient == 0 and clusterC.r_orient ==1 and \
                 clusterC.lTID == clusterC.rTID and \
                 clusterC.l_start > clusterC.r_end and \
-                clusterC.isSmall == 1:
+                clusterC.isSmall:
                 newSimpleSV.SVType = "TD"
                 TDArtefacts.append(newSimpleSV)
             elif clusterC.l_orient == 0 and clusterC.r_orient ==1 and \
                 clusterC.l_start < clusterC.r_end and \
                 clusterC.lTID == clusterC.rTID and \
-                clusterC.isSmall != 1:
+                not clusterC.isSmall:
                 newSimpleSV.SVType = "DEL"
             elif clusterC.lTID != clusterC.rTID and clusterC.l_orient == 0 and \
                 clusterC.r_orient == 1:
