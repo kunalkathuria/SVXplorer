@@ -267,7 +267,7 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
             if al1.is_unmapped and al2.is_unmapped:
                 return dList1, dList2
             # if primary alignment and below mapping quality threshold, return nothing
-            if (al1.mapping_quality < map_thresh and al2.mapping_quality < map_thresh) and counterLoop == 1:
+            if (al1.mapping_quality < map_thresh or al2.mapping_quality < map_thresh) and counterLoop == 1:
                 return dList1, dList2
             # if too many mappings of one fragment, return nothing
             if counterLoop > permutation_thresh:
