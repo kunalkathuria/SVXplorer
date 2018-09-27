@@ -327,7 +327,7 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
 
         elif RLOverlap and RROverlap and not LLOverlap and not LROverlap and \
             clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
-
+            logging.debug("RL Overlap")
             if cluster1.l_orient != cluster1.r_orient:
                 if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
                     or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
@@ -344,7 +344,7 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
 
         elif LLOverlap and RLOverlap and not LROverlap and not RROverlap and \
             cluster1.isSmall and not clusterP.isSmall and clusterP.l_orient != clusterP.r_orient:
-
+            logging.debug("LL Overlap 1")
             if clusterP.l_orient != clusterP.r_orient:
                 if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
                     or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
@@ -361,7 +361,7 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
 
         elif LLOverlap and LROverlap and not RLOverlap and not RROverlap and \
             clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
-
+            logging.debug("LL Overlap 2")
             if cluster1.l_orient != cluster1.r_orient:
                 if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
                    or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
