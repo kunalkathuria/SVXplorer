@@ -316,31 +316,31 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
                 else:
                     # TD or INS
                     newVariant.SVType = "TD_I"
-            newSVFlag=1
-            # only bp_1 numbering is crucial
-            # not nec--can make more precise by evaluating which of 3 bp pairs yields least bp width
-            newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
-            newVariant.bp2_start, newVariant.bp2_end = clusterP.l_start, clusterP.l_end
-            newVariant.bp1_hasAlmtF = not clusterP.r_orient
-            newVariant.bp1_hasAlmtR = clusterP.r_orient
-            newVariant.bp1TID, newVariant.bp2TID = cluster1.lTID, clusterP.lTID
+                newSVFlag=1
+                # only bp_1 numbering is crucial
+                # not nec--can make more precise by evaluating which of 3 bp pairs yields least bp width
+                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
+                newVariant.bp2_start, newVariant.bp2_end = clusterP.l_start, clusterP.l_end
+                newVariant.bp1_hasAlmtF = not clusterP.r_orient
+                newVariant.bp1_hasAlmtR = clusterP.r_orient
+                newVariant.bp1TID, newVariant.bp2TID = cluster1.lTID, clusterP.lTID
 
         elif RLOverlap and RROverlap and not LLOverlap and not LROverlap and \
             clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
             logging.debug("RL Overlap")
             if cluster1.l_orient != cluster1.r_orient:
                 if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
-                    or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                    or (cluster1.l_orient == 0 and cluster1.r_orient == 1):
                     newVariant.SVType = "INS"
                 else:
                     newVariant.SVType = "TD_I"
-            newSVFlag=1
-            newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
-            newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
-            newVariant.bp1_hasAlmtF = not cluster1.r_orient
-            newVariant.bp1_hasAlmtR = cluster1.r_orient
-            newVariant.bp1TID = cluster1.rTID
-            newVariant.bp2TID = cluster1.lTID
+                newSVFlag=1
+                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
+                newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
+                newVariant.bp1_hasAlmtF = not cluster1.r_orient
+                newVariant.bp1_hasAlmtR = cluster1.r_orient
+                newVariant.bp1TID = cluster1.rTID
+                newVariant.bp2TID = cluster1.lTID
 
         elif LLOverlap and RLOverlap and not LROverlap and not RROverlap and \
             cluster1.isSmall and not clusterP.isSmall and clusterP.l_orient != clusterP.r_orient:
@@ -351,30 +351,30 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
                     newVariant.SVType = "INS"
                 else:
                     newVariant.SVType = "TD_I"
-            newSVFlag=1
-            newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
-            newVariant.bp2_start, newVariant.bp2_end = clusterP.r_start, clusterP.r_end
-            newVariant.bp1_hasAlmtF = not clusterP.l_orient
-            newVariant.bp1_hasAlmtR = clusterP.l_orient
-            newVariant.bp1TID = cluster1.lTID
-            newVariant.bp2TID = clusterP.rTID
+                newSVFlag=1
+                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
+                newVariant.bp2_start, newVariant.bp2_end = clusterP.r_start, clusterP.r_end
+                newVariant.bp1_hasAlmtF = not clusterP.l_orient
+                newVariant.bp1_hasAlmtR = clusterP.l_orient
+                newVariant.bp1TID = cluster1.lTID
+                newVariant.bp2TID = clusterP.rTID
 
         elif LLOverlap and LROverlap and not RLOverlap and not RROverlap and \
             clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
             logging.debug("LL Overlap 2")
             if cluster1.l_orient != cluster1.r_orient:
                 if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
-                   or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                   or (cluster1.l_orient == 0 and cluster1.r_orient == 1):
                     newVariant.SVType = "INS"
                 else:
                     newVariant.SVType = "TD_I"
-            newSVFlag=1
-            newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
-            newVariant.bp2_start, newVariant.bp2_end = cluster1.r_start, cluster1.r_end
-            newVariant.bp1_hasAlmtF = not cluster1.l_orient
-            newVariant.bp1_hasAlmtR = cluster1.l_orient
-            newVariant.bp1TID = cluster1.lTID
-            newVariant.bp2TID = cluster1.rTID
+                newSVFlag=1
+                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
+                newVariant.bp2_start, newVariant.bp2_end = cluster1.r_start, cluster1.r_end
+                newVariant.bp1_hasAlmtF = not cluster1.l_orient
+                newVariant.bp1_hasAlmtR = cluster1.l_orient
+                newVariant.bp1TID = cluster1.lTID
+                newVariant.bp2TID = cluster1.rTID
 
         # Large insertions
         elif LLOverlap and cluster1.l_orient != clusterP.l_orient and (cluster1.lTID == \
