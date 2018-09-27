@@ -164,6 +164,9 @@ def writeVCFFromBedpe(inputFile, outputFile):
                     CM = "Duplication"
                 elif CM.startswith("INV"):
                     CM = "Inversion"
+                elif CM.startswith("DN_INS"):
+                    CM = "DeNovoInsertion"
+
                 if tokens[22] != "." and tokens[23] != ".":
                     BNDAlt1, BNDAlt2 = tokens[22].replace("p", tokens[3] + ":" + chr2End),\
                     tokens[23].replace("p", chr1 + ":" + chr1Start)

@@ -78,7 +78,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 output = tokens[2:8]
                 name = 'INV'
             elif svtype in ["BND", "Unknown", "INV", "INS_POSS", "TD_I", "INV_POSS", "INS_C",
-                            "INS_C_I", "INS_halfFR", "INS_halfRF", "INS_half_I"] or \
+                            "INS_C_I", "INS_halfFR", "INS_halfRF", "INS_half_I","DN_INS_NM"] or \
                 (svtype in ["INS", "INS_I", "INS_C_P", "INS_C_I_P"] and \
                 (start3 == -1 or bnd == "1")):
                 GROUPID="G" + str(counter)

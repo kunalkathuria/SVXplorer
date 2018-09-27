@@ -206,7 +206,7 @@ def writeVariants(varHash, fpAV, fpCVM, hashedVM, offset):
                 if item.bp2TID == item.bp3TID and item.bp3_start < item.bp2_start:
                     item.bp2_start, item.bp2_end, item.bp3_start, item.bp3_end=\
                         item.bp3_start, item.bp3_end, item.bp2_start, item.bp2_end
-        elif item.SVType.find("TD") != -1:
+        elif item.SVType.startswith("TD") != -1:
             if item.bp1TID == item.bp2TID and item.bp1_start > item.bp2_start:
                 item.bp1_start, item.bp1_end, item.bp2_start, item.bp2_end=\
                     item.bp2_start, item.bp2_end, item.bp1_start, item.bp1_end
@@ -293,350 +293,353 @@ def compareCluster(cluster1, clusters, claimedCls, consolidatedCls,
             newSVFlag=1
             newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
             newVariant.bp1TID = clusterP.lTID
-        elif LLOverlap and RROverlap and cluster1.l_orient != clusterP.l_orient and \
-            cluster1.r_orient != clusterP.r_orient and cluster1.r_orient == cluster1.l_orient \
-            and cluster1.lTID == cluster1.rTID:
-            logging.debug('Tagged as INV')
-
-            newVariant.SVType = "INV"
-            newSVFlag=1
-            # bp1 is the left alignment
-            newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LL")
-            newVariant.bp2_start, newVariant.bp2_end = setBPs(cluster1, clusterP, "RR")
-            newVariant.bp1TID, newVariant.bp2TID  = cluster1.lTID, cluster1.rTID
-
-        # small insertions
-        elif LROverlap and RROverlap and not LLOverlap and not RLOverlap and cluster1.isSmall \
-            and not clusterP.isSmall and clusterP.l_orient != clusterP.r_orient:
-            logging.debug('Tagged as Small INS')
-            if clusterP.l_orient != clusterP.r_orient:
-                if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID) \
-                    or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                    newVariant.SVType = "INS"
-                else:
-                    # TD or INS
-                    newVariant.SVType = "TD_I"
-                newSVFlag=1
-                # only bp_1 numbering is crucial
-                # not nec--can make more precise by evaluating which of 3 bp pairs yields least bp width
-                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
-                newVariant.bp2_start, newVariant.bp2_end = clusterP.l_start, clusterP.l_end
-                newVariant.bp1_hasAlmtF = not clusterP.r_orient
-                newVariant.bp1_hasAlmtR = clusterP.r_orient
-                newVariant.bp1TID, newVariant.bp2TID = cluster1.lTID, clusterP.lTID
-
-        elif RLOverlap and RROverlap and not LLOverlap and not LROverlap and \
-            clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
-            logging.debug("RL Overlap")
-            if cluster1.l_orient != cluster1.r_orient:
-                if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
-                    or (cluster1.l_orient == 0 and cluster1.r_orient == 1):
-                    newVariant.SVType = "INS"
-                else:
-                    newVariant.SVType = "TD_I"
-                newSVFlag=1
-                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
-                newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
-                newVariant.bp1_hasAlmtF = not cluster1.r_orient
-                newVariant.bp1_hasAlmtR = cluster1.r_orient
-                newVariant.bp1TID = cluster1.rTID
-                newVariant.bp2TID = cluster1.lTID
-
-        elif LLOverlap and RLOverlap and not LROverlap and not RROverlap and \
-            cluster1.isSmall and not clusterP.isSmall and clusterP.l_orient != clusterP.r_orient:
-            logging.debug("LL Overlap 1")
-            if clusterP.l_orient != clusterP.r_orient:
-                if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
-                    or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                    newVariant.SVType = "INS"
-                else:
-                    newVariant.SVType = "TD_I"
-                newSVFlag=1
-                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
-                newVariant.bp2_start, newVariant.bp2_end = clusterP.r_start, clusterP.r_end
-                newVariant.bp1_hasAlmtF = not clusterP.l_orient
-                newVariant.bp1_hasAlmtR = clusterP.l_orient
-                newVariant.bp1TID = cluster1.lTID
-                newVariant.bp2TID = clusterP.rTID
-
-        elif LLOverlap and LROverlap and not RLOverlap and not RROverlap and \
-            clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
-            logging.debug("LL Overlap 2")
-            if cluster1.l_orient != cluster1.r_orient:
-                if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
-                   or (cluster1.l_orient == 0 and cluster1.r_orient == 1):
-                    newVariant.SVType = "INS"
-                else:
-                    newVariant.SVType = "TD_I"
-                newSVFlag=1
-                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
-                newVariant.bp2_start, newVariant.bp2_end = cluster1.r_start, cluster1.r_end
-                newVariant.bp1_hasAlmtF = not cluster1.l_orient
-                newVariant.bp1_hasAlmtR = cluster1.l_orient
-                newVariant.bp1TID = cluster1.lTID
-                newVariant.bp2TID = cluster1.rTID
-
-        # Large insertions
-        elif LLOverlap and cluster1.l_orient != clusterP.l_orient and (cluster1.lTID == \
-            cluster1.rTID or cluster1.lTID == clusterP.rTID or cluster1.rTID == clusterP.rTID) and \
-            clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
-            logging.debug('Large INS check 1: left with left overlap')
-
-            # if mate between the reads that overlap, then not a bona fide match
-            if cluster1.lTID == cluster1.rTID and not (clusterP.l_end < cluster1.r_end - RDL_Factor*RDL):
-                logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
-                continue
-            if clusterP.lTID == clusterP.rTID and not (cluster1.l_end < clusterP.r_end - RDL_Factor*RDL):
-                logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
-                continue
-            if cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
-                newVariant.SVType = "INS"
-                
-            if newVariant.SVType == "INS":
-                if cluster1.rTID == clusterP.rTID and cluster1.r_end < clusterP.r_start and \
-                    not (cluster1.r_orient == 1 and clusterP.r_orient == 0):
-                    logging.debug("Orientation mismatch for INS/INS_C:1")
-                    continue
-                if cluster1.rTID == clusterP.rTID and clusterP.r_end < cluster1.r_start and \
-                    not (clusterP.r_orient == 1 and cluster1.r_orient == 0):
-                    logging.debug("Orientation mismatch for INS/INS_C:2")
-                    continue
-
-                newSVFlag=1
-                # set breakpoints
-                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LL")
-                newVariant.bp2_start, newVariant.bp2_end = cluster1.r_start, cluster1.r_end
-                newVariant.bp3_start, newVariant.bp3_end = clusterP.r_start, clusterP.r_end
-                newVariant.bp1TID, newVariant.bp2TID, newVariant.bp3TID = \
-                cluster1.lTID, cluster1.rTID, clusterP.rTID
-                newVariant.bp2_orient, newVariant.bp3_orient = cluster1.r_orient, clusterP.r_orient
-                # check for cut-paste
-                logging.debug('Large INS check 1: check if could be cut-paste')
-                isValidCP = formCutPasteINS(newVariant, cluster1, clusterP, "LL")
-                if isValidCP == 0:
-                    continue
-
-        elif RROverlap and cluster1.r_orient != clusterP.r_orient and \
-            (cluster1.rTID == cluster1.lTID or cluster1.rTID == clusterP.lTID or cluster1.lTID == clusterP.lTID) and \
-            clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
-            logging.debug('Large INS check 2: right with right overlap')
-
-            # if mate between the reads that overlap, then not a bona fide match
-            if cluster1.lTID == cluster1.rTID and not (clusterP.r_start > cluster1.l_start + RDL_Factor*RDL):
-                logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
-                continue
-            if clusterP.lTID == clusterP.rTID and not (cluster1.r_start > clusterP.l_start + RDL_Factor*RDL):
-                logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
-                continue
-            if cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
-                newVariant.SVType = "INS"
-                
-            if newVariant.SVType == "INS": 
-                if cluster1.lTID == clusterP.lTID and cluster1.l_end < clusterP.l_start and \
-                    not (cluster1.l_orient == 1 and clusterP.l_orient == 0):
-                    logging.debug("Orientation mismatch for INS/INS_C:1")
-                    continue
-                if cluster1.lTID == clusterP.lTID and clusterP.l_end < cluster1.l_start and \
-                    not (clusterP.l_orient == 1 and cluster1.l_orient == 0):
-                    logging.debug("Orientation mismatch for INS/INS_C:2")
-                    continue
-
-                newSVFlag=1
-                # set breakpoints
-                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RR")
-                newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
-                newVariant.bp3_start, newVariant.bp3_end = clusterP.l_start, clusterP.l_end
-                newVariant.bp1TID, newVariant.bp2TID, newVariant.bp3TID = \
-                cluster1.rTID, cluster1.lTID, clusterP.lTID
-                newVariant.bp2_orient, newVariant.bp3_orient = cluster1.l_orient, clusterP.l_orient
-                # check for cut-paste
-                logging.debug('Large INS check 2: check if could be cut-paste')
-                isValidCP = formCutPasteINS(newVariant, cluster1, clusterP, "RR")
-                if isValidCP == 0:
-                    continue
         
-        elif LROverlap and not RLOverlap and (cluster1.rTID == cluster1.lTID or \
-            clusterP.lTID == cluster1.lTID or cluster1.rTID == clusterP.lTID) and \
-            cluster1.l_orient != clusterP.r_orient and \
-            clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
-            logging.debug('Large INS check 3: left mate of cluster 1 overlapping with right of 2')
+        #if not involving 1-mapped cluster
+        if cluster1.r_orient !=2 and clusterP.r_orient != 2:    
+            if LLOverlap and RROverlap and cluster1.l_orient != clusterP.l_orient and \
+                cluster1.r_orient != clusterP.r_orient and cluster1.r_orient == cluster1.l_orient \
+                and cluster1.lTID == cluster1.rTID:
+                logging.debug('Tagged as INV')
 
-            # if mate between the reads that overlap, then not a bona fide match
-            if cluster1.lTID == cluster1.rTID and not (clusterP.r_end < cluster1.r_end - RDL_Factor*RDL):
-                logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
-                continue
-            if clusterP.lTID == clusterP.rTID and not (cluster1.l_start > clusterP.l_start + RDL_Factor*RDL):
-                logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
-                continue
+                newVariant.SVType = "INV"
+                newSVFlag=1
+                # bp1 is the left alignment
+                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LL")
+                newVariant.bp2_start, newVariant.bp2_end = setBPs(cluster1, clusterP, "RR")
+                newVariant.bp1TID, newVariant.bp2TID  = cluster1.lTID, cluster1.rTID
 
-            if cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID and \
-                not (cluster1.l_orient == 0 and cluster1.r_orient == 1) and \
-                not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                continue
+            # small insertions
+            elif LROverlap and RROverlap and not LLOverlap and not RLOverlap and cluster1.isSmall \
+                and not clusterP.isSmall and clusterP.l_orient != clusterP.r_orient:
+                logging.debug('Tagged as Small INS')
+                if clusterP.l_orient != clusterP.r_orient:
+                    if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID) \
+                        or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                        newVariant.SVType = "INS"
+                    else:
+                        # TD or INS
+                        newVariant.SVType = "TD_I"
+                    newSVFlag=1
+                    # only bp_1 numbering is crucial
+                    # not nec--can make more precise by evaluating which of 3 bp pairs yields least bp width
+                    newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
+                    newVariant.bp2_start, newVariant.bp2_end = clusterP.l_start, clusterP.l_end
+                    newVariant.bp1_hasAlmtF = not clusterP.r_orient
+                    newVariant.bp1_hasAlmtR = clusterP.r_orient
+                    newVariant.bp1TID, newVariant.bp2TID = cluster1.lTID, clusterP.lTID
 
-            newVariant.SVType = "INS_C"
-            newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
-            newVariant.bp2_start, newVariant.bp2_end = cluster1.r_start, cluster1.r_end
-            newVariant.bp3_start, newVariant.bp3_end = clusterP.l_start, clusterP.l_end
-            newVariant.bp1TID, newVariant.bp2TID, newVariant.bp3TID \
-                = cluster1.lTID, cluster1.rTID, clusterP.lTID
-            newVariant.bp2_orient, newVariant.bp3_orient = cluster1.r_orient, clusterP.l_orient
-            newSVFlag = 1
-            # as always if paste location is on diff chr, it is regular INS
-            if newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID \
-                and cluster1.l_orient != cluster1.r_orient and clusterP.r_orient != clusterP.l_orient:
-                newVariant.SVType = "INS"
-            else:
-                logging.debug('Large INS check 3: check for cut-paste')
-                formCutPasteINS(newVariant, cluster1, clusterP, "LR")
+            elif RLOverlap and RROverlap and not LLOverlap and not LROverlap and \
+                clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
+                logging.debug("RL Overlap")
+                if cluster1.l_orient != cluster1.r_orient:
+                    if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
+                        or (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                        newVariant.SVType = "INS"
+                    else:
+                        newVariant.SVType = "TD_I"
+                    newSVFlag=1
+                    newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
+                    newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
+                    newVariant.bp1_hasAlmtF = not cluster1.r_orient
+                    newVariant.bp1_hasAlmtR = cluster1.r_orient
+                    newVariant.bp1TID = cluster1.rTID
+                    newVariant.bp2TID = cluster1.lTID
 
-                logging.debug('Large INS check 3: mark as cut-paste if one of source breakpoints is on same chr as overlap pt')
-                if newVariant.bp1TID == newVariant.bp2TID and newVariant.bp3TID != newVariant.bp1TID:
-                    if cluster1.lTID == cluster1.rTID and \
-                        not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+            elif LLOverlap and RLOverlap and not LROverlap and not RROverlap and \
+                cluster1.isSmall and not clusterP.isSmall and clusterP.l_orient != clusterP.r_orient:
+                logging.debug("LL Overlap 1")
+                if clusterP.l_orient != clusterP.r_orient:
+                    if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
+                        or (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                        newVariant.SVType = "INS"
+                    else:
+                        newVariant.SVType = "TD_I"
+                    newSVFlag=1
+                    newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
+                    newVariant.bp2_start, newVariant.bp2_end = clusterP.r_start, clusterP.r_end
+                    newVariant.bp1_hasAlmtF = not clusterP.l_orient
+                    newVariant.bp1_hasAlmtR = clusterP.l_orient
+                    newVariant.bp1TID = cluster1.lTID
+                    newVariant.bp2TID = clusterP.rTID
+
+            elif LLOverlap and LROverlap and not RLOverlap and not RROverlap and \
+                clusterP.isSmall and not cluster1.isSmall and cluster1.l_orient != cluster1.r_orient:
+                logging.debug("LL Overlap 2")
+                if cluster1.l_orient != cluster1.r_orient:
+                    if not (cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID)\
+                       or (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                        newVariant.SVType = "INS"
+                    else:
+                        newVariant.SVType = "TD_I"
+                    newSVFlag=1
+                    newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
+                    newVariant.bp2_start, newVariant.bp2_end = cluster1.r_start, cluster1.r_end
+                    newVariant.bp1_hasAlmtF = not cluster1.l_orient
+                    newVariant.bp1_hasAlmtR = cluster1.l_orient
+                    newVariant.bp1TID = cluster1.lTID
+                    newVariant.bp2TID = cluster1.rTID
+
+            # Large insertions
+            elif LLOverlap and cluster1.l_orient != clusterP.l_orient and (cluster1.lTID == \
+                cluster1.rTID or cluster1.lTID == clusterP.rTID or cluster1.rTID == clusterP.rTID) and \
+                clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
+                logging.debug('Large INS check 1: left with left overlap')
+
+                # if mate between the reads that overlap, then not a bona fide match
+                if cluster1.lTID == cluster1.rTID and not (clusterP.l_end < cluster1.r_end - RDL_Factor*RDL):
+                    logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
+                    continue
+                if clusterP.lTID == clusterP.rTID and not (cluster1.l_end < clusterP.r_end - RDL_Factor*RDL):
+                    logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
+                    continue
+                if cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
+                    newVariant.SVType = "INS"
+                    
+                if newVariant.SVType == "INS":
+                    if cluster1.rTID == clusterP.rTID and cluster1.r_end < clusterP.r_start and \
+                        not (cluster1.r_orient == 1 and clusterP.r_orient == 0):
+                        logging.debug("Orientation mismatch for INS/INS_C:1")
                         continue
-                    if clusterP.lTID == clusterP.rTID and \
-                        not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                        continue
-                    logging.debug('Orientation matches for INS_C')
-                    # breakpoint locations are confirmed
-                    if newVariant.SVType == "INS_C":
-                        newVariant.SVType = "INS_C_P"
-
-                    # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
-                    newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end=\
-                        newVariant.bp3_start, newVariant.bp3_end, newVariant.bp1_start, newVariant.bp1_end
-                    newVariant.bp1TID, newVariant.bp3TID = newVariant.bp3TID, newVariant.bp1TID
-                    newVariant.bp1_orient, newVariant.bp3_orient = newVariant.bp3_orient, newVariant.bp1_orient
-
-                elif newVariant.bp1TID == newVariant.bp3TID and newVariant.bp2TID != newVariant.bp1TID:
-                    if cluster1.lTID == cluster1.rTID and \
-                        not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
-                        continue
-                    if clusterP.lTID == clusterP.rTID and \
-                        not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                        continue
-                    logging.debug('Orientation matches for INS_C')
-                    if newVariant.SVType == "INS_C":
-                        newVariant.SVType = "INS_C_P"
-
-                    # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
-                    newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end=\
-                        newVariant.bp2_start, newVariant.bp2_end, newVariant.bp1_start, newVariant.bp1_end
-                    newVariant.bp1TID, newVariant.bp2TID = newVariant.bp2TID, newVariant.bp1TID
-                    newVariant.bp1_orient, newVariant.bp2_orient = newVariant.bp2_orient, newVariant.bp1_orient
-
-            if newVariant.SVType == "INS" and \
-                cluster1.rTID == clusterP.lTID and cluster1.r_end < clusterP.l_start and \
-                not (cluster1.r_orient == 1 and clusterP.l_orient == 0):
-                logging.debug("Orientation mismatch for INS/INS_C:1")
-                continue
-            elif newVariant.SVType == "INS" and \
-                cluster1.rTID == clusterP.lTID and clusterP.l_end < cluster1.r_start and \
-                not (clusterP.l_orient == 1 and cluster1.r_orient == 0):
-                logging.debug("Orientation mismatch for INS/INS_C:2")
-                continue
-
-            # make bp2 < bp3 for C_p and regular INS: this is conventional and consistent
-            if (newVariant.SVType == "INS_C_P" or newVariant.SVType == "INS") and \
-                newVariant.bp2_start > newVariant.bp3_start:
-
-                newVariant.bp2_start, newVariant.bp2_end, newVariant.bp3_start,\
-                    newVariant.bp3_end = newVariant.bp3_start, newVariant.bp3_end, \
-                    newVariant.bp2_start, newVariant.bp2_end
-                newVariant.bp3_orient, newVariant.bp2_orient = newVariant.bp2_orient,\
-                    newVariant.bp3_orient
-
-        elif RLOverlap and not LROverlap and (cluster1.rTID == cluster1.lTID or \
-            clusterP.rTID == cluster1.rTID or cluster1.lTID == clusterP.rTID) and \
-            cluster1.r_orient != clusterP.l_orient and \
-            clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
-            logging.debug('Large INS check 4: right mate of cluster 1 overlapping with left mate of cluster 2')
-
-            # if mate between the reads that overlap, then not a bona fide match
-            if cluster1.lTID == cluster1.rTID and not (clusterP.l_start > cluster1.l_start + RDL_Factor*RDL):
-                logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
-                continue
-            if clusterP.lTID == clusterP.rTID and not (cluster1.r_end < clusterP.r_end - RDL_Factor*RDL):
-                logging.debug('Not safe distance between overlap point and other 2 mate almts:2 %d %d',cluster1.r_end,clusterP.r_end)
-                continue
-
-            if cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID and \
-                not (cluster1.l_orient == 0 and cluster1.r_orient == 1) and \
-                not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                continue
-            newVariant.SVType = "INS_C"
-            newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
-            newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
-            newVariant.bp3_start, newVariant.bp3_end = clusterP.r_start, clusterP.r_end
-            newVariant.bp1TID, newVariant.bp2TID, newVariant.bp3TID \
-                = cluster1.rTID, cluster1.lTID, clusterP.rTID
-            newVariant.bp2_orient, newVariant.bp3_orient = cluster1.l_orient, clusterP.r_orient
-            newSVFlag = 1
-            # as always if paste location is on diff chr, it is regular INS
-            if newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID \
-                and cluster1.l_orient != cluster1.r_orient and clusterP.r_orient != clusterP.l_orient:
-                newVariant.SVType = "INS"
-            else:
-                formCutPasteINS(newVariant, cluster1, clusterP, "RL")
-                
-                logging.debug('Large INS check 4: mark as cut-paste if one of source breakpoints is on same chr as overlap pt')
-                if newVariant.bp1TID == newVariant.bp2TID and newVariant.bp3TID != newVariant.bp1TID:
-                    logging.debug('bp3 chr diff')
-                    if cluster1.lTID == cluster1.rTID and \
-                        not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
-                        continue
-                    if clusterP.lTID == clusterP.rTID and \
-                        not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
-                        continue
-                    # breakpoint locations are confirmed
-                    if newVariant.SVType == "INS_C":
-                        newVariant.SVType = "INS_C_P"
-
-                    # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
-                    newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end=\
-                        newVariant.bp3_start, newVariant.bp3_end, newVariant.bp1_start, newVariant.bp1_end
-                    newVariant.bp1TID, newVariant.bp3TID = newVariant.bp3TID, newVariant.bp1TID
-                    newVariant.bp1_orient, newVariant.bp3_orient = newVariant.bp3_orient, newVariant.bp1_orient
-
-                elif newVariant.bp1TID == newVariant.bp3TID and newVariant.bp2TID != newVariant.bp1TID:
-                    logging.debug('bp2 chr diff')
-                    if cluster1.lTID == cluster1.rTID and \
-                        not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
-                        continue
-                    if clusterP.lTID == clusterP.rTID and \
-                        not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                    if cluster1.rTID == clusterP.rTID and clusterP.r_end < cluster1.r_start and \
+                        not (clusterP.r_orient == 1 and cluster1.r_orient == 0):
+                        logging.debug("Orientation mismatch for INS/INS_C:2")
                         continue
 
-                    if newVariant.SVType == "INS_C":
-                        newVariant.SVType = "INS_C_P"
-                    logging.debug('%d %d %d %d', newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end)
-                    # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
-                    newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end=\
-                        newVariant.bp2_start, newVariant.bp2_end, newVariant.bp1_start, newVariant.bp1_end
-                    newVariant.bp1TID, newVariant.bp2TID = newVariant.bp2TID, newVariant.bp1TID
-                    newVariant.bp1_orient, newVariant.bp2_orient = newVariant.bp2_orient, newVariant.bp1_orient
+                    newSVFlag=1
+                    # set breakpoints
+                    newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LL")
+                    newVariant.bp2_start, newVariant.bp2_end = cluster1.r_start, cluster1.r_end
+                    newVariant.bp3_start, newVariant.bp3_end = clusterP.r_start, clusterP.r_end
+                    newVariant.bp1TID, newVariant.bp2TID, newVariant.bp3TID = \
+                    cluster1.lTID, cluster1.rTID, clusterP.rTID
+                    newVariant.bp2_orient, newVariant.bp3_orient = cluster1.r_orient, clusterP.r_orient
+                    # check for cut-paste
+                    logging.debug('Large INS check 1: check if could be cut-paste')
+                    isValidCP = formCutPasteINS(newVariant, cluster1, clusterP, "LL")
+                    if isValidCP == 0:
+                        continue
 
-            if newVariant.SVType == "INS" and \
-                cluster1.lTID == clusterP.rTID and cluster1.l_end < clusterP.r_start and \
-                not (cluster1.l_orient == 1 and clusterP.r_orient == 0):
-                logging.debug("Orientation mismatch for INS/INS_C:1")
-                continue
-            elif newVariant.SVType == "INS" and \
-                cluster1.lTID == clusterP.rTID and clusterP.r_end < cluster1.l_start and \
-                not (clusterP.r_orient == 1 and cluster1.l_orient == 0):
-                logging.debug("Orientation mismatch for INS/INS_C:2")
-                continue
+            elif RROverlap and cluster1.r_orient != clusterP.r_orient and \
+                (cluster1.rTID == cluster1.lTID or cluster1.rTID == clusterP.lTID or cluster1.lTID == clusterP.lTID) and \
+                clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
+                logging.debug('Large INS check 2: right with right overlap')
 
-            # make bp2 < bp3: this is conventional and consistent
-            if (newVariant.SVType == "INS_C_P" or newVariant.SVType == "INS") and \
-                newVariant.bp2_start > newVariant.bp3_start:
-                logging.debug('bp2 > bp3')
-                newVariant.bp2_start, newVariant.bp2_end, newVariant.bp3_start,\
-                    newVariant.bp3_end = newVariant.bp3_start, newVariant.bp3_end, \
-                    newVariant.bp2_start, newVariant.bp2_end
-                newVariant.bp3_orient, newVariant.bp2_orient = newVariant.bp2_orient,\
-                    newVariant.bp3_orient
+                # if mate between the reads that overlap, then not a bona fide match
+                if cluster1.lTID == cluster1.rTID and not (clusterP.r_start > cluster1.l_start + RDL_Factor*RDL):
+                    logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
+                    continue
+                if clusterP.lTID == clusterP.rTID and not (cluster1.r_start > clusterP.l_start + RDL_Factor*RDL):
+                    logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
+                    continue
+                if cluster1.l_orient != cluster1.r_orient and clusterP.l_orient != clusterP.r_orient:
+                    newVariant.SVType = "INS"
+                    
+                if newVariant.SVType == "INS": 
+                    if cluster1.lTID == clusterP.lTID and cluster1.l_end < clusterP.l_start and \
+                        not (cluster1.l_orient == 1 and clusterP.l_orient == 0):
+                        logging.debug("Orientation mismatch for INS/INS_C:1")
+                        continue
+                    if cluster1.lTID == clusterP.lTID and clusterP.l_end < cluster1.l_start and \
+                        not (clusterP.l_orient == 1 and cluster1.l_orient == 0):
+                        logging.debug("Orientation mismatch for INS/INS_C:2")
+                        continue
+
+                    newSVFlag=1
+                    # set breakpoints
+                    newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RR")
+                    newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
+                    newVariant.bp3_start, newVariant.bp3_end = clusterP.l_start, clusterP.l_end
+                    newVariant.bp1TID, newVariant.bp2TID, newVariant.bp3TID = \
+                    cluster1.rTID, cluster1.lTID, clusterP.lTID
+                    newVariant.bp2_orient, newVariant.bp3_orient = cluster1.l_orient, clusterP.l_orient
+                    # check for cut-paste
+                    logging.debug('Large INS check 2: check if could be cut-paste')
+                    isValidCP = formCutPasteINS(newVariant, cluster1, clusterP, "RR")
+                    if isValidCP == 0:
+                        continue
+            
+            elif LROverlap and not RLOverlap and (cluster1.rTID == cluster1.lTID or \
+                clusterP.lTID == cluster1.lTID or cluster1.rTID == clusterP.lTID) and \
+                cluster1.l_orient != clusterP.r_orient and \
+                clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
+                logging.debug('Large INS check 3: left mate of cluster 1 overlapping with right of 2')
+
+                # if mate between the reads that overlap, then not a bona fide match
+                if cluster1.lTID == cluster1.rTID and not (clusterP.r_end < cluster1.r_end - RDL_Factor*RDL):
+                    logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
+                    continue
+                if clusterP.lTID == clusterP.rTID and not (cluster1.l_start > clusterP.l_start + RDL_Factor*RDL):
+                    logging.debug('Not safe distance between overlap point and other 2 mate almts:2')
+                    continue
+
+                if cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID and \
+                    not (cluster1.l_orient == 0 and cluster1.r_orient == 1) and \
+                    not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                    continue
+
+                newVariant.SVType = "INS_C"
+                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "LR")
+                newVariant.bp2_start, newVariant.bp2_end = cluster1.r_start, cluster1.r_end
+                newVariant.bp3_start, newVariant.bp3_end = clusterP.l_start, clusterP.l_end
+                newVariant.bp1TID, newVariant.bp2TID, newVariant.bp3TID \
+                    = cluster1.lTID, cluster1.rTID, clusterP.lTID
+                newVariant.bp2_orient, newVariant.bp3_orient = cluster1.r_orient, clusterP.l_orient
+                newSVFlag = 1
+                # as always if paste location is on diff chr, it is regular INS
+                if newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID \
+                    and cluster1.l_orient != cluster1.r_orient and clusterP.r_orient != clusterP.l_orient:
+                    newVariant.SVType = "INS"
+                else:
+                    logging.debug('Large INS check 3: check for cut-paste')
+                    formCutPasteINS(newVariant, cluster1, clusterP, "LR")
+
+                    logging.debug('Large INS check 3: mark as cut-paste if one of source breakpoints is on same chr as overlap pt')
+                    if newVariant.bp1TID == newVariant.bp2TID and newVariant.bp3TID != newVariant.bp1TID:
+                        if cluster1.lTID == cluster1.rTID and \
+                            not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                            continue
+                        if clusterP.lTID == clusterP.rTID and \
+                            not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                            continue
+                        logging.debug('Orientation matches for INS_C')
+                        # breakpoint locations are confirmed
+                        if newVariant.SVType == "INS_C":
+                            newVariant.SVType = "INS_C_P"
+
+                        # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
+                        newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end=\
+                            newVariant.bp3_start, newVariant.bp3_end, newVariant.bp1_start, newVariant.bp1_end
+                        newVariant.bp1TID, newVariant.bp3TID = newVariant.bp3TID, newVariant.bp1TID
+                        newVariant.bp1_orient, newVariant.bp3_orient = newVariant.bp3_orient, newVariant.bp1_orient
+
+                    elif newVariant.bp1TID == newVariant.bp3TID and newVariant.bp2TID != newVariant.bp1TID:
+                        if cluster1.lTID == cluster1.rTID and \
+                            not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                            continue
+                        if clusterP.lTID == clusterP.rTID and \
+                            not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                            continue
+                        logging.debug('Orientation matches for INS_C')
+                        if newVariant.SVType == "INS_C":
+                            newVariant.SVType = "INS_C_P"
+
+                        # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
+                        newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end=\
+                            newVariant.bp2_start, newVariant.bp2_end, newVariant.bp1_start, newVariant.bp1_end
+                        newVariant.bp1TID, newVariant.bp2TID = newVariant.bp2TID, newVariant.bp1TID
+                        newVariant.bp1_orient, newVariant.bp2_orient = newVariant.bp2_orient, newVariant.bp1_orient
+
+                if newVariant.SVType == "INS" and \
+                    cluster1.rTID == clusterP.lTID and cluster1.r_end < clusterP.l_start and \
+                    not (cluster1.r_orient == 1 and clusterP.l_orient == 0):
+                    logging.debug("Orientation mismatch for INS/INS_C:1")
+                    continue
+                elif newVariant.SVType == "INS" and \
+                    cluster1.rTID == clusterP.lTID and clusterP.l_end < cluster1.r_start and \
+                    not (clusterP.l_orient == 1 and cluster1.r_orient == 0):
+                    logging.debug("Orientation mismatch for INS/INS_C:2")
+                    continue
+
+                # make bp2 < bp3 for C_p and regular INS: this is conventional and consistent
+                if (newVariant.SVType == "INS_C_P" or newVariant.SVType == "INS") and \
+                    newVariant.bp2_start > newVariant.bp3_start:
+
+                    newVariant.bp2_start, newVariant.bp2_end, newVariant.bp3_start,\
+                        newVariant.bp3_end = newVariant.bp3_start, newVariant.bp3_end, \
+                        newVariant.bp2_start, newVariant.bp2_end
+                    newVariant.bp3_orient, newVariant.bp2_orient = newVariant.bp2_orient,\
+                        newVariant.bp3_orient
+
+            elif RLOverlap and not LROverlap and (cluster1.rTID == cluster1.lTID or \
+                clusterP.rTID == cluster1.rTID or cluster1.lTID == clusterP.rTID) and \
+                cluster1.r_orient != clusterP.l_orient and \
+                clusterP.l_orient != clusterP.r_orient and cluster1.l_orient != cluster1.r_orient:
+                logging.debug('Large INS check 4: right mate of cluster 1 overlapping with left mate of cluster 2')
+
+                # if mate between the reads that overlap, then not a bona fide match
+                if cluster1.lTID == cluster1.rTID and not (clusterP.l_start > cluster1.l_start + RDL_Factor*RDL):
+                    logging.debug('Not safe distance between overlap point and other 2 mate almts:1')
+                    continue
+                if clusterP.lTID == clusterP.rTID and not (cluster1.r_end < clusterP.r_end - RDL_Factor*RDL):
+                    logging.debug('Not safe distance between overlap point and other 2 mate almts:2 %d %d',cluster1.r_end,clusterP.r_end)
+                    continue
+
+                if cluster1.lTID == cluster1.rTID == clusterP.lTID == clusterP.rTID and \
+                    not (cluster1.l_orient == 0 and cluster1.r_orient == 1) and \
+                    not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                    continue
+                newVariant.SVType = "INS_C"
+                newVariant.bp1_start, newVariant.bp1_end = setBPs(cluster1, clusterP, "RL")
+                newVariant.bp2_start, newVariant.bp2_end = cluster1.l_start, cluster1.l_end
+                newVariant.bp3_start, newVariant.bp3_end = clusterP.r_start, clusterP.r_end
+                newVariant.bp1TID, newVariant.bp2TID, newVariant.bp3TID \
+                    = cluster1.rTID, cluster1.lTID, clusterP.rTID
+                newVariant.bp2_orient, newVariant.bp3_orient = cluster1.l_orient, clusterP.r_orient
+                newSVFlag = 1
+                # as always if paste location is on diff chr, it is regular INS
+                if newVariant.bp1TID != newVariant.bp2TID and newVariant.bp1TID != newVariant.bp3TID \
+                    and cluster1.l_orient != cluster1.r_orient and clusterP.r_orient != clusterP.l_orient:
+                    newVariant.SVType = "INS"
+                else:
+                    formCutPasteINS(newVariant, cluster1, clusterP, "RL")
+                    
+                    logging.debug('Large INS check 4: mark as cut-paste if one of source breakpoints is on same chr as overlap pt')
+                    if newVariant.bp1TID == newVariant.bp2TID and newVariant.bp3TID != newVariant.bp1TID:
+                        logging.debug('bp3 chr diff')
+                        if cluster1.lTID == cluster1.rTID and \
+                            not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                            continue
+                        if clusterP.lTID == clusterP.rTID and \
+                            not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                            continue
+                        # breakpoint locations are confirmed
+                        if newVariant.SVType == "INS_C":
+                            newVariant.SVType = "INS_C_P"
+
+                        # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
+                        newVariant.bp1_start, newVariant.bp1_end, newVariant.bp3_start, newVariant.bp3_end=\
+                            newVariant.bp3_start, newVariant.bp3_end, newVariant.bp1_start, newVariant.bp1_end
+                        newVariant.bp1TID, newVariant.bp3TID = newVariant.bp3TID, newVariant.bp1TID
+                        newVariant.bp1_orient, newVariant.bp3_orient = newVariant.bp3_orient, newVariant.bp1_orient
+
+                    elif newVariant.bp1TID == newVariant.bp3TID and newVariant.bp2TID != newVariant.bp1TID:
+                        logging.debug('bp2 chr diff')
+                        if cluster1.lTID == cluster1.rTID and \
+                            not (cluster1.l_orient == 0 and cluster1.r_orient == 1):
+                            continue
+                        if clusterP.lTID == clusterP.rTID and \
+                            not (clusterP.l_orient == 0 and clusterP.r_orient == 1):
+                            continue
+
+                        if newVariant.SVType == "INS_C":
+                            newVariant.SVType = "INS_C_P"
+                        logging.debug('%d %d %d %d', newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end)
+                        # Put 2 and 3 on same chromosome, as 1 is pasted location in our convention
+                        newVariant.bp1_start, newVariant.bp1_end, newVariant.bp2_start, newVariant.bp2_end=\
+                            newVariant.bp2_start, newVariant.bp2_end, newVariant.bp1_start, newVariant.bp1_end
+                        newVariant.bp1TID, newVariant.bp2TID = newVariant.bp2TID, newVariant.bp1TID
+                        newVariant.bp1_orient, newVariant.bp2_orient = newVariant.bp2_orient, newVariant.bp1_orient
+
+                if newVariant.SVType == "INS" and \
+                    cluster1.lTID == clusterP.rTID and cluster1.l_end < clusterP.r_start and \
+                    not (cluster1.l_orient == 1 and clusterP.r_orient == 0):
+                    logging.debug("Orientation mismatch for INS/INS_C:1")
+                    continue
+                elif newVariant.SVType == "INS" and \
+                    cluster1.lTID == clusterP.rTID and clusterP.r_end < cluster1.l_start and \
+                    not (clusterP.r_orient == 1 and cluster1.l_orient == 0):
+                    logging.debug("Orientation mismatch for INS/INS_C:2")
+                    continue
+
+                # make bp2 < bp3: this is conventional and consistent
+                if (newVariant.SVType == "INS_C_P" or newVariant.SVType == "INS") and \
+                    newVariant.bp2_start > newVariant.bp3_start:
+                    logging.debug('bp2 > bp3')
+                    newVariant.bp2_start, newVariant.bp2_end, newVariant.bp3_start,\
+                        newVariant.bp3_end = newVariant.bp3_start, newVariant.bp3_end, \
+                        newVariant.bp2_start, newVariant.bp2_end
+                    newVariant.bp3_orient, newVariant.bp2_orient = newVariant.bp2_orient,\
+                        newVariant.bp3_orient
 
         # if clusters matched to form new SV
         if newSVFlag and newVariant.SVType != None:
@@ -684,224 +687,228 @@ def compareVariant(cluster1, varList, claimedCls, slop, as_relative_thresh,
             elem.count+=1
             match = 1
             anyMatch = 1
-        elif elem.SVType == "TD_I":
-            logging.debug('Check conditions for match: cluster against variant for TD_I')
-            # small-medium TD's: second small cluster overlap on other side possible with TD's
-            # but not with insertions.
-            if cluster1.isSmall and cluster1.lTID == elem.bp2TID and cluster1.rTID == elem.bp2TID and \
-                isOverlapping("V", cluster1, elem, "L2", slop) and isOverlapping("V", cluster1, elem, "R2", slop):
 
-                elem.SVType = "TD"
-                elem.count+=1
-                match = 1
-                anyMatch = 1
-                elem.complete = 1
-            # all insertions
-            elif cluster1.lTID == elem.bp1TID and isOverlapping("V", cluster1, elem, "L1", slop):
-                if cluster1.l_orient != cluster1.r_orient and \
-                    ((not cluster1.l_orient and elem.bp1_hasAlmtR) or \
-                    (cluster1.l_orient and elem.bp1_hasAlmtF)):
+        # if not 1-mapped cluster    
+        if cluster1.r_orient != 2:
 
-                    elem.bp1_hasAlmtF = 1
-                    elem.bp1_hasAlmtR = 1
-                    elem.SVType = "INS"
-                    elem.bp3_start, elem.bp3_end = cluster1.r_start, cluster1.r_end
-                    elem.bp3TID = cluster1.rTID
+            if elem.SVType == "TD_I":
+                logging.debug('Check conditions for match: cluster against variant for TD_I')
+                # small-medium TD's: second small cluster overlap on other side possible with TD's
+                # but not with insertions.
+                if cluster1.isSmall and cluster1.lTID == elem.bp2TID and cluster1.rTID == elem.bp2TID and \
+                    isOverlapping("V", cluster1, elem, "L2", slop) and isOverlapping("V", cluster1, elem, "R2", slop):
+
+                    elem.SVType = "TD"
                     elem.count+=1
                     match = 1
                     anyMatch = 1
-            elif cluster1.rTID == elem.bp1TID and isOverlapping("V", cluster1, elem, "R1", slop):
-                if cluster1.l_orient != cluster1.r_orient and \
-                    ((not cluster1.r_orient and elem.bp1_hasAlmtR) or \
-                    (cluster1.r_orient and elem.bp1_hasAlmtF)):
+                    elem.complete = 1
+                # all insertions
+                elif cluster1.lTID == elem.bp1TID and isOverlapping("V", cluster1, elem, "L1", slop):
+                    if cluster1.l_orient != cluster1.r_orient and \
+                        ((not cluster1.l_orient and elem.bp1_hasAlmtR) or \
+                        (cluster1.l_orient and elem.bp1_hasAlmtF)):
 
-                    elem.bp1_hasAlmtF = 1
-                    elem.bp1_hasAlmtR = 1
-                    elem.SVType = "INS"
-                    elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
-                    elem.bp3TID = cluster1.lTID
-                    elem.count+=1
-                    match = 1
-                    anyMatch = 1
-            # if cluster indicating translocation deletion arrives here
-            elif cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
-                cluster1.rTID == cluster1.lTID == elem.bp2TID and \
-                isOverlapping("V", cluster1, elem, "L2", slop) and not isOverlapping("V", cluster1, elem, "R1", slop)\
-                and elem.bp2_end < cluster1.r_start < cluster1.r_end < elem.bp1_start:
+                        elem.bp1_hasAlmtF = 1
+                        elem.bp1_hasAlmtR = 1
+                        elem.SVType = "INS"
+                        elem.bp3_start, elem.bp3_end = cluster1.r_start, cluster1.r_end
+                        elem.bp3TID = cluster1.rTID
+                        elem.count+=1
+                        match = 1
+                        anyMatch = 1
+                elif cluster1.rTID == elem.bp1TID and isOverlapping("V", cluster1, elem, "R1", slop):
+                    if cluster1.l_orient != cluster1.r_orient and \
+                        ((not cluster1.r_orient and elem.bp1_hasAlmtR) or \
+                        (cluster1.r_orient and elem.bp1_hasAlmtF)):
 
-                    match = 1
-                    elem.count+=1
-                    anyMatch = 1
-                    elem.bp3_start, elem.bp3_end = cluster1.r_start, cluster1.r_end
-                    elem.bp3TID = cluster1.rTID
-                    elem.SVType = "INS_C"
-            elif cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
-                cluster1.lTID == cluster1.rTID == elem.bp2TID and \
-                not isOverlapping("V", cluster1, elem, "L1", slop) and isOverlapping("V", cluster1, elem, "R2", slop)\
-                and elem.bp1_end < cluster1.l_start < cluster1.l_end < elem.bp2_start:
-
-                    match = 1
-                    elem.count+=1
-                    anyMatch = 1
-                    elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
-                    elem.bp3TID = cluster1.lTID
-                    elem.SVType = "INS_C"
-        elif elem.SVType == "INS_C" or elem.SVType == "INS_C_P":
-            logging.debug('Check conditions for match: cluster against variant for INS_C family')
-
-            if cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp3TID and elem.bp1_orient != -1 \
-                and elem.bp3_orient != -1 and isOverlapping("V",cluster1,elem,"L1", slop) and \
-                cluster1.l_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"R3", slop) \
-                and cluster1.r_orient != elem.bp3_orient:
-
-                match = 1
-                elem.count+=1
-                anyMatch = 1
-                elem.bp1_orient = -1
-                elem.bp3_orient = -1
-                elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.l_start, cluster1.l_end])[1:3]
-                elem.bp3_start, elem.bp3_end = sorted([elem.bp3_start, elem.bp3_end, cluster1.r_start, cluster1.r_end])[1:3]
-                # bp has 2 overlapping reads now
-                #print "INS_C 1", elem.count
-            elif cluster1.lTID == elem.bp3TID and cluster1.rTID == elem.bp1TID and elem.bp1_orient != -1 \
-                and elem.bp3_orient != -1 and isOverlapping("V",cluster1,elem,"R1", slop) and \
-                cluster1.r_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"L3", slop) \
-                and cluster1.l_orient != elem.bp3_orient:
-
-                match = 1
-                elem.count+=1
-                anyMatch = 1
-                elem.bp1_orient = -1
-                elem.bp3_orient = -1
-                elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.r_start, cluster1.r_end])[1:3]
-                elem.bp3_start, elem.bp3_end = sorted([elem.bp3_start, elem.bp3_end, cluster1.l_start, cluster1.l_end])[1:3]
-                #print "INS_C 2", elem.count
-            elif cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp2TID and elem.bp1_orient != -1 \
-                and elem.bp2_orient != -1 and isOverlapping("V",cluster1,elem,"L1", slop) and \
-                cluster1.l_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"R2", slop) \
-                and cluster1.r_orient != elem.bp2_orient:
-
-                match = 1
-                elem.count+=1
-                anyMatch = 1
-                elem.bp1_orient = -1
-                elem.bp3_orient = -1
-                elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.l_start, cluster1.l_end])[1:3]
-                elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.r_start, cluster1.r_end])[1:3]
-                # bp has 2 overlapping reads now
-                #print "INS_C 1", elem.count
-            elif cluster1.lTID == elem.bp2TID and cluster1.rTID == elem.bp1TID and elem.bp1_orient != -1 \
-                and elem.bp2_orient != -1 and isOverlapping("V",cluster1,elem,"R1", slop) and \
-                cluster1.r_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"L2", slop) \
-                and cluster1.l_orient != elem.bp2_orient:
-
-                match = 1
-                elem.count+=1
-                anyMatch = 1
-                elem.bp1_orient = -1
-                elem.bp3_orient = -1
-                elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.r_start, cluster1.r_end])[1:3]
-                elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.l_start, cluster1.l_end])[1:3]
-            # the _P subscript denotes that the breakpoints are confirmed.
-            # bp1 is indeed the pasted location for this INS_C
-            # small cluster overlap to confirm paste location-- overlaps both bp 1 and 2
-            elif isOverlapping("V", cluster1, elem, "L1", slop) and cluster1.lTID == elem.bp1TID and \
-                isOverlapping("V", cluster1, elem, "R1", slop) and cluster1.rTID == elem.bp1TID and \
-                cluster1.l_orient != cluster1.r_orient:
-
-                match = 1
-                elem.count+=1
-                anyMatch = 1
-                if elem.SVType == "INS_C":
-                    elem.SVType = "INS_C_P"
-                elem.complete = 1
-                #print "INS_C_P 3", elem.count
-            elif (not elem.SVType == "INS_C_P") and \
-                isOverlapping("V", cluster1, elem, "L3", slop) and cluster1.lTID == elem.bp3TID and \
-                isOverlapping("V", cluster1, elem, "R3", slop) and cluster1.rTID == elem.bp3TID and \
-                cluster1.l_orient != cluster1.r_orient:
-
-                #print "INS_C_P 4", elem.count
-                match = 1
-                elem.count+=1
-                anyMatch = 1
-                # make bp1 the paste location since now it is known
-                elem.bp1_start, elem.bp1_end, elem.bp3_start, elem.bp3_end=\
-                    elem.bp3_start, elem.bp3_end, elem.bp1_start, elem.bp1_end
-                #elem.bp1TID, elem.bp3TID = elem.bp3TID, elem.bp1TID #not needed
-                elem.bp1_orient, elem.bp3_orient = elem.bp3_orient, elem.bp1_orient
-                elem.complete = 1
-                if elem.SVType == "INS_C":
-                    elem.SVType = "INS_C_P"
-        elif elem.SVType == "TD":
-            logging.debug('Check conditions for match: cluster against variant for TD')            
-            if cluster1.isSmall and (isOverlapping("V", cluster1, elem, "L1", slop) and \
-                cluster1.lTID == elem.bp1TID) and (isOverlapping("V", cluster1, elem, "R2", slop) and \
-                cluster1.rTID == elem.bp2TID):
-
-                match = 1
-                elem.count+=1
-                anyMatch = 1
-                elem.complete = 1
-        elif elem.SVType == "INS":
-            logging.debug('Check conditions for match: cluster against variant for INS')        
-            # 2-bp-thus-far INS's
-            if elem.bp3_start == -1:
-                if cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
-                    cluster1.lTID == elem.bp2TID  and isOverlapping("V", cluster1, elem, "L2", slop) and \
-                    (cluster1.rTID != elem.bp1TID or not isOverlapping("V", cluster1, elem, "R1", slop))\
-                    and (cluster1.lTID != elem.bp1TID or\
-                    elem.bp2_end < cluster1.r_start < cluster1.r_end):
-
-                    match = 1
-                    elem.count+=1
-                    anyMatch = 1
-                    elem.bp3_start, elem.bp3_end = cluster1.r_start, cluster1.r_end
-                    elem.bp3TID = cluster1.rTID
-                    if elem.SVType == "INS":
-                        elem.SVType = "INS_C"
-                    elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.r_start, cluster1.r_end])[1:3]
-                    elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.l_start, cluster1.l_end])[1:3]
+                        elem.bp1_hasAlmtF = 1
+                        elem.bp1_hasAlmtR = 1
+                        elem.SVType = "INS"
+                        elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
+                        elem.bp3TID = cluster1.lTID
+                        elem.count+=1
+                        match = 1
+                        anyMatch = 1
+                # if cluster indicating translocation deletion arrives here
                 elif cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
-                    cluster1.rTID == elem.bp2TID and (cluster1.lTID != elem.bp1TID or \
-                    not isOverlapping("V", cluster1, elem, "L1", slop)) and \
-                    isOverlapping("V", cluster1, elem, "R2", slop) and (cluster1.lTID != elem.bp1TID\
-                    or cluster1.l_start < cluster1.l_end < elem.bp2_start):
+                    cluster1.rTID == cluster1.lTID == elem.bp2TID and \
+                    isOverlapping("V", cluster1, elem, "L2", slop) and not isOverlapping("V", cluster1, elem, "R1", slop)\
+                    and elem.bp2_end < cluster1.r_start < cluster1.r_end < elem.bp1_start:
+
+                        match = 1
+                        elem.count+=1
+                        anyMatch = 1
+                        elem.bp3_start, elem.bp3_end = cluster1.r_start, cluster1.r_end
+                        elem.bp3TID = cluster1.rTID
+                        elem.SVType = "INS_C"
+                elif cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
+                    cluster1.lTID == cluster1.rTID == elem.bp2TID and \
+                    not isOverlapping("V", cluster1, elem, "L1", slop) and isOverlapping("V", cluster1, elem, "R2", slop)\
+                    and elem.bp1_end < cluster1.l_start < cluster1.l_end < elem.bp2_start:
+
+                        match = 1
+                        elem.count+=1
+                        anyMatch = 1
+                        elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
+                        elem.bp3TID = cluster1.lTID
+                        elem.SVType = "INS_C"
+            elif elem.SVType == "INS_C" or elem.SVType == "INS_C_P":
+                logging.debug('Check conditions for match: cluster against variant for INS_C family')
+
+                if cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp3TID and elem.bp1_orient != -1 \
+                    and elem.bp3_orient != -1 and isOverlapping("V",cluster1,elem,"L1", slop) and \
+                    cluster1.l_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"R3", slop) \
+                    and cluster1.r_orient != elem.bp3_orient:
 
                     match = 1
                     elem.count+=1
                     anyMatch = 1
-                    elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
-                    elem.bp3TID = cluster1.lTID
-                    if elem.SVType == "INS":
-                        elem.SVType = "INS_C"
+                    elem.bp1_orient = -1
+                    elem.bp3_orient = -1
+                    elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.l_start, cluster1.l_end])[1:3]
+                    elem.bp3_start, elem.bp3_end = sorted([elem.bp3_start, elem.bp3_end, cluster1.r_start, cluster1.r_end])[1:3]
+                    # bp has 2 overlapping reads now
+                    #print "INS_C 1", elem.count
+                elif cluster1.lTID == elem.bp3TID and cluster1.rTID == elem.bp1TID and elem.bp1_orient != -1 \
+                    and elem.bp3_orient != -1 and isOverlapping("V",cluster1,elem,"R1", slop) and \
+                    cluster1.r_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"L3", slop) \
+                    and cluster1.l_orient != elem.bp3_orient:
+
+                    match = 1
+                    elem.count+=1
+                    anyMatch = 1
+                    elem.bp1_orient = -1
+                    elem.bp3_orient = -1
+                    elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.r_start, cluster1.r_end])[1:3]
+                    elem.bp3_start, elem.bp3_end = sorted([elem.bp3_start, elem.bp3_end, cluster1.l_start, cluster1.l_end])[1:3]
+                    #print "INS_C 2", elem.count
+                elif cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp2TID and elem.bp1_orient != -1 \
+                    and elem.bp2_orient != -1 and isOverlapping("V",cluster1,elem,"L1", slop) and \
+                    cluster1.l_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"R2", slop) \
+                    and cluster1.r_orient != elem.bp2_orient:
+
+                    match = 1
+                    elem.count+=1
+                    anyMatch = 1
+                    elem.bp1_orient = -1
+                    elem.bp3_orient = -1
                     elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.l_start, cluster1.l_end])[1:3]
                     elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.r_start, cluster1.r_end])[1:3]
-            elif elem.bp2TID == cluster1.lTID == cluster1.rTID and isOverlapping("V", cluster1, \
-                elem, "L2", slop) and isOverlapping("V", cluster1, elem, "R3", slop) and \
-                cluster1.l_orient != elem.bp2_orient and cluster1.r_orient != elem.bp3_orient:
+                    # bp has 2 overlapping reads now
+                    #print "INS_C 1", elem.count
+                elif cluster1.lTID == elem.bp2TID and cluster1.rTID == elem.bp1TID and elem.bp1_orient != -1 \
+                    and elem.bp2_orient != -1 and isOverlapping("V",cluster1,elem,"R1", slop) and \
+                    cluster1.r_orient != elem.bp1_orient and isOverlapping("V",cluster1,elem,"L2", slop) \
+                    and cluster1.l_orient != elem.bp2_orient:
 
                     match = 1
                     elem.count+=1
                     anyMatch = 1
-                    #print "INS -> INS_C 1", elem.count
-                    # breakpoints are confirmed for translocation only if INS involves 2 diff chr
-                    if elem.bp1TID == elem.bp2TID:
-                        if cluster1.l_orient == 0 and cluster1.r_orient == 1:
-                            if elem.SVType == "INS":
-                                elem.SVType = "INS_C"
-                    else:
-                        if elem.SVType == "INS":
-                            elem.SVType = "INS_C_P"
-                    elem.bp3_start, elem.bp3_end = sorted([elem.bp3_start, elem.bp3_end, cluster1.r_start, cluster1.r_end])[1:3]
+                    elem.bp1_orient = -1
+                    elem.bp3_orient = -1
+                    elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.r_start, cluster1.r_end])[1:3]
                     elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.l_start, cluster1.l_end])[1:3]
-            # small cluster check
-            elif cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp1TID and \
-                isOverlapping("V", cluster1, elem, "L1",slop) and isOverlapping("V", cluster1, elem, "R1", slop):
+                # the _P subscript denotes that the breakpoints are confirmed.
+                # bp1 is indeed the pasted location for this INS_C
+                # small cluster overlap to confirm paste location-- overlaps both bp 1 and 2
+                elif isOverlapping("V", cluster1, elem, "L1", slop) and cluster1.lTID == elem.bp1TID and \
+                    isOverlapping("V", cluster1, elem, "R1", slop) and cluster1.rTID == elem.bp1TID and \
+                    cluster1.l_orient != cluster1.r_orient:
 
-                match = 1
-                elem.count+=1
-                anyMatch = 1
+                    match = 1
+                    elem.count+=1
+                    anyMatch = 1
+                    if elem.SVType == "INS_C":
+                        elem.SVType = "INS_C_P"
+                    elem.complete = 1
+                    #print "INS_C_P 3", elem.count
+                elif (not elem.SVType == "INS_C_P") and \
+                    isOverlapping("V", cluster1, elem, "L3", slop) and cluster1.lTID == elem.bp3TID and \
+                    isOverlapping("V", cluster1, elem, "R3", slop) and cluster1.rTID == elem.bp3TID and \
+                    cluster1.l_orient != cluster1.r_orient:
+
+                    #print "INS_C_P 4", elem.count
+                    match = 1
+                    elem.count+=1
+                    anyMatch = 1
+                    # make bp1 the paste location since now it is known
+                    elem.bp1_start, elem.bp1_end, elem.bp3_start, elem.bp3_end=\
+                        elem.bp3_start, elem.bp3_end, elem.bp1_start, elem.bp1_end
+                    #elem.bp1TID, elem.bp3TID = elem.bp3TID, elem.bp1TID #not needed
+                    elem.bp1_orient, elem.bp3_orient = elem.bp3_orient, elem.bp1_orient
+                    elem.complete = 1
+                    if elem.SVType == "INS_C":
+                        elem.SVType = "INS_C_P"
+            elif elem.SVType == "TD":
+                logging.debug('Check conditions for match: cluster against variant for TD')            
+                if cluster1.isSmall and (isOverlapping("V", cluster1, elem, "L1", slop) and \
+                    cluster1.lTID == elem.bp1TID) and (isOverlapping("V", cluster1, elem, "R2", slop) and \
+                    cluster1.rTID == elem.bp2TID):
+
+                    match = 1
+                    elem.count+=1
+                    anyMatch = 1
+                    elem.complete = 1
+            elif elem.SVType == "INS":
+                logging.debug('Check conditions for match: cluster against variant for INS')        
+                # 2-bp-thus-far INS's
+                if elem.bp3_start == -1:
+                    if cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
+                        cluster1.lTID == elem.bp2TID  and isOverlapping("V", cluster1, elem, "L2", slop) and \
+                        (cluster1.rTID != elem.bp1TID or not isOverlapping("V", cluster1, elem, "R1", slop))\
+                        and (cluster1.lTID != elem.bp1TID or\
+                        elem.bp2_end < cluster1.r_start < cluster1.r_end):
+
+                        match = 1
+                        elem.count+=1
+                        anyMatch = 1
+                        elem.bp3_start, elem.bp3_end = cluster1.r_start, cluster1.r_end
+                        elem.bp3TID = cluster1.rTID
+                        if elem.SVType == "INS":
+                            elem.SVType = "INS_C"
+                        elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.r_start, cluster1.r_end])[1:3]
+                        elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.l_start, cluster1.l_end])[1:3]
+                    elif cluster1.l_orient == 0 and cluster1.l_orient != cluster1.r_orient and \
+                        cluster1.rTID == elem.bp2TID and (cluster1.lTID != elem.bp1TID or \
+                        not isOverlapping("V", cluster1, elem, "L1", slop)) and \
+                        isOverlapping("V", cluster1, elem, "R2", slop) and (cluster1.lTID != elem.bp1TID\
+                        or cluster1.l_start < cluster1.l_end < elem.bp2_start):
+
+                        match = 1
+                        elem.count+=1
+                        anyMatch = 1
+                        elem.bp3_start, elem.bp3_end = cluster1.l_start, cluster1.l_end
+                        elem.bp3TID = cluster1.lTID
+                        if elem.SVType == "INS":
+                            elem.SVType = "INS_C"
+                        elem.bp1_start, elem.bp1_end = sorted([elem.bp1_start, elem.bp1_end, cluster1.l_start, cluster1.l_end])[1:3]
+                        elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.r_start, cluster1.r_end])[1:3]
+                elif elem.bp2TID == cluster1.lTID == cluster1.rTID and isOverlapping("V", cluster1, \
+                    elem, "L2", slop) and isOverlapping("V", cluster1, elem, "R3", slop) and \
+                    cluster1.l_orient != elem.bp2_orient and cluster1.r_orient != elem.bp3_orient:
+
+                        match = 1
+                        elem.count+=1
+                        anyMatch = 1
+                        #print "INS -> INS_C 1", elem.count
+                        # breakpoints are confirmed for translocation only if INS involves 2 diff chr
+                        if elem.bp1TID == elem.bp2TID:
+                            if cluster1.l_orient == 0 and cluster1.r_orient == 1:
+                                if elem.SVType == "INS":
+                                    elem.SVType = "INS_C"
+                        else:
+                            if elem.SVType == "INS":
+                                elem.SVType = "INS_C_P"
+                        elem.bp3_start, elem.bp3_end = sorted([elem.bp3_start, elem.bp3_end, cluster1.r_start, cluster1.r_end])[1:3]
+                        elem.bp2_start, elem.bp2_end = sorted([elem.bp2_start, elem.bp2_end, cluster1.l_start, cluster1.l_end])[1:3]
+                # small cluster check
+                elif cluster1.lTID == elem.bp1TID and cluster1.rTID == elem.bp1TID and \
+                    isOverlapping("V", cluster1, elem, "L1",slop) and isOverlapping("V", cluster1, elem, "R1", slop):
+
+                    match = 1
+                    elem.count+=1
+                    anyMatch = 1
         if match:
             logging.debug('Append cluster %s to complex variant %s', cluster1.mapNum, elem.variantNum)
             if cluster1.mapNum not in elem.clusterNums:
@@ -1023,9 +1030,10 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
             newSimpleSV.clusterNums.append(clusterC.mapNum)
             # In case did not match with other half cluster for DN_INS (de novo INS)
             if clusterC.r_orient == 2:
-                newSimpleSV.SVType = "DN_INS"
-                newSimpleSV.bp2_start = newSimpleSV.bp1_start
-                newSimpleSV.bp2_end = newSimpleSV.bp1_end
+                newSimpleSV.SVType = "DN_INS_NM"
+                newSimpleSV.bp2TID = newSimpleSV.bp1TID
+                newSimpleSV.bp2_start = 1 + newSimpleSV.bp1_start
+                newSimpleSV.bp2_end = 1 + newSimpleSV.bp1_end
             elif clusterC.l_orient == 1 and clusterC.r_orient == 0 and \
                 clusterC.l_start < clusterC.r_start and \
                 clusterC.lTID == clusterC.rTID:
