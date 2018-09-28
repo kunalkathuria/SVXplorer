@@ -31,7 +31,8 @@ def calculateSVThresh(SVType, SVSupp, complex_thresh, sr_thresh, pe_thresh,
     #pe-based unknown events listed here; last INV will be listed as BND unless SR-supported as INV_B (thus supp will be > 3)
     if SVType == "Unknown" or SVType.startswith("INS_half") or SVType == "BND" or \
         SVType == "DN_INS_NM" or (SVType.startswith("INV") and NPEClusters == 1):
-        disjThresh = pe_min
+        #set bnd_thresh = complex_thresh
+        disjThresh = complex_thresh
     elif SVType.startswith("INV") or SVType.find("INS") != -1:
         disjThresh = complex_thresh
     elif SVSupp.find("PE") == -1 and SVSupp.find("SR") != -1:
