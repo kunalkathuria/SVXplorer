@@ -421,7 +421,7 @@ if __name__ == '__main__':
     PARSER.add_argument('-s', default=100, dest='minVarSize', type=int, help='minimum size in bps of variants called')
     PARSER.add_argument('-z', default=3, dest='minClusterSize', type=int, help='minimum fragment support required for discordant clusters -- smaller size may increase run time')
     PARSER.add_argument('-q', default=-1, dest='mapQual', type=int, help='minimum mapping quality required of at least NSupportThreshold reads for every variant')
-    PARSER.add_argument('-l', action='store_true', help='liberal inversion calls: call even if only evidence for one end of inversion seen')
+    PARSER.add_argument('-l', action='store_true', help='liberal inversion calls: call even if only evidence for one end of inversion seen, as long as both PE,SR support it')
     PARSER.add_argument('-u', action='store_true', help='liberal duplication calls: use user-defined mapping quality instead of 20')
 
     PARSER.add_argument('disc', help='bam file of discordant pairs')
