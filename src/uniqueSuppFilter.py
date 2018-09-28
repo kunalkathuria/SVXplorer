@@ -89,10 +89,10 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
     fAV.seek(0)
     header = fAV.readline()
     for g,item in enumerate(disjointness):
-        # not stored in memory
         for line in fAV:
             SVType = line.split()[1]
             SVSupp = line.split()[11]
+            NPEClusters = int(line.split()[12])
             disjThresh = calculateSVThresh(SVType, SVSupp, complex_thresh,
                                            sr_thresh, pe_thresh, mix_thresh, NPEClusters, pe_min)
             break
