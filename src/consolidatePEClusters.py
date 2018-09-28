@@ -926,7 +926,7 @@ def compareVariant(cluster1, varList, claimedCls, slop, as_relative_thresh,
         claimedCls.add(cluster1.mapNum)
 
 def consolidatePEClusters(workDir, statFile, clusterFile,
-                          clusterMapFile, slop, refRate, as_relative_thresh):
+                          clusterMapFile, slop, refRate, as_relative_thresh, libDup):
     RDL_Factor=1.2 # default recommended
     fStat = open(statFile,"r")
     RDL = int(fStat.readline().split()[0])
@@ -1044,7 +1044,7 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
                 newSimpleSV.SVType = "INV"
                 newSimpleSV.orient = str(clusterC.l_orient) + str(clusterC.r_orient)
             #crossover TD cluster
-            elif clusterC.l_orient == 0 and clusterC.r_orient ==1 and \
+            elif libDup and clusterC.l_orient == 0 and clusterC.r_orient ==1 and \
                 clusterC.lTID == clusterC.rTID and \
                 clusterC.l_start > clusterC.r_end and \
                 clusterC.isSmall:
@@ -1127,6 +1127,6 @@ if __name__ == "__main__":
                         format='%(asctime)s %(levelname)s %(message)s',
                         datefmt='%m/%d/%Y %I:%M:%S %p')
 
-    consolidatePEClusters(ARGS.workDir, ARGS.statFile, ARGS.clusterFile, ARGS.clusterMapFile, ARGS.slop, ARGS.refRate, ARGS.as_relative_thresh)
+    consolidatePEClusters(ARGS.workDir, ARGS.statFile, ARGS.clusterFile, ARGS.clusterMapFile, ARGS.slop, ARGS.refRate, ARGS.as_relative_thresh, False)
 
     logging.shutdown()
