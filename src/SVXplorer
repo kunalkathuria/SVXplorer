@@ -160,8 +160,10 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 GROUPID = "GROUPID=" + tokens[24] + ";"
                 if CM.startswith("INS_C"):
                     CM = "Translocation"
-                elif CM.startswith("INS") or CM.startswith("TD"):
+                elif CM.startswith("INS"):
                     CM = "Duplication"
+                elif CM.startswith("TD"):
+                    CM = "(Tandem)Duplication"
                 elif CM.startswith("INV"):
                     CM = "Inversion"
                 elif CM.startswith("DN_INS"):

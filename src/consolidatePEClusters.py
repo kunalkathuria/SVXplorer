@@ -1055,6 +1055,12 @@ def consolidatePEClusters(workDir, statFile, clusterFile,
                 clusterC.lTID == clusterC.rTID and \
                 not clusterC.isSmall:
                 newSimpleSV.SVType = "DEL"
+            elif clusterC.l_orient == 0 and clusterC.r_orient ==1 and \
+                clusterC.lTID == clusterC.rTID and \
+                clusterC.l_start < clusterC.r_start and \
+                clusterC.isSmall:
+                #this indicates an insertion, but not necessarily de novo; written as BND later    
+                newSimpleSV.SVType = "DN_INS_S"
             elif clusterC.lTID != clusterC.rTID and clusterC.l_orient == 0 and \
                 clusterC.r_orient == 1:
                 newSimpleSV.SVType = "INS_halfFR"
