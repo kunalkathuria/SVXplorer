@@ -179,7 +179,7 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", BNDAlt2, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter) + ";" + GROUPID + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
                 counter+= 1
             elif name == "DN_INS":
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INS>",".","PASS", "SVTYPE=INS;CIPOS=0," + cipos + ";CM=DE NOVO INS;" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INS>",".","PASS", "SVTYPE=INS;CIPOS=0," + cipos + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name == "DEL":
                 print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name == "TD" or name == "TD_INV":
