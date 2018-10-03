@@ -72,6 +72,7 @@ def readBamStats(statFile):
 def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, 
         GOOD_REG_THRESH, outerBPs, MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH, isTD):
     global covHash
+    COV_REJ_FACTOR = 20
     MIN_BP_SPAN = 80
     bin_size_loc, largeDupBinThresh, TD_SIZE_SUSPECT_BOUND = 20,.5, 100000
     MIN_NBINS_LOC=40 #min((PILEUP_THRESH/bin_size_loc) - 10,40)
@@ -119,9 +120,15 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     covLoc,covLocNH, counter, counterNH, confRegion, gbCount, bCountNH, covLocG, \
         covBinLoc, refLoopLoc = 0,0,0,0,0,0,0,0,0,0
     covListLoc = []
+    rejRegion = 0
     if stop > start:
         for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
             puVal = pileupcolumn.n
+            #if region is too busy, do not trust it at all
+            if puVal > COV_REJ_FACTOR * covHash[chr_n]:
+                covLoc, covLocNH, counter, counterNH = 0,0,0,0
+                rejRegion = 1
+                break
             covLocNH+= puVal
             counterNH+=1
             
@@ -165,19 +172,21 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     break
         logging.debug("CounterNH, covLocNH 1: %s, %s", counterNH, covLocNH)
 
-        # pile-up does not step through loop if no portion of reads lies in variant region
+        # pile-up does not step through loop if no reads lie at any point in variant region
         counterNH = 0
         counter = 0
-        for x in range(int(start), int(stop)):
-            if (NH_REGIONS_FILE is not None and \
-                (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x])) and \
-                (chr_n,x) not in MQ0_Set:
-                counter+=1
-            counterNH+=1
-            if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
-                break
-            if counter > PILEUP_THRESH:
-                break
+        if rejRegion == 0:
+            for x in range(int(start), int(stop)):
+                if (NH_REGIONS_FILE is not None and \
+                    (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x])) and \
+                    (chr_n,x) not in MQ0_Set:
+                    counter+=1
+                counterNH+=1
+                if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
+                    break
+                if counter > PILEUP_THRESH:
+                    break
+        rejRegion = 0
 
         # add sides also 
         gbCount, bCountNH = counter, counterNH
@@ -189,6 +198,11 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                 # we wish to avoid adding coverage from boundaries, especially if it's not a good region 
                 # but also need more stats/evidence if counterNH doesn't have many bases from good region
                 puVal = pileupcolumn.n
+                #if region is too busy, do not trust it at all
+                if puVal > COV_REJ_FACTOR * covHash[chr_n]:
+                    covLoc, covLocNH, counter, counterNH = 0,0,0,0
+                    rejRegion = 1
+                    break
                 covLocNH+= puVal
                 counterNH+=1
                 
@@ -230,16 +244,19 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             logging.debug("counterNH, covLocNH 2a: %s, %s", counterNH, covLocNH)
             # pile-up does not step through loop if no portion of reads lies in variant region
             counter, counterNH = 0,0
-            for x in range(int(start), int(stop)):
-                if (NH_REGIONS_FILE is not None and \
-                    (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x])) and \
-                    (chr_n,x) not in MQ0_Set:
-                    counter+=1         
-                counterNH+=1
-                if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
-                    break
-                if counter > PILEUP_THRESH:
-                    break
+            if rejRegion == 0:
+                for x in range(int(start), int(stop)):
+                    if (NH_REGIONS_FILE is not None and \
+                        (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x])) and \
+                        (chr_n,x) not in MQ0_Set:
+                        counter+=1         
+                    counterNH+=1
+                    if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
+                        break
+                    if counter > PILEUP_THRESH:
+                        break
+            rejRegion = 0
+
             logging.debug("counterNH, covLocNH 2b: %s, %s", counterNH, covLocNH)
             gbCount+= counter
             bCountNH+= counterNH
@@ -249,6 +266,11 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             logging.debug("Start, stop 3:%s, %s", start, stop)
             for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
                 puVal = pileupcolumn.n
+                #if region is too busy, do not trust it at all
+                if puVal > COV_REJ_FACTOR * covHash[chr_n]:
+                    covLoc, covLocNH, counter, counterNH = 0,0,0,0
+                    rejRegion = 1
+                    break
                 covLocNH+=puVal
                 counterNH+=1
                 
@@ -289,16 +311,17 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             logging.debug("counterNH, covLocNH 3a: %s, %s", counterNH, covLocNH)
             # pile-up does not step through loop if no portion of reads lies in variant region
             counter, counterNH = 0,0
-            for x in range(int(start), int(stop)):
-                if (NH_REGIONS_FILE is not None and \
-                    (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x])) and \
-                    (chr_n,x) not in MQ0_Set:
-                    counter+=1         
-                counterNH+=1
-                if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
-                    break
-                if counter > PILEUP_THRESH:
-                    break
+            if rejRegion == 0:
+                for x in range(int(start), int(stop)):
+                    if (NH_REGIONS_FILE is not None and \
+                        (chr_n in chrHash and x < len(chrHash[chr_n]) and chrHash[chr_n][x])) and \
+                        (chr_n,x) not in MQ0_Set:
+                        counter+=1         
+                    counterNH+=1
+                    if NH_REGIONS_FILE is None and counterNH > PILEUP_THRESH:
+                        break
+                    if counter > PILEUP_THRESH:
+                        break
             gbCount+= counter
             bCountNH+= counterNH
             logging.debug("counterNH, covLocNH 3b: %s, %s", counterNH, covLocNH)
