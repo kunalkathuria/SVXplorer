@@ -76,9 +76,10 @@ def formExcludeHash(chrHash, ignoreBuffer, ignoreBED, lengths):
     for line in fo:
         line_s = line.split()
         currentTID = line_s[0]
-        if currentTID not in chrHash:
+        if currentTID not in chrHash and currentTID in lengths:
             chrHash[currentTID] = np.zeros(lengths[currentTID])
-        chrHash[currentTID][int(line_s[1])-ignoreBuffer:int(line_s[2])+ignoreBuffer] = 1
+        if currentTID in chrHash:
+            chrHash[currentTID][int(line_s[1])-ignoreBuffer:int(line_s[2])+ignoreBuffer] = 1
     fo.close()
     return chrHash
 
