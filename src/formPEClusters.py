@@ -11,6 +11,10 @@ from sklearn.cluster import KMeans
 IL_BinDistHash = {}
 #margin to increase max_cluster_length due to split reads affecting insert size
 SR_GRACE_MARGIN = 40
+# subsampling routine variables
+block_gap_thresh = 25
+block_thresh = 20 # no more than 20 almts processed within a slop of 25
+block_hash = {}
 
 class fragment(object):
     def __init__(self):
@@ -393,11 +397,6 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
     rdl, mean_IL, disc_thresh, dist_penalty, dist_end = readBamStats(statFile)
     max_cluster_length = mean_IL + disc_enhancer*disc_thresh - 2*rdl + SR_GRACE_MARGIN
     logging.info('max_cluster_length is %f', max_cluster_length)
-
-    # subsampling routine variables -- should be rarely required if at all
-    block_gap_thresh = 25
-    block_thresh = 3*min_cluster_size
-    block_hash = {}
 
     edge_weight_thresh = 0.00
     global IL_BinDistHash
