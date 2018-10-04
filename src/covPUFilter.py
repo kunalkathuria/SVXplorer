@@ -80,7 +80,9 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     if chr_n not in covHash:
         logging.debug("Calculating coverage for %s", chr_n)
         counterBase, refLoop, cov_100bp, totalCov = 0,0,0,0
-        covList = []
+        MAX_ARRAY_SIZE = 2*CALC_THRESH/bin_size
+        covList = np.empty((MAX_ARRAY_SIZE,))
+        covListCounter = 0
         for pileupcolumn in fBAM.pileup(chr_n, stepper="all"):
             if NH_REGIONS_FILE is None or \
             (chr_n in chrHash and pileupcolumn.pos < len(chrHash[chr_n]) and chrHash[chr_n][pileupcolumn.pos]):
@@ -90,15 +92,16 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                 refLoop += 1
                 if refLoop == bin_size:
                     #logging.debug("Covg for chr %s in bin %s: %s", chr_n, 1 + len(covList), cov_100bp)  
-                    covList.append(1.0*cov_100bp/refLoop)
+                    covList[covListCounter] = 1.0*cov_100bp/refLoop
+                    covListCounter+=1
                     cov_100bp, refLoop = 0,0
                 if counterBase > CALC_THRESH:
                     break
-        if len(covList) > 0:
+        if covList.size > 0:
             #logging.debug("100bp cvg list: %s", covList)
             avgCov = 1.0*totalCov/counterBase
-            covListS = sorted(covList)
-            covHash[chr_n] = covListS[len(covListS)/2] #avgCov
+            covList.sort()
+            covHash[chr_n] = covList[covList.size/2] #avgCov
             #change to debug when test done
             logging.debug("Median coverage of Chr %s written as %f; average was %f",
                           chr_n, covHash[chr_n], avgCov)
@@ -118,10 +121,12 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     start = .25*gap + bpFirstL
     stop = min(start+.5*gap,start +3*PILEUP_THRESH)
     covLoc,covLocNH, counter, counterNH, confRegion, gbCount, bCountNH, covLocG, \
-        covBinLoc, refLoopLoc = 0,0,0,0,0,0,0,0,0,0
-    covListLoc = []
+        covBinLoc, refLoopLoc, covListLocCounter = 0,0,0,0,0,0,0,0,0,0,0
+    MAX_TD_SIZE = 2000000
+    MAX_ARRAY_SIZE = 2*MAX_TD_SIZE/bin_size_loc
+    covListLoc = np.empty((MAX_ARRAY_SIZE,))
     rejRegion = 0
-    if stop > start:
+    if stop > start and ((not isTD) or (stop - start < MAX_TD_SIZE)):
         for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
             puVal = pileupcolumn.n
             #if region is too busy, do not trust it at all
@@ -163,9 +168,10 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
 
                 if isTD == 1 and refLoopLoc == bin_size_loc and \
                     bpSecond - bpFirst > TD_SIZE_SUSPECT_BOUND:
-                    #logging.debug("Covg for chr %s in bin %s: %s", chr_n, 1 + len(covList), cov_100bp)  
+                    #logging.debug("Covg for chr %s in bin %s: %s", chr_n, 1 + len(covListLoc), cov_100bp)  
                     logging.debug("Appending %s to covBinLoc", 1.0*covBinLoc/refLoopLoc)
-                    covListLoc.append(1.0*covBinLoc/refLoopLoc)
+                    covListLoc[covListLocCounter] = 1.0*covBinLoc/refLoopLoc
+                    covListLocCounter+=1
                     covBinLoc, refLoopLoc = 0,0
 
                 if counter > PILEUP_THRESH:
@@ -236,7 +242,8 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     if isTD == 1 and refLoopLoc == bin_size_loc and \
                         bpSecond - bpFirst > TD_SIZE_SUSPECT_BOUND:
                         logging.debug("Appending %s to covBinLoc", 1.0*covBinLoc/refLoopLoc)
-                        covListLoc.append(1.0*covBinLoc/refLoopLoc)
+                        covListLoc[covListLocCounter] = 1.0*covBinLoc/refLoopLoc
+                        covListLocCounter+=1
                         covBinLoc, refLoopLoc = 0,0
                     if counter > PILEUP_THRESH:
                         break
@@ -304,7 +311,8 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     if isTD == 1 and refLoopLoc == bin_size_loc and \
                         bpSecond - bpFirst > TD_SIZE_SUSPECT_BOUND:
                         logging.debug("Appending %s to covBinLoc", 1.0*covBinLoc/refLoopLoc)
-                        covListLoc.append(1.0*covBinLoc/refLoopLoc)
+                        covListLoc[covListLocCounter] = 1.0*covBinLoc/refLoopLoc
+                        covListLocCounter+=1
                         covBinLoc, refLoopLoc = 0,0
                     if counter > PILEUP_THRESH:
                         break
@@ -342,16 +350,16 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     if covHash[chr_n] != 0:
         largeDupRet, threshIndex = 0,0
         if isTD == 1 and bpSecond - bpFirst > TD_SIZE_SUSPECT_BOUND and \
-            len(covListLoc) > MIN_NBINS_LOC:
+            covListLoc.size > MIN_NBINS_LOC:
             covListLoc.sort()
             for k,val in enumerate(covListLoc):
                 if 1.*val/covHash[chr_n] > DUP_THRESH_S:
                     break
             threshIndex = k
             largeDupRet = 1
-            if 1.*threshIndex/len(covListLoc) < largeDupBinThresh:
+            if 1.*threshIndex/covListLoc.size < largeDupBinThresh:
                 largeDupRet = 2
-        logging.debug("largeDupRet, threshIndex, lenCovListLoc: %s, %s, %s", largeDupRet, threshIndex, len(covListLoc))
+        logging.debug("largeDupRet, threshIndex, lenCovListLoc: %s, %s, %s", largeDupRet, threshIndex, covListLoc.size)
         return 1.0*covLoc/covHash[chr_n], confRegion, largeDupRet
     else:
         return 0, 0,0
