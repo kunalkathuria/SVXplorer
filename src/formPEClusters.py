@@ -316,11 +316,6 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
 
     return clusterNum
 
-def doSubsample(fp):
-    subsample = 0
-    # write special "whether to subsample" routine here if desired
-    return subsample
-
 def runSubsample(almt, block_hash):
     found = 0
     process = 0
@@ -445,11 +440,11 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
 
         #subsample if alignments close, for speed -- should be rarely needed
         if subsample:
-            logging.info('Subsampling since the coverage is extremely high')
             process = 0
             found = 0
             found, process = runSubsample(almt, block_hash)
             if found and not process:
+                logging.debug('Subsampling %s:%s - %s:%s since the coverage is extremely high',almt.lTID,almt.l_bound, almt.rTID,almt.r_bound)
                 continue
             elif not found:
                 block_hash[(almt.l_bound, almt.r_bound)] = 1
