@@ -8,6 +8,7 @@ from collections import Counter
 import numpy as np
 import argparse
 import logging
+from bitarray import bitarray
 from shared import readChromosomeLengths
 
 # global variables
@@ -16,7 +17,7 @@ DUP_THRESH_S = 1.15
 DEL_THRESH_S = .85
 INS_COPY_THRESH = 1.1
 INS_CUT_THRESH = .7
-CALC_THRESH = 2000000
+CALC_THRESH = 1000000
 MQT_COV = 5
 chrHash = {}
 covHash = {}
@@ -43,11 +44,11 @@ def formChrHash(NH_REGIONS_FILE, RDL, chrLengths):
         stop = int(line_s[2])+1
         if currentTID not in chrHash:
             prev_stop = -1
-            chrHash[currentTID] = np.zeros(chrLengths[currentTID])
+            chrHash[currentTID] = bitarray(chrLengths[currentTID])
             #bed file is 1-based
-        # make hash table of unreliable regions if greater than RDL (almt would be doubtful there)
+        # mark unreliable regions as 0 if greater than RDL (almt would be doubtful there)
         if prev_stop != -1 and currentTID == prevTID:
-            if start - prev_stop <= RDL:
+            if 0 < start - prev_stop <= RDL:
                 chrHash[currentTID][prev_stop:start] = 1
 
         chrHash[currentTID][start:stop] = 1
@@ -80,7 +81,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     if chr_n not in covHash:
         logging.debug("Calculating coverage for %s", chr_n)
         counterBase, refLoop, cov_100bp, totalCov = 0,0,0,0
-        MAX_ARRAY_SIZE = 2*CALC_THRESH/bin_size
+        MAX_ARRAY_SIZE = int(1.1*CALC_THRESH/bin_size)
         covList = np.empty((MAX_ARRAY_SIZE,))
         covListCounter = 0
         for pileupcolumn in fBAM.pileup(chr_n, stepper="all"):
@@ -117,13 +118,14 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
         bpFirstL = bpFirst
         bpSecondL = bpSecond
 
+    covList = np.empty((1,))
     gap = bpSecondL - bpFirstL
     start = .25*gap + bpFirstL
     stop = min(start+.5*gap,start +3*PILEUP_THRESH)
     covLoc,covLocNH, counter, counterNH, confRegion, gbCount, bCountNH, covLocG, \
         covBinLoc, refLoopLoc, covListLocCounter = 0,0,0,0,0,0,0,0,0,0,0
-    MAX_TD_SIZE = 2000000
-    MAX_ARRAY_SIZE = 2*MAX_TD_SIZE/bin_size_loc
+    MAX_TD_SIZE = 500000
+    MAX_ARRAY_SIZE = int(1.1*MAX_TD_SIZE/bin_size_loc)
     covListLoc = np.empty((MAX_ARRAY_SIZE,))
     rejRegion = 0
     if stop > start and ((not isTD) or (stop - start < MAX_TD_SIZE)):
