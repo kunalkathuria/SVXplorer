@@ -39,7 +39,7 @@ $BWA mem -R '@RG\tID:foo\tSM:bar' -Y -t $threads $REFERENCE $READ1 $READ2 \
 > input.bam
 ```
 
-In addition, a split-alignment file and a file containing all fragments that align discordantly should be provided as input (e.g. samtools view -F 3842 -b -o DISC_OUTPATH BAM). If unsure, scripts are provided in the scripts/ folder to create a discordant-alignment BAM file as well as a split-read BAM file (latter uses a LUMPY script).
+In addition, a split-alignment file and a file containing all fragments that align discordantly should be provided as input (e.g. samtools view -F 3854 -b -o DISC_OUTPATH BAM to exclude discordant reads that have unmapped partners). If unsure, scripts are provided in the scripts/ folder to create an all-inclusive discordant alignment file as well as a split-read alignment file (latter uses a LUMPY script).
 
 All SVXplorer command line options are accessed via ./SVXplorer -h. A file to ignore alignments in certain chromosome/genomic units for B37 (-c) and a file to exclude certain regions of alignment for B37 (-i) are included. 
 
