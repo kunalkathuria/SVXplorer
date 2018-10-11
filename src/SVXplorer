@@ -292,16 +292,20 @@ def processFragments():
 
     # run cluster clean-up
     clusterFile = WORKSPACE + "/allClusters.txt"
+    data = pd.read_table("%s/allClusters.txt" % WORKSPACE,
+                         names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
+                                'rchr', 'rpos', 'rend', 'small'],
+                         dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
+    df = data['lend'] - data['lpos']
+    max_cl_margin = df.max()
+    logging.info('Setting max_cl_comb_gap to %f', max_cl_margin)
+
     if not ARGS.x:
         # sort cluster file by left chr and pos
         clusterFileLS = "%s/allClusters.ls.txt" % WORKSPACE
-        data = pd.read_table("%s/allClusters.txt" % WORKSPACE,
-                             names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
-                                    'rchr', 'rpos', 'rend', 'small'],
-                             dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
         data = data.sort_values(by = ['lchr', 'lpos'])
         data.to_csv(clusterFileLS, header=None, index=None, sep='\t')
-        
+
         markDuplicateClusterRegions(clusterFileLS, WORKSPACE)
         
         # sort and merge bad regions
@@ -377,7 +381,7 @@ def processFragments():
     # 2. allVariants.pe_sr.txt
     addSplitReads(WORKSPACE, variantMapFile, allVariantFile, splitfile,
                   SLOP_SR, REF_RATE_SR, MIN_VS_SR, MQ_SR, ARGS.c,
-                  MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i, ARGS.x)
+                  MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, ARGS.i, ARGS.x, max_cl_margin)
     logging.info("Done incorporating split reads.")
 
     # filter and format these results

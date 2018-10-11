@@ -6,8 +6,8 @@ import pysam
 import sys
 import argparse
 import logging
-
-from shared import formExcludeHash, ignoreRead, readChromosomeLengths
+import gc
+from shared import formExcludeHash, ignoreRead, readChromosomeLengths, countLines
 
 #global variables
 SVHashPE = {}
@@ -74,7 +74,7 @@ def mapSVtoNum(SV_type):
 def formPEHash(fAV, iObjects, slop):
     logging.info('Started reading the PE variants')
     global SVHashPE
-    for line in fAV:
+    for line_num, line in enumerate(fAV):
         line_s = line.split()
         SV_specsPE = PEVarDetails()
         SV_specsPE.num = int(line_s[0])
@@ -88,20 +88,20 @@ def formPEHash(fAV, iObjects, slop):
         SV_specsPE.bp2_2 = int(line_s[7]) + slop
         SV_specsPE.orient = line_s[15]
         # hash all values within bp margin
-        for bp in range(int(line_s[3])-int(slop), int(line_s[4]) + int(slop)):
-            tid1 = line_s[2]
-            tid2 = line_s[5]
-            almt = (tid1, tid2, bp)
-            #immutable hash objects -- preserve so memory doesn't get overwritten
-            iObjects.append(almt)
-            if almt not in SVHashPE:
-                SVHashPE[almt] = SV_specsPE
+        bp = int(line_s[3])
+        tid1 = line_s[2]
+        tid2 = line_s[5]
+        almt = (tid1, tid2, bp)
+        #immutable hash objects -- preserve so memory doesn't get overwritten
+        iObjects[line_num] = almt
+        if almt not in SVHashPE:
+            SVHashPE[almt] = SV_specsPE
     logging.info('Finished reading the PE variants')
     return SV_specsPE.num
 
 def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                   slop, refRate, min_vs, mapThresh, ignoreChr, minSizeINS,
-                  minSRtoPEsupport, ignoreBED, noCCleanUp):
+                  minSRtoPEsupport, ignoreBED, noCCleanUp, maxClusterMargin):
     fAV = open(workDir+"/allVariants.pe.txt","r")
     fVM = open(workDir+"/variantMap.pe.txt","r")
     fAVN = open(workDir+"/allVariants.pe_sr.txt","w")
@@ -110,7 +110,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     global SVHashPE
     SRVarHash = {}
     # preserve list of complex hash objects
-    immutable_objects = []
+    MAX_ARRAY_SIZE = countLines(workDir+"/allVariants.pe.txt")
+    immutable_objects = [None]*MAX_ARRAY_SIZE
 
     # save the PE variants
     headerAV = fAV.readline()
@@ -126,6 +127,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     bp1TID = -1
     bp2Prev = -1
     bp2TID = -1
+    ins_slop = 30
 
     ignoreList = set()
     ignoreTIDAll = set()
@@ -147,6 +149,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         logging.info("Regions in %s will be ignored", ignoreBED)
         chrHash = formExcludeHash(chrHash, 0, ignoreBED, chromosome_lengths)
     # all split reads should be mapped, unique alignments
+    counterSR = 0
     while True:
         try:
             sr1 = bamfile.next()
@@ -160,6 +163,9 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
             sr_bp2 = sr2.reference_start
             sr_bp1_tid = sr1.reference_name
             sr_bp2_tid = sr2.reference_name
+            counterSR+=1
+            if counterSR % 10000 == 0:
+                logging.debug("Processed %s SRs", counterSR)
 
             # ignore marked chromosomes
             if sr1.reference_name in ignoreList or \
@@ -223,28 +229,45 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
 
         ## CHECK CURRENT SR ALMT AGAINST EXISTING PE VARIANTS FOR MATCH
         match = 0
-        newAlmt = (sr_bp1_tid, sr_bp2_tid, sr_bp1)
-        if newAlmt in SVHashPE and (SVHashPE[newAlmt].bp2_1 < sr_bp2 < SVHashPE[newAlmt].bp2_2):
-            varNumPE = SVHashPE[newAlmt].num
-            varType = SVHashPE[newAlmt].typeSV
+        peFound = False
+        for x in range(sr_bp1,sr_bp1 + maxClusterMargin):
+            searchAlmt = (sr_bp1_tid, sr_bp2_tid, x)
+            if searchAlmt in SVHashPE and \
+                ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
+                (SVHashPE[searchAlmt].bp3_1 < sr_bp2 < SVHashPE[searchAlmt].bp3_2)):
+                peFound = True
+                break
+        if peFound and (SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2): 
+            varNumPE = SVHashPE[searchAlmt].num
+            varType = SVHashPE[searchAlmt].typeSV
             if varNumPE not in SRtoPESuppBPs:
                 newBp = [sr_bp1, sr_bp2, -1, -1]
-        elif newAlmt in SVHashPE and (SVHashPE[newAlmt].bp3_1 < sr_bp2 < SVHashPE[newAlmt].bp3_2):
-            varNumPE = SVHashPE[newAlmt].num
-            varType = SVHashPE[newAlmt].typeSV
+        elif peFound and (SVHashPE[searchAlmt].bp3_1 < sr_bp2 < SVHashPE[searchAlmt].bp3_2):
+
+            varNumPE = SVHashPE[searchAlmt].num
+            varType = SVHashPE[searchAlmt].typeSV
             if varNumPE not in SRtoPESuppBPs:
                 newBp = [sr_bp1, -1, sr_bp2, -1]
         # if not found, try other side of SR
         else:
-            newAlmt = (sr_bp2_tid, sr_bp1_tid, sr_bp2)
-            if newAlmt in SVHashPE and (SVHashPE[newAlmt].bp2_1 < sr_bp1 < SVHashPE[newAlmt].bp2_2):
-                varNumPE = SVHashPE[newAlmt].num
-                varType = SVHashPE[newAlmt].typeSV
+            #should be unset anyway
+            peFound = False
+            for x in range(sr_bp2,sr_bp2 + maxClusterMargin):
+                searchAlmt = (sr_bp2_tid, sr_bp1_tid, x)
+                if searchAlmt in SVHashPE and \
+                    ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
+                    (SVHashPE[searchAlmt].bp3_1 < sr_bp2 < SVHashPE[searchAlmt].bp3_2)):
+                    peFound = True
+                    break
+
+            if searchAlmt in SVHashPE and (SVHashPE[searchAlmt].bp2_1 < sr_bp1 < SVHashPE[searchAlmt].bp2_2):
+                varNumPE = SVHashPE[searchAlmt].num
+                varType = SVHashPE[searchAlmt].typeSV
                 if varNumPE not in SRtoPESuppBPs:
                     newBp = [sr_bp2, sr_bp1, -1, -1]
-            elif newAlmt in SVHashPE and (SVHashPE[newAlmt].bp3_1 < sr_bp1 < SVHashPE[newAlmt].bp3_2):
-                varNumPE = SVHashPE[newAlmt].num
-                varType = SVHashPE[newAlmt].typeSV
+            elif searchAlmt in SVHashPE and (SVHashPE[searchAlmt].bp3_1 < sr_bp1 < SVHashPE[searchAlmt].bp3_2):
+                varNumPE = SVHashPE[searchAlmt].num
+                varType = SVHashPE[searchAlmt].typeSV
                 if varNumPE not in SRtoPESuppBPs:
                     newBp = [sr_bp2, -1, sr_bp1, -1]
 
@@ -258,8 +281,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         elif varType == 2 and swap==0 and minsr.is_reverse != maxsr.is_reverse:
             match = 1
             # if both ends of inversion confirmed as contiguous with reference
-            if (SVHashPE[newAlmt].orient == "00" and minsr.reference_end > sr_bp1 and maxsr.reference_end > sr_bp2) or \
-               (SVHashPE[newAlmt].orient == "11" and minsr.reference_start < sr_bp1 and maxsr.reference_start < sr_bp2):
+            if (SVHashPE[searchAlmt].orient == "00" and minsr.reference_end > sr_bp1 and maxsr.reference_end > sr_bp2) or \
+               (SVHashPE[searchAlmt].orient == "11" and minsr.reference_start < sr_bp1 and maxsr.reference_start < sr_bp2):
                 newBp[3] = 1                               
         #check INS
         elif (varType in [3,5] and minsr.is_reverse == maxsr.is_reverse) or \
@@ -272,18 +295,18 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
 
                 SRtoPESupp_bp = SRtoPESuppBPs[varNumPE]
                 if SRtoPESuppBPs[varNumPE][2] == -1:
-                    if abs(sr_bp1 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp1 - SRtoPESupp_bp[1]) > 2*slop \
-                        and SVHashPE[newAlmt].bp3_1 < sr_bp1 < SVHashPE[newAlmt].bp3_2:
+                    if abs(sr_bp1 - SRtoPESupp_bp[0]) > ins_slop and abs(sr_bp1 - SRtoPESupp_bp[1]) > ins_slop \
+                        and SVHashPE[searchAlmt].bp3_1 < sr_bp1 < SVHashPE[searchAlmt].bp3_2:
                         SRtoPESuppBPs[varNumPE][2] = sr_bp1
-                    elif abs(sr_bp2 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp2 - SRtoPESupp_bp[1]) > 2*slop and \
-                        SVHashPE[newAlmt].bp3_1 < sr_bp2 < SVHashPE[newAlmt].bp3_2:
+                    elif abs(sr_bp2 - SRtoPESupp_bp[0]) > ins_slop and abs(sr_bp2 - SRtoPESupp_bp[1]) > ins_slop and \
+                        SVHashPE[searchAlmt].bp3_1 < sr_bp2 < SVHashPE[searchAlmt].bp3_2:
                         SRtoPESuppBPs[varNumPE][2] = sr_bp2
                 elif SRtoPESuppBPs[varNumPE][1] == -1:
-                    if abs(sr_bp1 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp1 - SRtoPESupp_bp[2]) > 2*slop \
-                        and SVHashPE[newAlmt].bp2_1 < sr_bp1 < SVHashPE[newAlmt].bp2_2:
+                    if abs(sr_bp1 - SRtoPESupp_bp[0]) > ins_slop and abs(sr_bp1 - SRtoPESupp_bp[2]) > ins_slop \
+                        and SVHashPE[searchAlmt].bp2_1 < sr_bp1 < SVHashPE[searchAlmt].bp2_2:
                         SRtoPESuppBPs[varNumPE][1] = sr_bp1
-                    elif abs(sr_bp2 - SRtoPESupp_bp[0]) > 2*slop and abs(sr_bp2 - SRtoPESupp_bp[2]) > 2*slop and \
-                        SVHashPE[newAlmt].bp2_1 < sr_bp2 < SVHashPE[newAlmt].bp2_2:
+                    elif abs(sr_bp2 - SRtoPESupp_bp[0]) > ins_slop and abs(sr_bp2 - SRtoPESupp_bp[2]) > ins_slop and \
+                        SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2:
                         SRtoPESuppBPs[varNumPE][1] = sr_bp2
 
                 # insertion bp2 should be < bp3
@@ -616,6 +639,25 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 fVMN.write("\n")
 
     bamfile.close()
+
+    #free memory
+    for val in SVHashPE.values():
+        del val
+    for key in SVHashPE:
+        del key
+    del SVHashPE
+    for val in SRVarHash.values():
+        del val
+    for key in SRVarHash:
+        del key
+    del SRVarHash
+    for val in chrHash.values():
+        del val
+    for key in chrHash:
+        del key
+    del chrHash
+    immutable_objects = []
+    gc.collect()
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(description='Add split reads to support existing PE variants and create new SR variants')

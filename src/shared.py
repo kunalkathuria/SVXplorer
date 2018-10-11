@@ -1,5 +1,6 @@
 import numpy as np
 import pysam as ps
+from bitarray import bitarray
 
 def readBamStats(statFile):
     rdl, sd, coverage = -1, -1, -1
@@ -77,9 +78,12 @@ def formExcludeHash(chrHash, ignoreBuffer, ignoreBED, lengths):
         line_s = line.split()
         currentTID = line_s[0]
         if currentTID not in chrHash and currentTID in lengths:
-            chrHash[currentTID] = np.zeros(lengths[currentTID])
+            chrHash[currentTID] = bitarray(lengths[currentTID])
         if currentTID in chrHash:
-            chrHash[currentTID][int(line_s[1])-ignoreBuffer:int(line_s[2])+ignoreBuffer] = 1
+            start = int(line_s[1])-ignoreBuffer
+            stop = int(line_s[2])+ignoreBuffer
+            if stop > start:
+                chrHash[currentTID][start:stop] = 1
     fo.close()
     return chrHash
 
@@ -99,4 +103,11 @@ def ignoreRead(chr_l, loc_l, chr_r, loc_r, chrHash):
         return True
     return False
 
+def countLines(fileName):
+    f= open(fileName)
+    line_num = -1
+    for line_num, _ in enumerate(f):
+        pass
+    f.close()
+    return line_num + 1
 
