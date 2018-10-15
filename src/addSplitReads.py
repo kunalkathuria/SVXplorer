@@ -10,7 +10,6 @@ import gc
 from shared import formExcludeHash, ignoreRead, readChromosomeLengths, countLines
 
 #global variables
-SVHashPE = {}
 detectIntraChrCopyInv = 0
 
 class newSRVar(object):
@@ -108,6 +107,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     fVMN = open(workDir+"/variantMap.pe_sr.txt","w")
     riskINV = True
     global SVHashPE
+    SVHashPE = {}
     SRVarHash = {}
     # preserve list of complex hash objects
     MAX_ARRAY_SIZE = countLines(workDir+"/allVariants.pe.txt")
@@ -641,20 +641,11 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     bamfile.close()
 
     #free memory
-    for val in SVHashPE.values():
-        del val
-    for key in SVHashPE:
-        del key
+    SVHashPE.clear()
     del SVHashPE
-    for val in SRVarHash.values():
-        del val
-    for key in SRVarHash:
-        del key
+    SRVarHash.clear()
     del SRVarHash
-    for val in chrHash.values():
-        del val
-    for key in chrHash:
-        del key
+    chrHash.clear()
     del chrHash
     immutable_objects = []
     gc.collect()

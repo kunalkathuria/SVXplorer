@@ -5,16 +5,15 @@ import pysam
 import networkx as nx
 import argparse as ap
 import logging
+import gc
 from sklearn.cluster import KMeans
 
-#global variables
-IL_BinDistHash = {}
+##global variables
 #margin to increase max_cluster_length due to split reads affecting insert size
 SR_GRACE_MARGIN = 40
 # subsampling routine variables
 block_gap_thresh = 25
 block_thresh = 20 # no more than 20 almts processed within a slop of 25
-block_hash = {}
 
 class fragment(object):
     def __init__(self):
@@ -316,7 +315,8 @@ def writeClusters(fragGraph, fragHash, fCliques, fClusters, fClusterMap,
 
     return clusterNum
 
-def runSubsample(almt, block_hash):
+def runSubsample(almt):
+    global block_hash
     found = 0
     process = 0
     for z in range(almt.l_bound - block_gap_thresh, almt.l_bound + block_gap_thresh):
@@ -395,6 +395,9 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
 
     edge_weight_thresh = 0.00
     global IL_BinDistHash
+    global block_hash
+    IL_BinDistHash = {}
+    block_hash = {}
     fragList = []
     fBin=open(IL_BinFile,"r")
     IL_BinTotalEntries = readDistHash(fBin)
@@ -442,7 +445,7 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
         if subsample:
             process = 0
             found = 0
-            found, process = runSubsample(almt, block_hash)
+            found, process = runSubsample(almt)
             if found and not process:
                 logging.debug('Subsampling %s:%s - %s:%s since the coverage is extremely high',almt.lTID,almt.l_bound, almt.rTID,almt.r_bound)
                 continue
@@ -475,6 +478,17 @@ def formPEClusters(workDir, statFile, IL_BinFile, min_cluster_size,
         fCliques.close()
     fClusters.close()
     fClusterMap.close()
+
+    IL_BinDistHash.clear()
+    del IL_BinDistHash
+    fragHash.clear()
+    del fragHash
+    secCounter.clear()
+    del secCounter
+    block_hash.clear()
+    del block_hash
+
+    gc.collect()
 
 if __name__== "__main__":
     # parse arguments

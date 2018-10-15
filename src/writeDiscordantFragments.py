@@ -8,6 +8,7 @@ import numpy as np
 import pysam as ps
 import logging
 import sys
+import gc
 from shared import formExcludeHash, ignoreRead, readChromosomeLengths
 
 ## we would not recommended changing any of these
@@ -178,6 +179,12 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
 
     if disc_thresh < 0:
         disc_thresh = 3*stdIL
+
+    distHash.clear()
+    del distHash
+    binDistHash.clear()
+    del binDistHash
+    gc.collect()
 
     logging.debug("meanQL, meanIL, stdIL, cov, maxIL, disc_thresh: %f %f %f %f %f %f", meanQL, meanIL, stdIL, cov, maxIL, disc_thresh)
     with open(workDir + "/bamStats.txt", "w") as fp:
@@ -587,6 +594,10 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
                 print >> almtFile, "%s\t%s" %(currentFrag, item)
             currentFrag += 1
         logging.info('Finished reading discordant pairs')
+    
+    chrHash.clear()
+    del chrHash
+    gc.collect()
 
 if __name__ == "__main__":
 

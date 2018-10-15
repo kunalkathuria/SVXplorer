@@ -19,8 +19,6 @@ INS_COPY_THRESH = 1.1
 INS_CUT_THRESH = .7
 CALC_THRESH = 1000000
 MQT_COV = 5
-chrHash = {}
-covHash = {}
 MQ0_Set = set()
 # empirical calculation of DEL_THRESH b/w 15 and 25 stdev of IL
 SD_S = 14
@@ -419,6 +417,8 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     uniqueFilterSVs = set()
     global chrHash
     global covHash
+    chrHash = {}
+    covHash = {}
 
     for line in fUF:
         uniqueFilterSVs.add(int(line))
@@ -688,6 +688,10 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
     fVM.close()
     fUF.close()
     fBAM.close()
+    chrHash.clear()
+    del chrHash
+    covHash.clear()
+    del covHash
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(description='Filter variants based on local coverage in variant regions and write final SVs in BED format')
