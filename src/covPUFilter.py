@@ -43,6 +43,7 @@ def formChrHash(NH_REGIONS_FILE, RDL, chrLengths):
         if currentTID not in chrHash:
             prev_stop = -1
             chrHash[currentTID] = bitarray(chrLengths[currentTID])
+            chrHash[currentTID].setall(0)
             #bed file is 1-based
         # mark unreliable regions as 0 if greater than RDL (almt would be doubtful there)
         if prev_stop != -1 and currentTID == prevTID:

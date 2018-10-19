@@ -79,6 +79,7 @@ def formExcludeHash(chrHash, ignoreBuffer, ignoreBED, lengths):
         currentTID = line_s[0]
         if currentTID not in chrHash and currentTID in lengths:
             chrHash[currentTID] = bitarray(lengths[currentTID])
+            chrHash[currentTID].setall(0)
         if currentTID in chrHash:
             start = int(line_s[1])-ignoreBuffer
             stop = int(line_s[2])+ignoreBuffer
