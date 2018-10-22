@@ -97,7 +97,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
                     cov_100bp, refLoop = 0,0
                 if counterBase > CALC_THRESH:
                     break
-        if covList.size > 0:
+        if counterBase > 0:
             #logging.debug("100bp cvg list: %s", covList)
             avgCov = 1.0*totalCov/counterBase
             covList.sort()
