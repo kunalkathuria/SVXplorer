@@ -35,6 +35,7 @@ class newSRVar(object):
 
 class PEVarDetails(object):
     def __init__(self):
+        self.bp1_2 = -1
         self.bp2_1 = -1
         self.bp2_2 = -1
         self.bp3_1 = -1
@@ -83,6 +84,7 @@ def formPEHash(fAV, iObjects, slop):
         if SV_specsPE.typeSV in [3,4,5,6]:
             SV_specsPE.bp3_1 = int(line_s[9]) - slop
             SV_specsPE.bp3_2 = int(line_s[10]) + slop
+        SV_specsPE.bp1_2 = int(line_s[4])
         SV_specsPE.bp2_1 = int(line_s[6]) - slop
         SV_specsPE.bp2_2 = int(line_s[7]) + slop
         SV_specsPE.orient = line_s[15]
@@ -230,9 +232,9 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         ## CHECK CURRENT SR ALMT AGAINST EXISTING PE VARIANTS FOR MATCH
         match = 0
         peFound = False
-        for x in range(sr_bp1,sr_bp1 + maxClusterMargin):
+        for x in range(sr_bp1, sr_bp1 - maxClusterMargin,-1):
             searchAlmt = (sr_bp1_tid, sr_bp2_tid, x)
-            if searchAlmt in SVHashPE and \
+            if searchAlmt in SVHashPE and sr_bp1 < SVHashPE[searchAlmt].bp1_2 and \
                 ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
                 (SVHashPE[searchAlmt].bp3_1 < sr_bp2 < SVHashPE[searchAlmt].bp3_2)):
                 peFound = True
@@ -252,20 +254,20 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         else:
             #should be unset anyway
             peFound = False
-            for x in range(sr_bp2,sr_bp2 + maxClusterMargin):
+            for x in range(sr_bp2,sr_bp2 - maxClusterMargin,-1):
                 searchAlmt = (sr_bp2_tid, sr_bp1_tid, x)
-                if searchAlmt in SVHashPE and \
+                if searchAlmt in SVHashPE and sr_bp2 < SVHashPE[searchAlmt].bp1_2 and \
                     ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
                     (SVHashPE[searchAlmt].bp3_1 < sr_bp2 < SVHashPE[searchAlmt].bp3_2)):
                     peFound = True
                     break
 
-            if searchAlmt in SVHashPE and (SVHashPE[searchAlmt].bp2_1 < sr_bp1 < SVHashPE[searchAlmt].bp2_2):
+            if peFound and (SVHashPE[searchAlmt].bp2_1 < sr_bp1 < SVHashPE[searchAlmt].bp2_2):
                 varNumPE = SVHashPE[searchAlmt].num
                 varType = SVHashPE[searchAlmt].typeSV
                 if varNumPE not in SRtoPESuppBPs:
                     newBp = [sr_bp2, sr_bp1, -1, -1]
-            elif searchAlmt in SVHashPE and (SVHashPE[searchAlmt].bp3_1 < sr_bp1 < SVHashPE[searchAlmt].bp3_2):
+            elif peFound and (SVHashPE[searchAlmt].bp3_1 < sr_bp1 < SVHashPE[searchAlmt].bp3_2):
                 varNumPE = SVHashPE[searchAlmt].num
                 varType = SVHashPE[searchAlmt].typeSV
                 if varNumPE not in SRtoPESuppBPs:

@@ -471,7 +471,7 @@ if __name__ == '__main__':
     MIN_VS_SR=3
     MQ_SR=10
     MIN_SIZE_INS_SR=30
-    MIN_SRtoPE_SUPP=2
+    MIN_SRtoPE_SUPP=1
 
     # covPUFilter
     DEL_CN_SUPP_THRESH=.8 
