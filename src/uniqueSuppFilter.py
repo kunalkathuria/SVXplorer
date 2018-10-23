@@ -33,7 +33,7 @@ def calculateSVThresh(SVType, SVSupp, complex_thresh, sr_thresh, pe_thresh,
         SVType == "DN_INS_NM" or (SVType.startswith("INV") and NPEClusters == 1):
         #set bnd_thresh = complex_thresh
         disjThresh = complex_thresh
-    elif SVType.startswith("INV") or SVType.find("INS") != -1:
+    elif SVType.startswith("INV") or (SVType.startswith("DN_INS") or SVType.find("INS") != -1):
         disjThresh = complex_thresh
     elif SVSupp.find("PE") == -1 and SVSupp.find("SR") != -1:
         disjThresh = sr_thresh
@@ -81,7 +81,7 @@ def uniquenessFilter(fragmentList, nInputVariants, mqSet, allDiscordantsFile,
                 if nFragOccrns[elem] == 1:
                     disjointness[counter]+=1
                 pickV[counter] = 2
-                #$why didn't break here and avoid next fAV loop?
+                #$why didn't write variant here and avoid next fAV loop?
             #if SR, no secondaries so is above MQ_THRESH automatically
             elif nFragOccrns[elem] == 1 and (elem in mqSet or elem < 0):
                 disjointness[counter]+=1
