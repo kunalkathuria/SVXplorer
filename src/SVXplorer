@@ -430,15 +430,14 @@ if __name__ == '__main__':
     PARSER.add_argument('-l', action='store_true', help='liberal inversion calls: call even if only evidence for one end of inversion seen, as long as both PE,SR support it')
     PARSER.add_argument('-u', action='store_true', help='liberal duplication calls: use user-defined mapping quality instead of 20')
 
+    PARSER.add_argument('--subsample', action='store_true', help='subsample to reduce processing time if very dense alignment regions, e.g. > 10 times cvg, exist in alignment file')
+
     PARSER.add_argument('disc', help='bam file of discordant pairs')
     PARSER.add_argument('split', help='bam file of split reads')
     PARSER.add_argument('samplebam', help='bam file of alignments')
     PARSER.add_argument('reference', help='path to reference genome')
     # $$$ fix pybedtools implementation of merging in cleanup
     #PARSER.add_argument('bedtoolsPath', help='path to bedtools')
-
-    # options we do not expect the user to change
-    PARSER.add_argument('--subsample', action='store_true', help=argparse.SUPPRESS)    
 
     # writeDiscordantFragments
     CALC_THRESH=10000000
