@@ -465,7 +465,7 @@ if __name__ == '__main__':
     RD_FRAG_INDEX=100000000
 
     # addSplitReads
-    SLOP_SR=10
+    SLOP_SR=16
     REF_RATE_SR=0
     MIN_VS_SR=3
     MQ_SR=10
