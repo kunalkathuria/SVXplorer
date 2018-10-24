@@ -107,7 +107,6 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
     fVM = open(workDir+"/variantMap.pe.txt","r")
     fAVN = open(workDir+"/allVariants.pe_sr.txt","w")
     fVMN = open(workDir+"/variantMap.pe_sr.txt","w")
-    riskINV = True
     global SVHashPE
     SVHashPE = {}
     SRVarHash = {}
@@ -198,10 +197,11 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
             else:
                 maxsr = sr1
                 minsr = sr2
+                sr_bp2, sr_bp1 = sr_bp1, sr_bp2
             sr_bp1_tid = minsr.reference_name
             sr_bp2_tid = maxsr.reference_name
             # QAS below refers to the alignment position of split read relative to whole read
-            # swap value accurate for 75% of inversion reads but even if incorrect, used benignly
+            # swap value accurate for 75% of inversion reads but even if incorrect, unused
             if sr_bp1_tid == sr_bp2_tid and minsr.query_alignment_start > maxsr.query_alignment_start:
                 swap = 1
                 if minsr.is_reverse == maxsr.is_reverse:
@@ -209,7 +209,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                     sr_bp1 = minsr.reference_start
                     sr_bp2 = maxsr.reference_end
                 # "risk" not catching some inverted copy-paste insertions but these are few
-                elif riskINV:
+                else:
                     sr_bp1 = minsr.reference_end
                     sr_bp2 = maxsr.reference_end
             # note: query start positions (QAS) of both reads can be 0, which happens in 50% of SRs from INVs
@@ -218,7 +218,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                 if minsr.is_reverse == maxsr.is_reverse:
                     sr_bp1 = minsr.reference_end
                     sr_bp2 = maxsr.reference_start
-                elif riskINV:
+                else:
                     if minsr.is_reverse:
                         sr_bp1 = minsr.reference_start
                         sr_bp2 = maxsr.reference_start
@@ -232,7 +232,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         ## CHECK CURRENT SR ALMT AGAINST EXISTING PE VARIANTS FOR MATCH
         match = 0
         peFound = False
-        for x in range(sr_bp1, sr_bp1 - maxClusterMargin,-1):
+        for x in range(sr_bp1 + 1, sr_bp1 - maxClusterMargin - slop,-1):
             searchAlmt = (sr_bp1_tid, sr_bp2_tid, x)
             if searchAlmt in SVHashPE and sr_bp1 < SVHashPE[searchAlmt].bp1_2 and \
                 ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
@@ -254,7 +254,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         else:
             #should be unset anyway
             peFound = False
-            for x in range(sr_bp2,sr_bp2 - maxClusterMargin,-1):
+            for x in range(sr_bp2 + 1,sr_bp2 - maxClusterMargin - slop,-1):
                 searchAlmt = (sr_bp2_tid, sr_bp1_tid, x)
                 if searchAlmt in SVHashPE and sr_bp2 < SVHashPE[searchAlmt].bp1_2 and \
                     ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
