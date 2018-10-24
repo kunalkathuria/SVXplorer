@@ -232,7 +232,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         ## CHECK CURRENT SR ALMT AGAINST EXISTING PE VARIANTS FOR MATCH
         match = 0
         peFound = False
-        for x in range(sr_bp1 + 1, sr_bp1 - maxClusterMargin - slop,-1):
+        for x in range(sr_bp1 + slop, sr_bp1 - maxClusterMargin - slop,-1):
             searchAlmt = (sr_bp1_tid, sr_bp2_tid, x)
             if searchAlmt in SVHashPE and sr_bp1 < SVHashPE[searchAlmt].bp1_2 and \
                 ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
@@ -254,7 +254,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         else:
             #should be unset anyway
             peFound = False
-            for x in range(sr_bp2 + 1,sr_bp2 - maxClusterMargin - slop,-1):
+            for x in range(sr_bp2 + slop, sr_bp2 - maxClusterMargin - slop,-1):
                 searchAlmt = (sr_bp2_tid, sr_bp1_tid, x)
                 if searchAlmt in SVHashPE and sr_bp2 < SVHashPE[searchAlmt].bp1_2 and \
                     ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
