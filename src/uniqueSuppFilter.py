@@ -33,7 +33,7 @@ def calculateSVThresh(SVType, SVSupp, complex_thresh, sr_thresh, pe_thresh,
         SVType == "DN_INS_NM" or (SVType.startswith("INV") and NPEClusters == 1):
         #set bnd_thresh = complex_thresh
         disjThresh = complex_thresh
-    elif SVType.startswith("INV") or (SVType.startswith("DN_INS") or SVType.find("INS") != -1):
+    elif SVType.startswith("INV") or SVType.startswith("DN_INS") or SVType.startswith("INS"):
         disjThresh = complex_thresh
     elif SVSupp.find("PE") == -1 and SVSupp.find("SR") != -1:
         disjThresh = sr_thresh
