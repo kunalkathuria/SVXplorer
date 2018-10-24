@@ -926,7 +926,7 @@ def compareVariant(cluster1, varList, claimedCls, slop, as_relative_thresh,
         claimedCls.add(cluster1.mapNum)
 
 def consolidatePEClusters(workDir, statFile, clusterFile,
-                          clusterMapFile, slop, refRate, as_relative_thresh, libDup):
+                          clusterMapFile, slop, as_relative_thresh, libDup):
     RDL_Factor=1.2 # default recommended
     fStat = open(statFile,"r")
     RDL = int(fStat.readline().split()[0])
@@ -1118,8 +1118,6 @@ if __name__ == "__main__":
         help='Maximum gap between start position of cluster breakpoints to consider them for matching into 1 variant')
     PARSER.add_argument('-s', default=0,dest='slop', type=int,
         help='Additional slop added to dynamically calculated cluster breakpoint margins, if desired. Default recommended.')
-    PARSER.add_argument('-f', default=5, dest='refRate', type=int,
-        help='Parameter controlling size of buffer variant list in cluster consolidation, optimized for speed.')
     PARSER.add_argument('-a', default=2, dest='as_relative_thresh', type=int,
         help='Threshold of relative alignment score of given alignment to primary alignment of same name\
         --set to less than 1 (.95 recommended) if using secondary almts')
@@ -1133,6 +1131,6 @@ if __name__ == "__main__":
                         format='%(asctime)s %(levelname)s %(message)s',
                         datefmt='%m/%d/%Y %I:%M:%S %p')
 
-    consolidatePEClusters(ARGS.workDir, ARGS.statFile, ARGS.clusterFile, ARGS.clusterMapFile, ARGS.slop, ARGS.refRate, ARGS.as_relative_thresh, False)
+    consolidatePEClusters(ARGS.workDir, ARGS.statFile, ARGS.clusterFile, ARGS.clusterMapFile, ARGS.slop, ARGS.as_relative_thresh, False)
 
     logging.shutdown()

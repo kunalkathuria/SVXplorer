@@ -368,7 +368,7 @@ def processFragments():
     clusterMapFile = "%s/clusterMap.txt" % WORKSPACE
     logging.info("Starting consolidation of PE clusters.")
     consolidatePEClusters(WORKSPACE, statFile, clusterFile, 
-                          clusterMapFile, SLOP_PE, REF_RATE_PE, AS_RELATIVE_THRESH, ARGS.u)
+                          clusterMapFile, SLOP_PE, AS_RELATIVE_THRESH, ARGS.u)
     logging.info("Done with consolidating clusters.")
 
     # filter and format the results
@@ -455,7 +455,6 @@ if __name__ == '__main__':
 
     # consolidatePEClusters
     SLOP_PE=0
-    REF_RATE_PE=5
 
     # uniqueSuppFilter (PE)
     PE_THRESH_MIN=3
