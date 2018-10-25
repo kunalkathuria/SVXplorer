@@ -521,7 +521,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                     lineAV_split[3] = str(SRtoPESuppBPs[varNumPE][0])
                     lineAV_split[4] = str(SRtoPESuppBPs[varNumPE][0] + 1)
                 if len(SRtoPESuppFrags[varNumPE]) >= minSRtoPEsupport and SRtoPESuppBPs[varNumPE][2] == -1:
-                    if int(lineAV_split[6])  - slop < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[7] + slop:
+                    if int(lineAV_split[6])  - slop < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[7]) + slop:
                         lineAV_split[6] = str(SRtoPESuppBPs[varNumPE][1])
                         lineAV_split[7] = str(SRtoPESuppBPs[varNumPE][1] + 1)
                     elif int(lineAV_split[9]) - slop < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[10]) + slop:
