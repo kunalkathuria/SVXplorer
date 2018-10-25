@@ -235,16 +235,16 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         for x in range(sr_bp1 + slop, sr_bp1 - maxClusterMargin - slop,-1):
             searchAlmt = (sr_bp1_tid, sr_bp2_tid, x)
             if searchAlmt in SVHashPE and sr_bp1 < SVHashPE[searchAlmt].bp1_2 and \
-                ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
-                (SVHashPE[searchAlmt].bp3_1 < sr_bp2 < SVHashPE[searchAlmt].bp3_2)):
+                ((SVHashPE[searchAlmt].bp2_1 - slop < sr_bp2 < SVHashPE[searchAlmt].bp2_2 + slop) or \
+                (SVHashPE[searchAlmt].bp3_1 - slop < sr_bp2 < SVHashPE[searchAlmt].bp3_2 + slop)):
                 peFound = True
                 break
-        if peFound and (SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2): 
+        if peFound and (SVHashPE[searchAlmt].bp2_1 - slop < sr_bp2 < SVHashPE[searchAlmt].bp2_2 + slop): 
             varNumPE = SVHashPE[searchAlmt].num
             varType = SVHashPE[searchAlmt].typeSV
             if varNumPE not in SRtoPESuppBPs:
                 newBp = [sr_bp1, sr_bp2, -1, -1]
-        elif peFound and (SVHashPE[searchAlmt].bp3_1 < sr_bp2 < SVHashPE[searchAlmt].bp3_2):
+        elif peFound and (SVHashPE[searchAlmt].bp3_1 - slop < sr_bp2 < SVHashPE[searchAlmt].bp3_2 + slop):
 
             varNumPE = SVHashPE[searchAlmt].num
             varType = SVHashPE[searchAlmt].typeSV
@@ -257,17 +257,17 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
             for x in range(sr_bp2 + slop, sr_bp2 - maxClusterMargin - slop,-1):
                 searchAlmt = (sr_bp2_tid, sr_bp1_tid, x)
                 if searchAlmt in SVHashPE and sr_bp2 < SVHashPE[searchAlmt].bp1_2 and \
-                    ((SVHashPE[searchAlmt].bp2_1 < sr_bp2 < SVHashPE[searchAlmt].bp2_2) or \
-                    (SVHashPE[searchAlmt].bp3_1 < sr_bp2 < SVHashPE[searchAlmt].bp3_2)):
+                    ((SVHashPE[searchAlmt].bp2_1 - slop < sr_bp2 < SVHashPE[searchAlmt].bp2_2 + slop) or \
+                    (SVHashPE[searchAlmt].bp3_1 - slop < sr_bp2 < SVHashPE[searchAlmt].bp3_2 + slop)):
                     peFound = True
                     break
 
-            if peFound and (SVHashPE[searchAlmt].bp2_1 < sr_bp1 < SVHashPE[searchAlmt].bp2_2):
+            if peFound and (SVHashPE[searchAlmt].bp2_1 - slop < sr_bp1 < SVHashPE[searchAlmt].bp2_2 + slop):
                 varNumPE = SVHashPE[searchAlmt].num
                 varType = SVHashPE[searchAlmt].typeSV
                 if varNumPE not in SRtoPESuppBPs:
                     newBp = [sr_bp2, sr_bp1, -1, -1]
-            elif peFound and (SVHashPE[searchAlmt].bp3_1 < sr_bp1 < SVHashPE[searchAlmt].bp3_2):
+            elif peFound and (SVHashPE[searchAlmt].bp3_1 - slop < sr_bp1 < SVHashPE[searchAlmt].bp3_2 + slop):
                 varNumPE = SVHashPE[searchAlmt].num
                 varType = SVHashPE[searchAlmt].typeSV
                 if varNumPE not in SRtoPESuppBPs:
@@ -516,14 +516,15 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
         for lineAV in fAV:
             lineAV_split = lineAV.split()
             if varNumPE in SRtoPESuppBPs:
-                lineAV_split[11] = lineAV_split[11] + "_SR"
-                lineAV_split[3] = str(SRtoPESuppBPs[varNumPE][0])
-                lineAV_split[4] = str(SRtoPESuppBPs[varNumPE][0] + 1)
+                if len(SRtoPESuppFrags[varNumPE]) >= minSRtoPEsupport:
+                    lineAV_split[11] = lineAV_split[11] + "_SR"
+                    lineAV_split[3] = str(SRtoPESuppBPs[varNumPE][0])
+                    lineAV_split[4] = str(SRtoPESuppBPs[varNumPE][0] + 1)
                 if len(SRtoPESuppFrags[varNumPE]) >= minSRtoPEsupport and SRtoPESuppBPs[varNumPE][2] == -1:
-                    if int(lineAV_split[6]) < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[7]):
+                    if int(lineAV_split[6])  - slop < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[7] + slop:
                         lineAV_split[6] = str(SRtoPESuppBPs[varNumPE][1])
                         lineAV_split[7] = str(SRtoPESuppBPs[varNumPE][1] + 1)
-                    elif int(lineAV_split[9]) < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[10]):
+                    elif int(lineAV_split[9]) - slop < SRtoPESuppBPs[varNumPE][1] < int(lineAV_split[10]) + slop:
                         lineAV_split[9] = str(SRtoPESuppBPs[varNumPE][1])
                         lineAV_split[10] = str(SRtoPESuppBPs[varNumPE][1] + 1)
                     if (lineAV_split[1] == "DEL" or lineAV_split[1] == "TD" or lineAV_split[1] == "INV") \
