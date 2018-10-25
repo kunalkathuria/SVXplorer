@@ -474,7 +474,7 @@ if __name__ == '__main__':
     # covPUFilter
     DEL_CN_SUPP_THRESH=.8 
     DUP_CN_SUPP_THRESH=1.15
-    PILEUP_THRESH=1000.0
+    PILEUP_THRESH=750.0
     GOOD_REG_THRESH=.8
     SPLIT_INS=False
     #setting to false as this may be risky for diploid variants like cut-paste and del in same region
