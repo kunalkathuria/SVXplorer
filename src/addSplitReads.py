@@ -582,14 +582,14 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         if SRVarHash[SRVarMate].isOriginal == 1:
                             origSV = SRVarMate
 
-                # if not chosen still, pick the original one among all neighbors
-                if chosenVar[2] == -1:
-                    chosenVar = origSV
-                    SRVarHash[chosenVar].write = 1
-                SRVarHash[chosenVar].support = \
-                   SRVarHash[chosenVar].support + list(set(neighborSupport) - \
-                   set(SRVarHash[chosenVar].support))
-                SRVarHash[chosenVar].count = len(SRVarHash[chosenVar].support)
+                    # if not chosen still, pick the original one among all neighbors
+                    if chosenVar[2] == -1:
+                        chosenVar = origSV
+                        SRVarHash[chosenVar].write = 1
+                    SRVarHash[chosenVar].support = \
+                       SRVarHash[chosenVar].support + list(set(neighborSupport) - \
+                       set(SRVarHash[chosenVar].support))
+                    SRVarHash[chosenVar].count = len(SRVarHash[chosenVar].support)
 
             if SRVarHash[SRVar].write == 1 and SRVarHash[SRVar].count >= min_vs:
                 k+=1
