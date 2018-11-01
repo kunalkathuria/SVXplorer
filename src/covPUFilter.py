@@ -347,7 +347,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             logging.debug("NH used. confNH, covLocNH: %s, %s", confRegion, covLoc)
 
     logging.debug("NH bases found, covNH final: %s, %s", bCountNH, covLocNH/(.01+bCountNH))
-    logging.debug("Good bases found, covGood final, conf, chr cov: %s, %s, %s, %s", gbCount, confRegion, covLocG/(.01+gbCount), covHash[chr_n])
+    logging.debug("Good bases found, confirmation, covGood final, chr cov: %s, %s, %s, %s", gbCount, confRegion, covLocG/(.01+gbCount), covHash[chr_n])
     if covHash[chr_n] != 0:
         largeDupRet, threshIndex = 0,0
         if isTD == 1 and bpSecond - bpFirst > TD_SIZE_SUSPECT_BOUND and \
