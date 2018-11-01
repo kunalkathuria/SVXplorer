@@ -17,7 +17,7 @@ DUP_THRESH_S = 1.15
 DEL_THRESH_S = .85
 INS_COPY_THRESH = 1.1
 INS_CUT_THRESH = .7
-CALC_THRESH = 1000000
+CALC_THRESH = 2000000
 MQT_COV = 5
 MQ0_Set = set()
 # empirical calculation of DEL_THRESH b/w 15 and 25 stdev of IL
