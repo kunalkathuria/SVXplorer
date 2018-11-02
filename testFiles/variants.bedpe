@@ -1,3 +1,4 @@
 chr1	start1	stop1	chr2	start2	stop2	nameID	score	strand1	strand2	SVType	SupportedBy	confPos	confEnd	Inverted	GT	NSupport	BNDTag	SVSubtype	N_PE	N_SR	N_PE_Cl	BNDAlt1	BNDAlt2	GROUPID	covLocRejection
-chr20	3658	3841	chr20	5462	5463	SV0	.	.	.	INS	PE_SR	.	.	.	.	80	0	.	55	25	2	.	.	G0	1.77904888545
-chr20	2280	2281	chr20	2460	2461	SV1	.	.	.	DEL	PE_SR	.	.	.	GT:1/1	32	0	.	25	7	1	.	.	.	0.0
+chr20	3618	3881	chr20	5442	5479	SV0	.	.	.	INS	PE	.	.	.	.	55	0	.	55	0	2	.	.	G0	0
+chr20	2280	2281	chr20	2460	2461	SV1	.	.	.	BND	PE_SR	.	.	.	.	32	0	INS_halfFR	25	7	1	N[p[	]p]N	G1	0
+chr20	3658	3841	chr20	5462	5463	SV2	.	.	.	INS	SR	.	.	.	.	24	0	.	0	24	0	.	.	G2	0
