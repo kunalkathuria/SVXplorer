@@ -41,13 +41,13 @@ $BWA mem -R '@RG\tID:foo\tSM:bar' -Y -t $threads $REFERENCE $READ1 $READ2 \
 
 In addition, a split-alignment file and a file containing all fragments that align discordantly should be provided as input (e.g. samtools view -F 3854 -b -o DISC_OUTPATH BAM to exclude discordant reads that have unmapped partners). If unsure, scripts are provided in the scripts/ folder to create an all-inclusive discordant alignment file as well as a split-read alignment file (latter uses a LUMPY script).
 
-All SVXplorer command line options are accessed via ./SVXplorer -h. A file to ignore alignments in certain chromosome/genomic units for B37 (-c) and a file to exclude certain regions of alignment for B37 (-i) are included. 
+All SVXplorer command line options are accessed via ./SVXplorer -h. A file to ignore alignments in certain chromosome/genomic units for B37 (-c) and a file to exclude certain regions of alignment for B37 (-i) are included in the data folder. 
 
 A typical (and recommended) call on sequenced data might be, with appropriate path replacement:
 
 path_to_SVXplorer/bin/SVXplorer discordant.bam splitters.bam sample.bam reference.fa -i exclude.bed -c ignore_CHR.txt -m non_repeat_regions.bed -w pathToWorkingDirectory
 
-Option -m expects a file listing regions not containing frequently repeated sequences, for use in assessing coverage, and SVC provides one.
+Option -m expects a file listing regions not containing frequently repeated sequences, for use in assessing coverage, and SVC provides one in the data folder in zipped form.
 
 ### RESULTS
 
