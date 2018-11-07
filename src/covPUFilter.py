@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # Filter variants based on local coverage in variant regions and write final SVs in BED format
+#PILEUP THRESH should be > 800 and < 10000
 
 from sys import stderr
 import pysam
@@ -123,8 +124,9 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     stop = min(start+.5*gap,start +3*PILEUP_THRESH)
     covLoc,covLocNH, counter, counterNH, confRegion, gbCount, bCountNH, covLocG, \
         covBinLoc, refLoopLoc, covListLocCounter = 0,0,0,0,0,0,0,0,0,0,0
-    MAX_TD_SIZE = 500000
-    MAX_ARRAY_SIZE = int(1.1*MAX_TD_SIZE/bin_size_loc)
+    MAX_TD_SIZE = 1500000
+    MAX_PU_SIZE = 100000
+    MAX_ARRAY_SIZE = int(1.1*MAX_PU_SIZE/bin_size_loc)
     covListLoc = np.empty((MAX_ARRAY_SIZE,))
     rejRegion = 0
     if stop > start and ((not isTD) or (stop - start < MAX_TD_SIZE)):
