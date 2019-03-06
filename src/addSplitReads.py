@@ -226,7 +226,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                         sr_bp1 = minsr.reference_end
                         sr_bp2 = maxsr.reference_end
         else:
-            sys.stderr.write("Please check if split-read file is name-sorted.")
+            sys.stderr.write("Please check if split-read file is name-sorted. Exactly two entries per read name.")
             exit(1)
 
         ## CHECK CURRENT SR ALMT AGAINST EXISTING PE VARIANTS FOR MATCH
