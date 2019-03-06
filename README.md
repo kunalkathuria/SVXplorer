@@ -13,7 +13,7 @@ SVXplorer first forms discordant clusters from paired-end reads via formation of
 
 ### REQUIREMENTS
 
-Unix-based OS with bash, python2 with basic and some other libraries (including pysam, pybedtools, pandas, networkx, bitarray, interlap, scikit-learn). 
+Unix-based OS with bash, python2 with basic and some other libraries (including pysam, pybedtools, pandas, networkx, bitarray, interlap, scikit-learn), "bedtools" command on user path. 
 
 ### INSTALLATION
 
