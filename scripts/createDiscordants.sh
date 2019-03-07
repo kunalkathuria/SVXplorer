@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run as ./createDiscordants.sh BAMFILE OUTPUT_DISC_FILE_PATH
+# run as ./createDiscordants.sh BAMFILE OUTPUT_DISC_FILE_PATH N_THREADS
 BAM=$1
 OUTPATH=$2
 SAMTOOLS=samtools
