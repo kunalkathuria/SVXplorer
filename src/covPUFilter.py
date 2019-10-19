@@ -82,7 +82,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
         logging.debug("Calculating coverage for %s", chr_n)
         counterBase, refLoop, cov_100bp, totalCov = 0,0,0,0
         MAX_ARRAY_SIZE = int(1.1*CALC_THRESH/bin_size)
-        covList = np.empty((MAX_ARRAY_SIZE,))
+        covList = np.empty((MAX_ARRAY_SIZE,),dtype=int)
         covListCounter = 0
         for pileupcolumn in fBAM.pileup(chr_n, stepper="all"):
             if NH_REGIONS_FILE is None or \
@@ -101,6 +101,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
         if counterBase > 0:
             #logging.debug("100bp cvg list: %s", covList)
             avgCov = 1.0*totalCov/counterBase
+            covList = covList[0:covListCounter]
             covList.sort()
             covHash[chr_n] = covList[covList.size/2] #avgCov
             #change to debug when test done
@@ -127,7 +128,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     MAX_TD_SIZE = 1500000
     MAX_PU_SIZE = 100000
     MAX_ARRAY_SIZE = int(1.1*MAX_PU_SIZE/bin_size_loc)
-    covListLoc = np.empty((MAX_ARRAY_SIZE,))
+    covListLoc = np.empty((MAX_ARRAY_SIZE,), dtype=int)
     rejRegion = 0
     if stop > start and ((not isTD) or (stop - start < MAX_TD_SIZE)):
         for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):
@@ -179,9 +180,10 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
 
                 if counter > PILEUP_THRESH:
                     break
-        logging.debug("CounterNH, covLocNH 1: %s, %s", counterNH, covLocNH)
+        logging.debug("CounterNH, covLocNH, rejRegion 1: %s, %s, %s", counterNH, covLocNH, rejRegion)
 
         # pile-up does not step through loop if no reads lie at any point in variant region
+        # we need to account for these bases nevertheless in calculating true coverage
         counterNH = 0
         counter = 0
         if rejRegion == 0:
@@ -350,6 +352,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
 
     logging.debug("NH bases found, covNH final: %s, %s", bCountNH, covLocNH/(.01+bCountNH))
     logging.debug("Good bases found, confirmation, covGood final, chr cov: %s, %s, %s, %s", gbCount, confRegion, covLocG/(.01+gbCount), covHash[chr_n])
+    covListLoc = covListLoc[0:covListLocCounter]
     if covHash[chr_n] != 0:
         largeDupRet, threshIndex = 0,0
         if isTD == 1 and bpSecond - bpFirst > TD_SIZE_SUSPECT_BOUND and \
@@ -475,7 +478,6 @@ def covPUFilter(workDir, avFile, vmFile, ufFile, statFile, bamFile,
                             PILEUP_THRESH, fBAM, chrHash, GOOD_REG_THRESH, [int(lineAV_split[3]), int(lineAV_split[7])],
                             MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH, isTD)
                     covInfo = covLocM
-
                     if svtype.startswith("TD") and lineAV_split[11].find("PE") == -1 and \
                         confMiddle == 1 and ((largeDupRet == 0 and covLocM >= DUP_THRESH_S) \
                         or largeDupRet == 2): 
