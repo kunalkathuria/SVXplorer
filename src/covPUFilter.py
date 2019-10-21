@@ -82,7 +82,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
         logging.debug("Calculating coverage for %s", chr_n)
         counterBase, refLoop, cov_100bp, totalCov = 0,0,0,0
         MAX_ARRAY_SIZE = int(1.1*CALC_THRESH/bin_size)
-        covList = np.empty((MAX_ARRAY_SIZE,),dtype=int)
+        covList = np.empty((MAX_ARRAY_SIZE,))
         covListCounter = 0
         for pileupcolumn in fBAM.pileup(chr_n, stepper="all"):
             if NH_REGIONS_FILE is None or \
@@ -128,7 +128,7 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
     MAX_TD_SIZE = 1500000
     MAX_PU_SIZE = 100000
     MAX_ARRAY_SIZE = int(1.1*MAX_PU_SIZE/bin_size_loc)
-    covListLoc = np.empty((MAX_ARRAY_SIZE,), dtype=int)
+    covListLoc = np.empty((MAX_ARRAY_SIZE,))
     rejRegion = 0
     if stop > start and ((not isTD) or (stop - start < MAX_TD_SIZE)):
         for pileupcolumn in fBAM.pileup(chr_n, start, stop, stepper="all", truncate=True):

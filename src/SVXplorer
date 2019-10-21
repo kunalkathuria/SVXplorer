@@ -39,7 +39,7 @@ def createDiscordants():
     try:
         sortorder = samfile.header['HD']['SO']
     except KeyError:
-        print >> stderr, "Missing headers. Please check if BAM was correctly written."
+        print >> stderr, "Missing headers in discordant BAM file. Please check if BAM was correctly written."
         exit(1)
     samfile.close()
 
@@ -150,9 +150,9 @@ def writeVCFFromBedpe(inputFile, outputFile):
                 chr2="CHR2="+ tokens[3] + ";"
             covRejInfo = ""
             if covInfo > 0 and CM == "INS_halfRF":
-                covRejInfo= ";CR=TD rejected due to relative coverage " + str(covInfo)
+                covRejInfo= ";CR=TD_rejected_due_to_relative_coverage_" + str(covInfo)
             elif covInfo > 0 and CM == "INS_halfFR":
-                covRejInfo= ";CR=DEL rejected due to relative coverage " + str(covInfo)
+                covRejInfo= ";CR=DEL_rejected_due_to_relative_coverage_" + str(covInfo)
             elif covInfo > 0:
                 covRejInfo= ";CINFO=" + str(covInfo)
 
@@ -337,7 +337,7 @@ def processFragments():
     try:
         sortorder = samfile.header['HD']['SO']
     except KeyError:
-        print >> stderr, "Missing headers. Please check if BAM was correctly written."
+        print >> stderr, "Missing headers in split reads BAM. Please check if BAM was correctly written."
         exit(1)
     samfile.close()
 

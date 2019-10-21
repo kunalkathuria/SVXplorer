@@ -257,8 +257,8 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
             for x in range(sr_bp2 + slop, sr_bp2 - maxClusterMargin - slop,-1):
                 searchAlmt = (sr_bp2_tid, sr_bp1_tid, x)
                 if searchAlmt in SVHashPE and sr_bp2 < SVHashPE[searchAlmt].bp1_2 and \
-                    ((SVHashPE[searchAlmt].bp2_1 - slop < sr_bp2 < SVHashPE[searchAlmt].bp2_2 + slop) or \
-                    (SVHashPE[searchAlmt].bp3_1 - slop < sr_bp2 < SVHashPE[searchAlmt].bp3_2 + slop)):
+                    ((SVHashPE[searchAlmt].bp2_1 - slop < sr_bp1 < SVHashPE[searchAlmt].bp2_2 + slop) or \
+                    (SVHashPE[searchAlmt].bp3_1 - slop < sr_bp1 < SVHashPE[searchAlmt].bp3_2 + slop)):
                     peFound = True
                     break
 
