@@ -24,6 +24,9 @@ from markDuplicateClusterRegions import markDuplicateClusterRegions
 from pickBestCluster import pickBestCluster
 from preserveSmallClusters import preserveSmallClusters
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 def createDirectory(name):
     try:
         mkdir(name)

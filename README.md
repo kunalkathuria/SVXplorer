@@ -1,35 +1,56 @@
 # SVXplorer
-A comprehensive-approach structural variant caller making use of PE, SR and read-depth information.
+A structural variant caller that uses discordant read-pairs (PE), split-reads (SR) and read-depth (RD) information.
 
 ### SUMMARY
 
 SVXplorer accepts a BAM file of target as input and outputs a BEDPE file (and an equivalent VCF file) containing deletions (DEL), tandem duplications (TD), inversions (INV), non-tandem-duplications, translocations (see below), novel sequence insertions (DN_INS) and undetermined types tagged as "BND." The variant tags listed in parentheses pertain to the BEDPE file, whereas the VCF file follows VCF 4.3 specifications. The insertions contain 3 breakpoints (1 = source location 1, 2 = source location 2, 3 = paste location) and are tagged as INS (copy-paste insertion/duplication), INS_C_P (cut-paste insertion or translocation that is fully identified), INS_C (cut-paste insertion with ambiguity in 2 of its breakpoints, i.e. source vs paste location) or INS_I (inverted copy-paste insertion) or in the BEDPE file. The BND events contains all variants that are not fully identified, like INS_C, partially supported inversions, non-deletion "FR" clusters, deletions or duplications not supported by local depth of coverage, interchromosomal insertions only containing 2 breakpoints etc. and are indicated as such in the comment/INFO field respectively.
 
-SVXplorer addresses many of the standard limitations in SV detection by its comprehensive 3-tier approach of sequentially using discordant paired-end (PE) alignment, split-read (SR) alignment and read-depth information to capture as many SVs as possible and simultaneously or progressively weeding out poor candidates. Significant attention is given to categorizing alignments, grouping alignments correctly into respective clusters, eliminating cluster “conflict,” consolidating clusters meticulously into variants, integrating PE and SR calls precisely, dynamically calculating PE and SR SV-support thresholds, retaining all clusters and choosing variants based on final support, corroborating SVs using streamlined local read-depth information etc.
+SVXplorer addresses many of the common limitations in SV detection by its comprehensive 3-tier approach of sequentially using discordant paired-end (PE) alignment, split-read (SR) alignment and read-depth information to capture as many SVs as possible and simultaneously or progressively weeding out poor candidates. Significant attention is given to categorizing alignments, grouping alignments correctly into respective clusters, eliminating cluster “conflict,” consolidating clusters meticulously into variants, integrating PE and SR calls precisely, dynamically calculating PE and SR SV-support thresholds, retaining all clusters and choosing variants based on final support, and corroborating SVs using streamlined local read-depth information.
 
 ### METHODOLOGY
 
 SVXplorer first forms discordant clusters from paired-end reads via formation of maximal cliques in a weight-thresholded bidirectional graph and consolidates them further into PE-supported variants. It then integrates split reads and read-depth information to call putative variants, enhancing/filtering out existing variants or identifying new ones along the way. 
 
+### READ-GROUPS
+
+SVXplorer should be run on a BAM file with a single read-group. For datasets with multiple read-groups, we recommend running SVXplorer on every read-group separately. We will add support for consolidation of these results soon. Please follow issue #81 for further details.
+
 ### REQUIREMENTS
 
-Unix-based OS with bash, python2 with basic and some other libraries (including pysam, pybedtools, pandas, networkx, bitarray, interlap, scikit-learn), "bedtools" and "samtools" executables should be on user path. In addition, if a split read file is not available in the typical splitters format (2 entries per query name with 2 distinct, split queries) a script is provided to extract this from the alignment file using LUMPY's extractBwaMem_reads script (https://raw.githubusercontent.com/arq5x/lumpy-sv/master/scripts/extractSplitReads_BwaMem).
+SVXplorer should run on any Unix-based OS with bash, python > 2.6 and libraries as specified in the requirements file. "bedtools" and "samtools" executables should be in the users PATH. In addition, if a split read file is not available in the typical splitters format (2 entries per query name with 2 distinct, split queries) a script is provided to extract this from the alignment file using LUMPY's extractBwaMem_reads script (https://raw.githubusercontent.com/arq5x/lumpy-sv/master/scripts/extractSplitReads_BwaMem).
 
 ### INSTALLATION
 
-Download SVXplorer from GitHub following GitHub instructions. Follow usage instructions below. 
+Download latest SVXplorer release from GitHub and unzip the directory. Alternatively, clone the repository. Then ensure that "samtools" and "bedtools" are in the PATH by running 
+
+```
+which samtools
+which bedtools
+``` 
+
+Then install all the python libraries and install SVXplorer using
+
+```
+cd SVXplorer*
+pip install -r requirements.txt
+make
+```
 
 ### USAGE
 
-Type "make" from the installation path. Now you are ready to run SVXplorer.
+SVXplorer can now be run from the "bin" sub-directory of the installation
 
-./bin/SVXplorer [options]
+```
+./bin/SVXplorer -h
+```
 
-A good check to see if the tool is working properly is to provide as input the test alignment files in the SVXplorer/testCases folder and check if the resulting vcf file found in the newly created "test" folder is identical with the one contained in SVXplorer/testFiles. Simply type:
+will show you all the options available to the user. Then run,
 
+```
 make test
+```
 
-and a message will be printed notifying whether the test was successful.
+to run a simple test-case which will ensure that SVXplorer is running as expected. SVXplorer will run using the test alignment files in the SVXplorer/testCases folder and check if the resulting vcf file found in the newly created "test" folder is identical with the one contained in SVXplorer/testFiles. A message will be printed notifying whether the test was successful.
 
 The input BAM file should be generated and then indexed with BWA (or potentially any aligner). For example, using standard formatting options,
 
