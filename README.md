@@ -17,11 +17,11 @@ SVXplorer should be run on a BAM file with a single read-group. For datasets wit
 
 ### REQUIREMENTS
 
-SVXplorer should run on any Unix-based OS with bash, python > 2.6 and libraries as specified in the requirements file. "bedtools" and "samtools" executables should be in the users PATH. In addition, if a split read file is not available in the typical splitters format (2 entries per query name with 2 distinct, split queries) a script is provided to extract this from the alignment file using LUMPY's extractBwaMem_reads script (https://raw.githubusercontent.com/arq5x/lumpy-sv/master/scripts/extractSplitReads_BwaMem).
+SVXplorer should run on any Unix-based OS with bash, python > 2.6 and libraries as specified in the requirements file. "bedtools" and "samtools" executables should be on the user PATH. In addition, if a split read file is not available in the typical splitters format (2 entries per query name with 2 distinct, split queries) a script is provided to extract this from the alignment file using LUMPY's extractBwaMem_reads script (https://raw.githubusercontent.com/arq5x/lumpy-sv/master/scripts/extractSplitReads_BwaMem).
 
 ### INSTALLATION
 
-Download latest SVXplorer release from GitHub and unzip the directory. Alternatively, clone the repository. Then ensure that "samtools" and "bedtools" are in the PATH by running 
+Download latest SVXplorer release from GitHub and unzip the directory. Alternatively, clone the repository. Then ensure that "samtools" and "bedtools" are on the PATH by running 
 
 ```
 which samtools
@@ -38,13 +38,13 @@ make
 
 ### USAGE
 
-SVXplorer can now be run from the "bin" sub-directory of the installation
+SVXplorer can now be run from the "bin" sub-directory of the installation (which can be added to user path to run it from any directory).
 
 ```
 ./bin/SVXplorer -h
 ```
 
-will show you all the options available to the user. Then run,
+will show all options available to the user. Then run
 
 ```
 make test
