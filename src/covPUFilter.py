@@ -108,8 +108,8 @@ def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fB
             logging.debug("Median coverage of Chr %s written as %f; average was %f",
                           chr_n, covHash[chr_n], avgCov)
         else:
-            logging.debug("Unable to calculate coverage in chromosome %s", chr_n)
-            print >> stderr, "Note: unable to calculate coverage in chromosome", chr_n
+            logging.debug("Unable to calculate coverage reliably in chromosome %s", chr_n)
+            print >> stderr, "Note: unable to calculate coverage reliably in chromosome", chr_n
             covHash[chr_n] = 0
 
     if bpSecond - bpFirst < MIN_BP_SPAN:
