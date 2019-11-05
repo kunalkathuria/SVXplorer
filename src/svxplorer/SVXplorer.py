@@ -23,9 +23,61 @@ from covPUFilter import covPUFilter
 from markDuplicateClusterRegions import markDuplicateClusterRegions
 from pickBestCluster import pickBestCluster
 from preserveSmallClusters import preserveSmallClusters
+from _version import __version__
 
 import warnings
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
+global ARGS, AS_RELATIVE_THRESH, CALC_THRESH, DEL_CN_SUPP_THRESH, DISC_ENHANCER, DUP_CN_SUPP_THRESH, GOOD_REG_THRESH
+global MAP_THRESH, MIN_PE_BPMARGIN, MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, MIN_VS_SR, MQ_SR, NMATCH_PCT_THRESH
+global NMATCH_RELATIVE_THRESH, PE_ALMT_COMB_THRESH, PE_THRESH_MAX, PE_THRESH_MIN, PILEUP_THRESH, PRESERVE_SIZE
+global RD_FRAG_INDEX, REF_RATE_SR, SLOP_PE, SLOP_SR, SPLIT_INS, SR_THRESH_MAX, SR_THRESH_MIN, VERSION, WORKSPACE
+
+# set VERSION
+VERSION = __version__
+
+# writeDiscordantFragments
+CALC_THRESH = 10000000
+MAP_THRESH = 1
+# useful for secondary alignments
+PE_ALMT_COMB_THRESH = 20
+NMATCH_RELATIVE_THRESH = 0
+NMATCH_PCT_THRESH = 0
+AS_RELATIVE_THRESH = 2
+
+# formPEClusters
+DISC_ENHANCER = 1.0
+MIN_PE_BPMARGIN = 20
+PRESERVE_SIZE = 3
+
+# consolidatePEClusters
+SLOP_PE = 0
+
+# uniqueSuppFilter (PE)
+PE_THRESH_MIN = 3
+PE_THRESH_MAX = 6
+SR_THRESH_MIN = 3
+SR_THRESH_MAX = 6
+RD_FRAG_INDEX = 100000000
+
+# addSplitReads
+SLOP_SR = 16
+REF_RATE_SR = 0
+MIN_VS_SR = 3
+MQ_SR = 10
+MIN_SIZE_INS_SR = 30
+MIN_SRtoPE_SUPP = 1
+
+# covPUFilter
+DEL_CN_SUPP_THRESH = .8
+DUP_CN_SUPP_THRESH = 1.15
+PILEUP_THRESH = 1000.0
+GOOD_REG_THRESH = .8
+SPLIT_INS = False
+
+
+# setting to false as this may be risky for diploid variants like cut-paste and del in same region
 
 def createDirectory(name):
     try:
@@ -33,6 +85,7 @@ def createDirectory(name):
     except OSError:
         return None
     return name
+
 
 def createDiscordants():
     logging.info('Started writing the BAM files')
@@ -50,8 +103,8 @@ def createDiscordants():
     if sortorder == 'coordinate':
         discfile = "%s/discordants.ns.bam" % WORKSPACE
         logging.info('Started name sorting the discordant file')
-        pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", "-o", 
-                    discfile, ARGS.disc)
+        pysam.sort("-n", "-O", "bam", "-T", WORKSPACE + "/xxx", "-o",
+                   discfile, ARGS.disc)
         logging.info('Finished name sorting the discordant file')
     else:
         assert sortorder == 'queryname'
@@ -73,9 +126,9 @@ def createDiscordants():
 
     logging.info('Finished writing the BAM files')
 
-def printVCFHeader(f):
 
-    #read sample name
+def printVCFHeader(f):
+    # read sample name
     samfile = pysam.AlignmentFile(ARGS.samplebam, "rb")
     try:
         sampleName = samfile.header['RG'][0]['ID']
@@ -116,20 +169,20 @@ def printVCFHeader(f):
 ##FORMAT=<ID=SR,Number=1,Type=Integer,Description="Number of split reads supporting the variant\">"""
     print >> f, "\t".join(["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sampleName])
 
+
 def writeVCFFromBedpe(inputFile, outputFile):
-    
     """Read the BEDPE and convert to VCF."""
-    with open(inputFile, 'r') as inpt, open(outputFile,'w') as otpt:
+    with open(inputFile, 'r') as inpt, open(outputFile, 'w') as otpt:
         counter = -1
         printVCFHeader(otpt)
         for line in inpt:
-            counter+=1
+            counter += 1
             if counter == 0:
-                #header
+                # header
                 continue
             tokens = line.split()
-            precise=tokens[11].find("SR")
-            support="SUPPORT=" + tokens[16] + ";PE=" + tokens[19] + ";SR=" + tokens[20] + ";"
+            precise = tokens[11].find("SR")
+            support = "SUPPORT=" + tokens[16] + ";PE=" + tokens[19] + ";SR=" + tokens[20] + ";"
             chr1 = tokens[0]
             chr1Start = tokens[1]
             chr1End = tokens[2]
@@ -139,25 +192,25 @@ def writeVCFFromBedpe(inputFile, outputFile):
             bnd = tokens[17]
             CM = tokens[18]
             cl_support = tokens[21]
-            cipos = str(int(chr1End)-int(chr1Start))
+            cipos = str(int(chr1End) - int(chr1Start))
             svlen = str(abs(int(chr2End) - int(chr1Start)))
             covInfo = float(tokens[25])
 
             if precise == -1:
                 precise = "IMPRECISE"
             else:
-                precise="PRECISE"
+                precise = "PRECISE"
 
-            chr2=""
+            chr2 = ""
             if chr1 != chr2:
-                chr2="CHR2="+ tokens[3] + ";"
+                chr2 = "CHR2=" + tokens[3] + ";"
             covRejInfo = ""
             if covInfo > 0 and CM == "INS_halfRF":
-                covRejInfo= ";CR=TD_rejected_due_to_relative_coverage_" + str(covInfo)
+                covRejInfo = ";CR=TD_rejected_due_to_relative_coverage_" + str(covInfo)
             elif covInfo > 0 and CM == "INS_halfFR":
-                covRejInfo= ";CR=DEL_rejected_due_to_relative_coverage_" + str(covInfo)
+                covRejInfo = ";CR=DEL_rejected_due_to_relative_coverage_" + str(covInfo)
             elif covInfo > 0:
-                covRejInfo= ";CINFO=" + str(covInfo)
+                covRejInfo = ";CINFO=" + str(covInfo)
 
             if name == "BND":
                 GROUPID = "GROUPID=" + tokens[24] + ";"
@@ -173,56 +226,100 @@ def writeVCFFromBedpe(inputFile, outputFile):
                     CM = "DeNovoInsertion"
 
                 if tokens[22] != "." and tokens[23] != ".":
-                    BNDAlt1, BNDAlt2 = tokens[22].replace("p", tokens[3] + ":" + chr2End),\
-                    tokens[23].replace("p", chr1 + ":" + chr1Start)
+                    BNDAlt1, BNDAlt2 = tokens[22].replace("p", tokens[3] + ":" + chr2End), \
+                                       tokens[23].replace("p", chr1 + ":" + chr1Start)
                 else:
                     BNDAlt1, BNDAlt2 = ".", "."
-                
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter, "N", BNDAlt1, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter + 1) + ";" + GROUPID + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2End, counter + 1, "N", BNDAlt2, ".","PASS", "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(counter) + ";" + GROUPID + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                counter+= 1
+
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    chr1, chr1Start, counter, "N", BNDAlt1, ".", "PASS",
+                    "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(
+                        counter + 1) + ";" + GROUPID + support + precise + covRejInfo, "GT:SU:PE:SR",
+                    "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    tokens[3], chr2End, counter + 1, "N", BNDAlt2, ".", "PASS",
+                    "SVTYPE=BND;CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;PROBTYPE=" + CM + ";MATEID=" + str(
+                        counter) + ";" + GROUPID + support + precise + covRejInfo, "GT:SU:PE:SR",
+                    "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                counter += 1
             elif name == "DN_INS":
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<INS>",".","PASS", "SVTYPE=INS;CIPOS=0," + cipos + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    chr1, chr1Start, counter, "N", "<INS>", ".", "PASS",
+                    "SVTYPE=INS;CIPOS=0," + cipos + support + precise,
+                    "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name == "DEL":
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<DEL>",".","PASS", "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    chr1, chr1Start, counter, "N", "<DEL>", ".", "PASS",
+                    "SVTYPE=DEL;END=" + chr2End + ";SVLEN=-" + svlen + ";CIPOS=0," + cipos + ";CIEND=-" + cipos + ",0;" + support + precise + covRejInfo,
+                    "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name == "TD" or name == "TD_INV":
-                isinv=""
+                isinv = ""
                 svlen = str(abs(int(chr2Start) - int(chr1End)))
-                if name=="TD_INV":
-                    isinv="ISINV;"
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End,counter,"N", "<DUP:TANDEM>",".","PASS", "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + isinv + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                if name == "TD_INV":
+                    isinv = "ISINV;"
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    chr1, chr1End, counter, "N", "<DUP:TANDEM>", ".", "PASS",
+                    "SVTYPE=DUP;END=" + chr2Start + ";SVLEN=" + svlen + ";CIPOS=-" + cipos + ",0;CIEND=0," + cipos + ";" + isinv + support + precise + covRejInfo,
+                    "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
             elif name == "INV":
                 ciend = int(chr2End) - int(chr2Start)
-                pos = int((int(chr1Start) + int(chr1End))/2.0)
-                end = int((int(chr2Start) + int(chr2End))/2.0)
+                pos = int((int(chr1Start) + int(chr1End)) / 2.0)
+                end = int((int(chr2Start) + int(chr2End)) / 2.0)
                 svlen = str(abs(end - pos))
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, pos, counter,"N", "<INV>",".","PASS", "SVTYPE=INV;END=" + str(end) + ";SVLEN=" + svlen + ";CIPOS=-" + str(int(int(cipos)/2.0)) +"," + str(int(int(cipos)/2.0)) + ";CIEND=-" + str(int(int(ciend)/2.0)) +"," + str(int(int(ciend)/2.0)) + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-            elif name in ["INS","INS_I","INS_C_P","INS_C_I_P"]:
-                GROUPID= "GROUPID=" + tokens[24] + ";"
-                if name in ["INS","INS_I"]:
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    chr1, pos, counter, "N", "<INV>", ".", "PASS",
+                    "SVTYPE=INV;END=" + str(end) + ";SVLEN=" + svlen + ";CIPOS=-" + str(
+                        int(int(cipos) / 2.0)) + "," + str(
+                        int(int(cipos) / 2.0)) + ";CIEND=-" + str(int(int(ciend) / 2.0)) + "," + str(
+                        int(int(ciend) / 2.0)) + ";" + support + precise, "GT:SU:PE:SR",
+                    "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+            elif name in ["INS", "INS_I", "INS_C_P", "INS_C_I_P"]:
+                GROUPID = "GROUPID=" + tokens[24] + ";"
+                if name in ["INS", "INS_I"]:
                     field1 = "DUP"
-                    svlen = str(abs(int(chr1End)-int(chr1Start)))
+                    svlen = str(abs(int(chr1End) - int(chr1Start)))
                     CM = "CopyPasteInsertion"
                 else:
                     field1 = "DEL"
                     CM = "CutPasteInsertion"
-                    svlen = "-" + str(abs(int(chr1End)-int(chr1Start)))
-                cipos = int(chr2End)-int(chr2Start)
-                isinv=""
-                if name=="INS_I":
-                    isinv="ISINV;"
-                 
+                    svlen = "-" + str(abs(int(chr1End) - int(chr1Start)))
+                cipos = int(chr2End) - int(chr2Start)
+                isinv = ""
+                if name == "INS_I":
+                    isinv = "ISINV;"
+
                 BNDAlt1, BNDAlt2 = "N[" + chr1 + ":" + chr1Start + "[", "]" + tokens[3] + ":" + chr2Start + "]N"
                 BNDAlt3, BNDAlt4 = "]" + tokens[3] + ":" + chr2Start + "]N", "N[" + chr1 + ":" + chr1End + "["
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start,counter,"N", "<" + field1 + ">", ".","PASS", "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=-" + str(cipos) +",0;" + GROUPID + isinv + support + precise + covRejInfo, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 1,"N", BNDAlt1,".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";" + GROUPID + "MATEID=" + str(counter + 2) + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1Start, counter + 2,"N", BNDAlt2, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";" + GROUPID + "MATEID=" + str(counter + 1) + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (chr1, chr1End, counter + 3,"N", BNDAlt3, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";" + GROUPID + "MATEID=" + str(counter + 4) + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (tokens[3], chr2Start, counter + 4,"N", BNDAlt4, ".","PASS", "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(cipos) + ";" + GROUPID + "MATEID=" + str(counter + 3) + ";" + support + precise, "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
-                counter+= 4
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    chr1, chr1Start, counter, "N", "<" + field1 + ">", ".", "PASS",
+                    "SVTYPE=" + field1 + ";CM=" + CM + ";END=" + chr1End + ";SVLEN=" + svlen + ";CIPOS=0," + str(
+                        cipos) + ";CIEND=-" + str(cipos) + ",0;" + GROUPID + isinv + support + precise + covRejInfo,
+                    "GT:SU:PE:SR", "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    tokens[3], chr2Start, counter + 1, "N", BNDAlt1, ".", "PASS",
+                    "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(
+                        cipos) + ";" + GROUPID + "MATEID=" + str(counter + 2) + ";" + support + precise, "GT:SU:PE:SR",
+                    "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    chr1, chr1Start, counter + 2, "N", BNDAlt2, ".", "PASS",
+                    "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(
+                        cipos) + ";" + GROUPID + "MATEID=" + str(counter + 1) + ";" + support + precise, "GT:SU:PE:SR",
+                    "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    chr1, chr1End, counter + 3, "N", BNDAlt3, ".", "PASS",
+                    "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(
+                        cipos) + ";" + GROUPID + "MATEID=" + str(counter + 4) + ";" + support + precise, "GT:SU:PE:SR",
+                    "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                print >> otpt, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+                    tokens[3], chr2Start, counter + 4, "N", BNDAlt4, ".", "PASS",
+                    "SVTYPE=BND;CM=" + CM + ";SVLEN=" + svlen + ";CIPOS=0," + str(cipos) + ";CIEND=0," + str(
+                        cipos) + ";" + GROUPID + "MATEID=" + str(counter + 3) + ";" + support + precise, "GT:SU:PE:SR",
+                    "./.:" + tokens[16] + ":" + tokens[19] + ":" + tokens[20])
+                counter += 4
             else:
-                print>>stderr, "Unrecognized SV type"
+                print>> stderr, "Unrecognized SV type"
                 exit(1)
+
 
 def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
     if variantMapFile is not None:
@@ -230,9 +327,9 @@ def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
         # liberal (unfilter=True) or regular version of:
         # 1. variants.uniqueFilter.txt
         uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
-                         "%s/allDiscordants.txt" % WORKSPACE, ARGS.mapQual, 
-                          PE_THRESH_MAX, SR_THRESH_MAX, PE_THRESH_MIN, 
-                          SR_THRESH_MIN, RD_FRAG_INDEX, True)
+                         "%s/allDiscordants.txt" % WORKSPACE, ARGS.mapQual,
+                         PE_THRESH_MAX, SR_THRESH_MAX, PE_THRESH_MIN,
+                         SR_THRESH_MIN, RD_FRAG_INDEX, True)
 
         # write the results. This writes
         # 1. variants.bedpe
@@ -247,9 +344,9 @@ def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
 
         # pick variants: regular version
         uniqueSuppFilter(WORKSPACE, statFile, variantMapFile, allVariantFile,
-                         "%s/allDiscordants.txt" % WORKSPACE, ARGS.mapQual, 
-                          PE_THRESH_MAX, SR_THRESH_MAX, PE_THRESH_MIN, 
-                          SR_THRESH_MIN, RD_FRAG_INDEX, False)
+                         "%s/allDiscordants.txt" % WORKSPACE, ARGS.mapQual,
+                         PE_THRESH_MAX, SR_THRESH_MAX, PE_THRESH_MIN,
+                         SR_THRESH_MIN, RD_FRAG_INDEX, False)
 
     passedFile = "%s/variants.uniqueFilter.txt" % WORKSPACE
     bedpeFile = "%s/variants.%s.bedpe" % (WORKSPACE, midfix)
@@ -257,6 +354,7 @@ def filterAndFormat(variantMapFile, allVariantFile, statFile, midfix):
 
     vcfFile = "%s/variants.%s.vcf" % (WORKSPACE, midfix)
     writeVCFFromBedpe(bedpeFile, vcfFile)
+
 
 def processFragments():
     # create two BAM files, one with read1s and another with read2s from 
@@ -268,20 +366,20 @@ def processFragments():
     readAlmts1 = "%s/aln1s.bam" % WORKSPACE
     readAlmts2 = "%s/aln2s.bam" % WORKSPACE
     writeDiscordantFragments(WORKSPACE, readAlmts1, readAlmts2, ARGS.samplebam,
-                             ARGS.d, ARGS.i, ARGS.c, PE_ALMT_COMB_THRESH, 
+                             ARGS.d, ARGS.i, ARGS.c, PE_ALMT_COMB_THRESH,
                              CALC_THRESH, NMATCH_PCT_THRESH,
-                             NMATCH_RELATIVE_THRESH, AS_RELATIVE_THRESH, 
+                             NMATCH_RELATIVE_THRESH, AS_RELATIVE_THRESH,
                              MAP_THRESH, ARGS.u)
 
     # sort the allDiscordants.us.txt file -> allDiscordants.txt
     logging.info('Started sorting the discordants')
-    data = pd.read_table("%s/allDiscordants.us.txt" % WORKSPACE, 
-                         names=['index', 'lchr', 'lpos', 'rchr', 'rpos', 
+    data = pd.read_table("%s/allDiscordants.us.txt" % WORKSPACE,
+                         names=['index', 'lchr', 'lpos', 'rchr', 'rpos',
                                 'orient', 'small', 'mapq'],
-                         dtype={'index':np.int32, 'lchr':np.str, 'lpos':np.int32,
-                                'rchr':np.str, 'rpos':np.int32, 'orient':np.str,
+                         dtype={'index': np.int32, 'lchr': np.str, 'lpos': np.int32,
+                                'rchr': np.str, 'rpos': np.int32, 'orient': np.str,
                                 'mapq': np.int16})
-    data = data.sort_values(by = ['lchr', 'rchr', 'lpos', 'rpos'])
+    data = data.sort_values(by=['lchr', 'rchr', 'lpos', 'rpos'])
     data.to_csv("%s/allDiscordants.txt" % WORKSPACE, header=None, index=None, sep='\t')
     logging.info('Finished sorting the discordants')
 
@@ -289,16 +387,17 @@ def processFragments():
     # 1. allClusters.txt
     # 2. clusterMap.txt
     # 3. clusterCliques.txt in debug mode 
-    statFile = "%s/bamStats.txt" % WORKSPACE 
+    statFile = "%s/bamStats.txt" % WORKSPACE
     binFile = "%s/binDist.txt" % WORKSPACE
-    formPEClusters(WORKSPACE, statFile, binFile, ARGS.minClusterSize, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.subsample, ARGS.d)
+    formPEClusters(WORKSPACE, statFile, binFile, ARGS.minClusterSize, DISC_ENHANCER, MIN_PE_BPMARGIN, ARGS.subsample,
+                   ARGS.d)
 
     # run cluster clean-up
     clusterFile = WORKSPACE + "/allClusters.txt"
     data = pd.read_table("%s/allClusters.txt" % WORKSPACE,
                          names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
                                 'rchr', 'rpos', 'rend', 'small'],
-                         dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
+                         dtype={'lchr': np.str, 'rchr': np.str, 'orient': np.str})
     df = data['lend'] - data['lpos']
     max_cl_margin = df.max()
     logging.info('Setting max_cl_comb_gap to %f', max_cl_margin)
@@ -306,26 +405,26 @@ def processFragments():
     if not ARGS.x:
         # sort cluster file by left chr and pos
         clusterFileLS = "%s/allClusters.ls.txt" % WORKSPACE
-        data = data.sort_values(by = ['lchr', 'lpos'])
+        data = data.sort_values(by=['lchr', 'lpos'])
         data.to_csv(clusterFileLS, header=None, index=None, sep='\t')
 
         markDuplicateClusterRegions(clusterFileLS, WORKSPACE)
-        
+
         # sort and merge bad regions
         badRegionsFile = WORKSPACE + "/badRegions.bed"
         badRegionsFileS = WORKSPACE + "/badRegions.sorted.bed"
         data = pd.read_table(badRegionsFile,
                              names=['chr', 'start', 'stop'],
-                             dtype={'chr':np.str})
-        data = data.sort_values(by = ['chr', 'start'])
+                             dtype={'chr': np.str})
+        data = data.sort_values(by=['chr', 'start'])
         data.to_csv(badRegionsFileS, header=None, index=None, sep='\t')
-        
-        #$$$ throwing error "mergeBed not on path" -- revise if possible and avoid shell call below
-        #pybedtools.set_bedtools_path(ARGS.bedtoolsPath)
-        #brFile = pybedtools.BedTool(badRegionsFileS)
-        #brFileM = brFile.merge(d=100)
-        #brFileM.saveas(WORKSPACE + "/badRegions.merged.bed")
-        
+
+        # $$$ throwing error "mergeBed not on path" -- revise if possible and avoid shell call below
+        # pybedtools.set_bedtools_path(ARGS.bedtoolsPath)
+        # brFile = pybedtools.BedTool(badRegionsFileS)
+        # brFileM = brFile.merge(d=100)
+        # brFileM.saveas(WORKSPACE + "/badRegions.merged.bed")
+
         badRegionsFileM = WORKSPACE + "/badRegions.merged.bed"
         cmd = "bedtools merge -d 100 -i " + badRegionsFileS + " > " + badRegionsFileM
         subprocess.call(cmd, shell=True)
@@ -357,10 +456,10 @@ def processFragments():
         logging.info('Finished preserve-cluster routine')
 
     # collect the clusters that pass requirements -> allClusters.thresh.txt
-    data = pd.read_table(clusterFile, 
+    data = pd.read_table(clusterFile,
                          names=['index', 'ns', 'orient', 'lchr', 'lpos', 'lend',
                                 'rchr', 'rpos', 'rend', 'small'],
-                         dtype={'lchr':np.str, 'rchr':np.str, 'orient':np.str})
+                         dtype={'lchr': np.str, 'rchr': np.str, 'orient': np.str})
     data = data[data['ns'] >= ARGS.minClusterSize]
     data.to_csv("%s/allClusters.thresh.txt" % WORKSPACE, header=None, index=None, sep='\t')
 
@@ -370,7 +469,7 @@ def processFragments():
     # 3. claimedClusters.txt
     clusterMapFile = "%s/clusterMap.txt" % WORKSPACE
     logging.info("Starting consolidation of PE clusters.")
-    consolidatePEClusters(WORKSPACE, statFile, clusterFile, 
+    consolidatePEClusters(WORKSPACE, statFile, clusterFile,
                           clusterMapFile, SLOP_PE, AS_RELATIVE_THRESH, ARGS.u)
     logging.info("Done with consolidating clusters.")
 
@@ -388,7 +487,7 @@ def processFragments():
     logging.info("Done incorporating split reads.")
 
     # filter and format these results
-    filterAndFormat("%s/variantMap.pe_sr.txt" % WORKSPACE, 
+    filterAndFormat("%s/variantMap.pe_sr.txt" % WORKSPACE,
                     "%s/allVariants.pe_sr.txt" % WORKSPACE, statFile, "pe_sr")
 
     variantMapFile = "%s/variantMap.pe_sr.txt" % WORKSPACE
@@ -401,13 +500,11 @@ def processFragments():
     # filter and format these results
     filterAndFormat(None, "%s/allVariants.pu.txt" % WORKSPACE, statFile, "pu")
 
-if __name__ == '__main__':
+
+def main():
+    global ARGS, VERSION, WORKSPACE
     # set the name of the directory where this script lives
     SCRIPT_DIR = dirname(realpath(__file__))
-
-    # set the VERSION
-    with open(path[0]+'/VERSION',"r") as version_file:
-        VERSION = version_file.read().strip()    
 
     # $$$ add option to print version and exit
     PARSER = argparse.ArgumentParser(
@@ -420,7 +517,7 @@ if __name__ == '__main__':
                         help='overwrite existing workspace')
     PARSER.add_argument('-x', action='store_true',
                         help='do not use cluster cleanup')
-    PARSER.add_argument('-i', default=None, 
+    PARSER.add_argument('-i', default=None,
                         help='ignore regions in this BED file')
     PARSER.add_argument('-c', default=None,
                         help='ignore the chromosomes in this list; prefix "*" to ignore all chromosomes starting with a particular string')
@@ -428,59 +525,24 @@ if __name__ == '__main__':
                         help='mappable intervals in a BED file')
     PARSER.add_argument('-w', default="svxplorer", help='use dir as workspace')
     PARSER.add_argument('-s', default=100, dest='minVarSize', type=int, help='minimum size in bps of variants called')
-    PARSER.add_argument('-z', default=3, dest='minClusterSize', type=int, help='minimum fragment support required for discordant clusters -- smaller size may increase run time')
-    PARSER.add_argument('-q', default=-1, dest='mapQual', type=int, help='minimum mapping quality required of at least NSupportThreshold reads for every variant')
-    PARSER.add_argument('-l', action='store_true', help='liberal inversion calls: call even if only evidence for one end of inversion seen, as long as both PE,SR support it')
-    PARSER.add_argument('-u', action='store_true', help='liberal duplication calls: use user-defined mapping quality instead of 20')
+    PARSER.add_argument('-z', default=3, dest='minClusterSize', type=int,
+                        help='minimum fragment support required for discordant clusters -- smaller size may increase run time')
+    PARSER.add_argument('-q', default=-1, dest='mapQual', type=int,
+                        help='minimum mapping quality required of at least NSupportThreshold reads for every variant')
+    PARSER.add_argument('-l', action='store_true',
+                        help='liberal inversion calls: call even if only evidence for one end of inversion seen, as long as both PE,SR support it')
+    PARSER.add_argument('-u', action='store_true',
+                        help='liberal duplication calls: use user-defined mapping quality instead of 20')
 
-    PARSER.add_argument('--subsample', action='store_true', help='subsample to reduce processing time if very dense alignment regions, e.g. > 10 times cvg, exist in alignment file')
+    PARSER.add_argument('--subsample', action='store_true',
+                        help='subsample to reduce processing time if very dense alignment regions, e.g. > 10 times cvg, exist in alignment file')
 
     PARSER.add_argument('disc', help='bam file of discordant pairs')
     PARSER.add_argument('split', help='bam file of split reads')
     PARSER.add_argument('samplebam', help='bam file of alignments')
     PARSER.add_argument('reference', help='path to reference genome')
     # $$$ fix pybedtools implementation of merging in cleanup
-    #PARSER.add_argument('bedtoolsPath', help='path to bedtools')
-
-    # writeDiscordantFragments
-    CALC_THRESH=10000000
-    MAP_THRESH=1
-    # useful for secondary alignments
-    PE_ALMT_COMB_THRESH=20
-    NMATCH_RELATIVE_THRESH=0
-    NMATCH_PCT_THRESH=0
-    AS_RELATIVE_THRESH=2
-    
-    # formPEClusters
-    DISC_ENHANCER=1.0
-    MIN_PE_BPMARGIN=20
-    PRESERVE_SIZE=3
-
-    # consolidatePEClusters
-    SLOP_PE=0
-
-    # uniqueSuppFilter (PE)
-    PE_THRESH_MIN=3
-    PE_THRESH_MAX=6
-    SR_THRESH_MIN=3
-    SR_THRESH_MAX=6
-    RD_FRAG_INDEX=100000000
-
-    # addSplitReads
-    SLOP_SR=16
-    REF_RATE_SR=0
-    MIN_VS_SR=3
-    MQ_SR=10
-    MIN_SIZE_INS_SR=30
-    MIN_SRtoPE_SUPP=1
-
-    # covPUFilter
-    DEL_CN_SUPP_THRESH=.8 
-    DUP_CN_SUPP_THRESH=1.15
-    PILEUP_THRESH=1000.0
-    GOOD_REG_THRESH=.8
-    SPLIT_INS=False
-    #setting to false as this may be risky for diploid variants like cut-paste and del in same region
+    # PARSER.add_argument('bedtoolsPath', help='path to bedtools')
 
     ARGS = PARSER.parse_args()
 
@@ -502,7 +564,7 @@ if __name__ == '__main__':
         if chrom not in CHROMS:
             correctbam = False
             break
-    if correctbam == False: 
+    if correctbam == False:
         print >> stderr, "Error: All chromosomes were not found in the specified reference"
         exit(1)
     bamfile.close()
@@ -531,7 +593,8 @@ if __name__ == '__main__':
                         filemode=LOGMODE)
 
     WORKSPACE = "%s/workspace" % ARGS.w
-    logging.info("Using MAP_THRESH, MAP_THRESH_U, minClusterSize, SPLIT_INS: %s, %s, %s, %s", MAP_THRESH, ARGS.mapQual, ARGS.minClusterSize, SPLIT_INS)
+    logging.info("Using MAP_THRESH, MAP_THRESH_U, minClusterSize, SPLIT_INS: %s, %s, %s, %s", MAP_THRESH, ARGS.mapQual,
+                 ARGS.minClusterSize, SPLIT_INS)
 
     # process PE and SR information
     processFragments()
@@ -544,4 +607,8 @@ if __name__ == '__main__':
     otpt = "%s/results/variants.vcf" % ARGS.w
     symlink(abspath(inpt), abspath(otpt))
 
-    logging.shutdown()   
+    logging.shutdown()
+
+
+if __name__ == '__main__':
+    main()
