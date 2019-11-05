@@ -6,7 +6,8 @@ import argparse
 import sys
 import logging
 
-def writeBEDs(variantFile, passFile, outname, libINV): 
+
+def writeBEDs(variantFile, passFile, outname, libINV):
     passed = None
     if passFile != None:
         passed = set()
@@ -18,7 +19,8 @@ def writeBEDs(variantFile, passFile, outname, libINV):
 
     outfile = sys.stdout
     if outname != sys.stdout: outfile = open(outname, 'w')
-    outfile.write("%s\n" %("chr1\tstart1\tstop1\tchr2\tstart2\tstop2\tnameID\tscore\tstrand1\tstrand2\tSVType\tSupportedBy\tconfPos\tconfEnd\tInverted\tGT\tNSupport\tBNDTag\tSVSubtype\tN_PE\tN_SR\tN_PE_Cl\tBNDAlt1\tBNDAlt2\tGROUPID\tcovLocRejection"))
+    outfile.write("%s\n" % (
+        "chr1\tstart1\tstop1\tchr2\tstart2\tstop2\tnameID\tscore\tstrand1\tstrand2\tSVType\tSupportedBy\tconfPos\tconfEnd\tInverted\tGT\tNSupport\tBNDTag\tSVSubtype\tN_PE\tN_SR\tN_PE_Cl\tBNDAlt1\tBNDAlt2\tGROUPID\tcovLocRejection"))
     with open(variantFile, 'r') as fAV:
         header = fAV.readline()
         for counter, lineAV in enumerate(fAV):
@@ -42,7 +44,7 @@ def writeBEDs(variantFile, passFile, outname, libINV):
             cl_support = tokens[12]
             suppPE = tokens[13]
             suppSR = tokens[14]
-            BNDAlt1, BNDAlt2 = ".","."
+            BNDAlt1, BNDAlt2 = ".", "."
             GT = "."
             swap = "0"
             bnd = "0"
@@ -63,25 +65,25 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 output = tokens[2:8]
                 name = 'DEL'
             elif svtype == 'TD' or \
-                 (svtype == 'TD_I' and support_tag.find("PE") != -1):
+                    (svtype == 'TD_I' and support_tag.find("PE") != -1):
                 output = tokens[2:8]
                 name = 'TD'
             elif svtype == 'INS_I' and chrom1 == chrom2 and \
-                 chrom3 == "-1" and support_tag.find("PE") != -1:
+                    chrom3 == "-1" and support_tag.find("PE") != -1:
                 bp1_s, bp1_e = min(start1, start2), min(end1, end2)
                 bp2_s, bp2_e = max(start1, start2), max(end1, end2)
                 output = [chrom1, bp1_s, bp1_e, chrom2, bp2_s, bp2_e]
                 name = 'TD_INV'
             elif svtype == "INV_B" or (svtype == "INV" and \
-                 ((libINV and support_tag.find("SR") != -1 and support_tag.find("PE") != -1) \
-                 or cl_support == "2")):
+                                       ((libINV and support_tag.find("SR") != -1 and support_tag.find("PE") != -1) \
+                                        or cl_support == "2")):
                 output = tokens[2:8]
                 name = 'INV'
             elif svtype in ["BND", "Unknown", "INV", "INS_POSS", "TD_I", "INV_POSS", "INS_C",
-                            "INS_C_I", "INS_halfFR", "INS_halfRF", "INS_half_I","DN_INS_NM","DN_INS_S"] or \
-                (svtype in ["INS", "INS_I", "INS_C_P", "INS_C_I_P"] and \
-                (start3 == -1 or bnd == "1")):
-                GROUPID="G" + str(counter)
+                            "INS_C_I", "INS_halfFR", "INS_halfRF", "INS_half_I", "DN_INS_NM", "DN_INS_S"] or \
+                    (svtype in ["INS", "INS_I", "INS_C_P", "INS_C_I_P"] and \
+                     (start3 == -1 or bnd == "1")):
+                GROUPID = "G" + str(counter)
                 name = 'BND_2'
                 out3 = "."
                 if (svtype in ["INS", "INS_I"] and bnd == "1"):
@@ -92,34 +94,39 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                         BNDAlt1, BNDAlt2 = "[p[N", "N]p]"
                         BNDAlt3, BNDAlt4 = "N]p]", "[p[N"
 
-                    out1 = [chrom1, start1, end1, chrom2, start2, end2, 
-                        "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID, covInfo]
-                    out2 = [chrom1, start1, end1, chrom3, start3, end3, 
-                        "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt3, BNDAlt4, GROUPID, covInfo]
+                    out1 = [chrom1, start1, end1, chrom2, start2, end2,
+                            "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".",
+                            ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID,
+                            covInfo]
+                    out2 = [chrom1, start1, end1, chrom3, start3, end3,
+                            "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".",
+                            ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt3, BNDAlt4, GROUPID,
+                            covInfo]
                 elif svtype in ["INS_C", "INS_C_I"] or \
-                    (svtype in ["INS_C_P", "INS_C_I_P"] and bnd == "1"):
+                        (svtype in ["INS_C_P", "INS_C_I_P"] and bnd == "1"):
                     if not svtype.startswith("INS_C_I"):
                         BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
                     else:
                         BNDAlt1, BNDAlt2 = "[p[N", "N]p]"
-                    BNDAlt3, BNDAlt4 = "N[p[", "]p]N" 
+                    BNDAlt3, BNDAlt4 = "N[p[", "]p]N"
 
-                    out1 = [chrom1, start1, end1, chrom2, start2, end2, 
-                        "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID, covInfo]
-                    out2 = [chrom2, start2, end2, chrom3, start3, end3, 
-                        "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".", 
-                        ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt3, BNDAlt4, GROUPID, covInfo]
+                    out1 = [chrom1, start1, end1, chrom2, start2, end2,
+                            "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".",
+                            ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID,
+                            covInfo]
+                    out2 = [chrom2, start2, end2, chrom3, start3, end3,
+                            "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".",
+                            ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt3, BNDAlt4, GROUPID,
+                            covInfo]
                     if int(cl_support) >= 3:
                         if not svtype.startswith("INS_C_I"):
                             BNDAlt5, BNDAlt6 = "]p]N", "N[p["
                         else:
                             BNDAlt5, BNDAlt6 = "N]p]", "[p[N"
                         out3 = [chrom1, start1, end1, chrom3, start3, end3,
-                            "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".",
-                            ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt5, BNDAlt6, GROUPID, covInfo]
+                                "SV" + str(counter), ".", ".", ".", name, support_tag, ".", ".",
+                                ".", GT, support, bnd, svtype, suppPE, suppSR, cl_support, BNDAlt5, BNDAlt6, GROUPID,
+                                covInfo]
                 else:
                     output = tokens[2:8]
                     name = 'BND'
@@ -127,13 +134,13 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                         BNDAlt1, BNDAlt2 = "N[p[", "]p]N"
                     elif svtype == "INS_halfRF":
                         BNDAlt1, BNDAlt2 = "]p]N", "N[p["
-                    elif svtype in ["INV","INS_half_I"]:
+                    elif svtype in ["INV", "INS_half_I"]:
                         BNDAlt1, BNDAlt2 = "N]p]", "[p[N"
                     elif svtype.startswith("DN_INS"):
                         svtype = "DN_INS"
 
             elif svtype.startswith("INS"):
-                GROUPID= "G" + str(counter)
+                GROUPID = "G" + str(counter)
                 bp1_s, bp1_e = start1, end1
                 bp2_s, bp2_e = start2, end2
                 bp3_s, bp3_e = start3, end3
@@ -161,33 +168,36 @@ def writeBEDs(variantFile, passFile, outname, libINV):
                 output.extend([".", ".", "."])
                 output.extend([GT, support, bnd])
 
-            if name == 'BND': 
+            if name == 'BND':
                 output.extend([svtype, suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID, covInfo])
-            elif name != 'BND_2': 
+            elif name != 'BND_2':
                 output.extend(['.', suppPE, suppSR, cl_support, BNDAlt1, BNDAlt2, GROUPID, covInfo])
-            
+
             if name != 'BND_2':
                 print >> outfile, "\t".join(map(str, output))
             else:
                 out1[10], out2[10] = 'BND', 'BND'
                 print >> outfile, "\t".join(map(str, out1))
                 print >> outfile, "\t".join(map(str, out2))
-                if out3 != ".": 
+                if out3 != ".":
                     out3[10] = 'BND'
                     print >> outfile, "\t".join(map(str, out3))
 
     if outname != sys.stdout: outfile.close()
 
-if __name__ == "__main__":
+
+def main():
     # parse arguments
-    PARSER = argparse.ArgumentParser(description='Write variants in BEDPE format given a allVariant.*.txt file, and optionally a map of variants and fragments/reads', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    PARSER = argparse.ArgumentParser(
+        description='Write variants in BEDPE format given a allVariant.*.txt file, and optionally a map of variants and fragments/reads',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     PARSER.add_argument('-d', action='store_true', dest='debug',
                         help='print debug information')
     PARSER.add_argument('-l', action='store_true', dest='libINV',
                         help='Allow liberal inversions')
     PARSER.add_argument('-p', dest='passed', default=None,
                         help='Only print the variants with index in file')
-    PARSER.add_argument('-o', dest='out', default=sys.stdout,
+    PARSER.add_argument('-o', dest='out', default=sys.stdout,  # TODO: this default does not print correctly (when -h)
                         help='Print the output to this file')
     PARSER.add_argument('variantFile', help='File with the variants')
     ARGS = PARSER.parse_args()
@@ -201,3 +211,7 @@ if __name__ == "__main__":
                         datefmt='%m/%d/%Y %I:%M:%S %p')
 
     writeBEDs(ARGS.variantFile, ARGS.passed, ARGS.out, ARGS.libINV)
+
+
+if __name__ == "__main__":
+    main()

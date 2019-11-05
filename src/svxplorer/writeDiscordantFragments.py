@@ -4,12 +4,11 @@
 
 from itertools import izip
 import argparse as ap
-import numpy as np
 import pysam as ps
 import logging
 import sys
 import gc
-from shared import formExcludeHash, ignoreRead, readChromosomeLengths
+from utils import formExcludeHash, ignoreRead, readChromosomeLengths
 
 ## we would not recommended changing any of these
 # primary alignment score threshold (0 recommended due to split reads etc.)
@@ -33,6 +32,7 @@ DIST_END_PERC = .99
 MAP_THRESH_DUP = 20
 # min gap b/w "arrow tips" of RF almt to count as reasonable
 RF_RDL_FACTOR = 2.1
+
 
 def calcMeanSig(bamfile1, workDir, calc_thresh):
     """Calculate mean & std of insert-length dist. (and other stats listed below)
@@ -61,7 +61,7 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
     counterLoop = 0
     IL_list_us = []
 
-    while counterRead < calc_thresh and counterLoop < 2*calc_thresh:
+    while counterRead < calc_thresh and counterLoop < 2 * calc_thresh:
         try:
             m1 = bamfile.next()
         except StopIteration:
@@ -70,9 +70,9 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
         # AS_CALC_THRESH condition ensures split read will not be included in
         # analysis because "next" may not be mate then
         if m1.is_proper_pair and \
-           m1.is_secondary == False and \
-           m1.is_supplementary == False and \
-           m1.get_tag("AS") > AS_CALC_THRESH*m1.infer_query_length() and m1.template_length > 0:
+                m1.is_secondary == False and \
+                m1.is_supplementary == False and \
+                m1.get_tag("AS") > AS_CALC_THRESH * m1.infer_query_length() and m1.template_length > 0:
 
             IL = m1.template_length
             IL_list_us.append(IL)
@@ -85,22 +85,22 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
         counterLoop += 1
 
     try:
-        meanIL = summedIL/counterRead
-        meanQL = summedQL/counterRead
+        meanIL = summedIL / counterRead
+        meanQL = summedQL / counterRead
     except ZeroDivisionError:
         sys.stderr.write("Please check order of name-sorted and position-sorted files supplied.")
         exit(1)
 
     IL_list = sorted(IL_list_us)
     try:
-        dist_end = IL_list[int(DIST_END_PERC*len(IL_list)) - 1]
-        dist_penalty = IL_list[int(PENALTY_PERC*len(IL_list)) - 1]
-        disc_thresh_neg = IL_list[int(DISC_PERC_NEG*len(IL_list)) - 1] - meanIL
+        dist_end = IL_list[int(DIST_END_PERC * len(IL_list)) - 1]
+        dist_penalty = IL_list[int(PENALTY_PERC * len(IL_list)) - 1]
+        disc_thresh_neg = IL_list[int(DISC_PERC_NEG * len(IL_list)) - 1] - meanIL
     except:
         sys.stderr.write("Please check value of DISC_PERC (discordancy percentile for IL).")
         exit(1)
 
-    disc_thresh = IL_list[int(DISC_PERC*len(IL_list)) - 1] - meanIL
+    disc_thresh = IL_list[int(DISC_PERC * len(IL_list)) - 1] - meanIL
     bamfile.close()
 
     binSize = 10
@@ -123,33 +123,33 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
                 if temp not in binDistHash:
                     binDistHash[temp] = 0
                 if temp > 0:
-                    binDistHash[temp] += distHash[item]*distHash[item2]
+                    binDistHash[temp] += distHash[item] * distHash[item2]
                 else:
-                    binDistHash[temp] += (distHash[item])*(distHash[item] -1)*.5
+                    binDistHash[temp] += (distHash[item]) * (distHash[item] - 1) * .5
     fh = open(workDir + "/binDist.txt", "w")
     for item in binDistHash:
-        fh.write("%s\t%s\n" %(item, binDistHash[item]))
+        fh.write("%s\t%s\n" % (item, binDistHash[item]))
 
     bamfile = ps.Samfile(bamfile1, "rb")
     counterLoop = 0
     counterRead = 0
-    while counterRead < calc_thresh and counterLoop < 2*calc_thresh:
+    while counterRead < calc_thresh and counterLoop < 2 * calc_thresh:
         try:
             m1 = bamfile.next()
         except StopIteration:
             break
 
         if m1.is_proper_pair and not m1.is_secondary and \
-            not m1.is_supplementary and \
-            m1.get_tag("AS") > AS_CALC_THRESH*m1.infer_query_length() and \
-            m1.template_length > 0:
-            stdIL += (m1.template_length - meanIL)**2
+                not m1.is_supplementary and \
+                m1.get_tag("AS") > AS_CALC_THRESH * m1.infer_query_length() and \
+                m1.template_length > 0:
+            stdIL += (m1.template_length - meanIL) ** 2
             counterRead += 1
         counterLoop += 1
 
     bamfile.close()
-    stdIL = stdIL/counterRead
-    stdIL = stdIL**(.5)
+    stdIL = stdIL / counterRead
+    stdIL = stdIL ** (.5)
 
     bamfile = ps.AlignmentFile(bamfile1, "rb")
     cov = 0
@@ -171,14 +171,14 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
             cov += pileupcolumn.n
             counterBase += 1
             counterLoop += 1
-            if counterLoop > calc_thresh/subsampleRate:
+            if counterLoop > calc_thresh / subsampleRate:
                 break
     bamfile.close()
     if counterBase > 0:
-        cov = cov/counterBase
+        cov = cov / counterBase
 
     if disc_thresh < 0:
-        disc_thresh = 3*stdIL
+        disc_thresh = 3 * stdIL
 
     distHash.clear()
     del distHash
@@ -186,11 +186,14 @@ def calcMeanSig(bamfile1, workDir, calc_thresh):
     del binDistHash
     gc.collect()
 
-    logging.debug("meanQL, meanIL, stdIL, cov, maxIL, disc_thresh: %f %f %f %f %f %f", meanQL, meanIL, stdIL, cov, maxIL, disc_thresh)
+    logging.debug("meanQL, meanIL, stdIL, cov, maxIL, disc_thresh: %f %f %f %f %f %f", meanQL, meanIL, stdIL, cov,
+                  maxIL, disc_thresh)
     with open(workDir + "/bamStats.txt", "w") as fp:
-        print >> fp, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s" %(meanQL, meanIL, stdIL, cov, maxIL, disc_thresh, dist_penalty, dist_end)
+        print >> fp, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s" % (
+            meanQL, meanIL, stdIL, cov, maxIL, disc_thresh, dist_penalty, dist_end)
 
     return meanQL, meanIL, disc_thresh, disc_thresh_neg
+
 
 class alignedFragment(object):
     def __init__(self):
@@ -198,8 +201,8 @@ class alignedFragment(object):
         # depends on orientation of read in reference
         self.lBound = -1
         self.rBound = -1
-        self.cType = None #orientation, e.g. "01" represents "FR" etc.
-        self.cMapType = None #0 if both reads map, 1 if one read maps only
+        self.cType = None  # orientation, e.g. "01" represents "FR" etc.
+        self.cMapType = None  # 0 if both reads map, 1 if one read maps only
         self.lTID = None
         self.rTID = None
         self.mapQual = -1
@@ -207,7 +210,8 @@ class alignedFragment(object):
 
     def __str__(self):
         return "%s\t%s\t%s\t%s\t%s\t%s\t%s" % (self.lTID, self.lBound, self.rTID,
-                                         self.rBound, self.cType, self.discSmall, self.mapQual)
+                                               self.rBound, self.cType, self.discSmall, self.mapQual)
+
 
 def findTotalNMatches(al):
     """ Calculate how many bases in alignment match reference, given cigar string
@@ -216,12 +220,12 @@ def findTotalNMatches(al):
     Outputs:
         Number of matches, ratio of number of matches to query length
     """
-    MDtagPos = str(al).find("MD",10) + 6
-    temp = str(al)[MDtag_pos:].find(")")
-    MDtag = str(al)[MDtag_pos:MDtag_pos +temp-1]
+    MDtagPos = str(al).find("MD", 10) + 6
+    temp = str(al)[MDtag_pos:].find(")")  # TODO: this seems incorrect
+    MDtag = str(al)[MDtag_pos:MDtag_pos + temp - 1]
     # MD tag is set for perfect matches, so if not set, dubious
     if MDtagPos == 5:
-        return 0,0
+        return 0, 0
     integers = "0123456789"
     n_matches = 0
     prev = "0"
@@ -235,9 +239,10 @@ def findTotalNMatches(al):
             n_subs += 1
     n_matches += int(prev)
     if n_matches > 0:
-        return n_matches, float(n_matches)/float(n_matches + n_subs)
+        return n_matches, float(n_matches) / float(n_matches + n_subs)
     else:
-        return 0,0
+        return 0, 0
+
 
 def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                    nMatchPct_thresh, nMatch_relative_thresh, as_relative_thresh,
@@ -290,15 +295,17 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
             else:
                 al2_reference_name = None
 
-            al1_reference_start, al1_reference_end, al1_is_unmapped, al1_mapping_quality, al1_is_reverse, al1_score, al1_infer_query_length =  al1.reference_start, al1.reference_end, al1.is_unmapped, al1.mapping_quality, al1.is_reverse, float(al1.get_tag("AS")), al1.infer_query_length()
+            al1_reference_start, al1_reference_end, al1_is_unmapped, al1_mapping_quality, al1_is_reverse, al1_score, al1_infer_query_length = al1.reference_start, al1.reference_end, al1.is_unmapped, al1.mapping_quality, al1.is_reverse, float(
+                al1.get_tag("AS")), al1.infer_query_length()
 
-            al2_reference_start, al2_reference_end, al2_is_unmapped, al2_mapping_quality, al2_is_reverse, al2_score, al2_infer_query_length =  al2.reference_start, al2.reference_end, al2.is_unmapped, al2.mapping_quality, al2.is_reverse, float(al2.get_tag("AS")), al2.infer_query_length()
+            al2_reference_start, al2_reference_end, al2_is_unmapped, al2_mapping_quality, al2_is_reverse, al2_score, al2_infer_query_length = al2.reference_start, al2.reference_end, al2.is_unmapped, al2.mapping_quality, al2.is_reverse, float(
+                al2.get_tag("AS")), al2.infer_query_length()
 
             if al1_reference_start == None and al1_reference_end == None and \
-               al2_reference_start == None and al2_reference_end == None:
+                    al2_reference_start == None and al2_reference_end == None:
                 return dList1, dList2
 
-            nf1, nf2 = False,False
+            nf1, nf2 = False, False
             if al1_reference_name in ignoreTIDList and al2_reference_name in ignoreTIDList:
                 logging.debug("Ignoring almt combination %s and %s", al1_reference_name, al2_reference_name)
                 continue
@@ -306,7 +313,7 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                 nf1 = True
             elif al2_reference_name in ignoreTIDList:
                 nf2 = True
-            
+
             skip = 0
             for chrI in ignoreTIDAll:
                 if al1_reference_name is not None and al1_reference_name.startswith(chrI):
@@ -322,12 +329,14 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                 continue
 
             if ignoreBED is not None:
-                if ignoreRead(al1_reference_name, al1_reference_start, al1_reference_name, al1_reference_start, chrHash):
+                if ignoreRead(al1_reference_name, al1_reference_start, al1_reference_name, al1_reference_start,
+                              chrHash):
                     nf1 = True
-                if ignoreRead(al2_reference_name, al2_reference_start, al2_reference_name, al2_reference_start, chrHash):
+                if ignoreRead(al2_reference_name, al2_reference_start, al2_reference_name, al2_reference_start,
+                              chrHash):
                     nf2 = True
-          
-            if nf1 and nf2:        
+
+            if nf1 and nf2:
                 if counterLoop == 1:
                     return dList1, dList2
                 continue
@@ -338,9 +347,9 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
                 al2_is_unmapped = True
                 al2_score = -1
 
-            if al2_is_unmapped and al1_score < UNMAPPED_THRESH*al1_infer_query_length:
+            if al2_is_unmapped and al1_score < UNMAPPED_THRESH * al1_infer_query_length:
                 continue
-            if al1_is_unmapped and al2_score < UNMAPPED_THRESH*al2_infer_query_length:
+            if al1_is_unmapped and al2_score < UNMAPPED_THRESH * al2_infer_query_length:
                 continue
 
             if nMatchPct_thresh != 0 or nMatch_relative_thresh != 0:
@@ -366,19 +375,19 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
             al1ToPrim_nMatchRatio = 0
             al2ToPrim_nMatchRatio = 0
             if al1_nMatchRatio_prim > 0:
-                al1ToPrim_nMatchRatio = float(al1_nMatchRatio)/float(al1_nMatchRatio_prim)
+                al1ToPrim_nMatchRatio = float(al1_nMatchRatio) / float(al1_nMatchRatio_prim)
             if al2_nMatchRatio_prim > 0:
-                al2ToPrim_nMatchRatio = float(al2_nMatchRatio)/float(al2_nMatchRatio_prim)
+                al2ToPrim_nMatchRatio = float(al2_nMatchRatio) / float(al2_nMatchRatio_prim)
 
             try:
                 if al1_score_prim > AS_THRESH and al1_nMatchRatio >= nMatchPct_thresh and \
-                    al1ToPrim_nMatchRatio >= nMatch_relative_thresh and al1_score >= as_relative_thresh*al1_score_prim:
+                        al1ToPrim_nMatchRatio >= nMatch_relative_thresh and al1_score >= as_relative_thresh * al1_score_prim:
                     al1_match = 1
             except:
                 pass
             try:
                 if al2_score_prim > AS_THRESH and al2_nMatchRatio >= nMatchPct_thresh and \
-                    al2ToPrim_nMatchRatio >= nMatch_relative_thresh and al2_score >= as_relative_thresh*al2_score_prim:
+                        al2ToPrim_nMatchRatio >= nMatch_relative_thresh and al2_score >= as_relative_thresh * al2_score_prim:
                     al2_match = 1
             except:
                 pass
@@ -393,14 +402,16 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
 
                 # all right if TID different or orientation different. Won't make any difference in those situations.
                 if (al1_reference_start <= al2_reference_start):
-                    outerIL = abs(al1_reference_end - al2_reference_start) + al1_infer_query_length + al2_infer_query_length
+                    outerIL = abs(
+                        al1_reference_end - al2_reference_start) + al1_infer_query_length + al2_infer_query_length
                     newAlmt.lTID = al1_reference_name
                     newAlmt.rTID = al2_reference_name
                     l_orient = int(al1_is_reverse)
                     r_orient = int(al2_is_reverse)
 
                 else:
-                    outerIL = abs(al2_reference_end - al1_reference_start) + al1_infer_query_length + al2_infer_query_length
+                    outerIL = abs(
+                        al2_reference_end - al1_reference_start) + al1_infer_query_length + al2_infer_query_length
                     newAlmt.lTID = al2_reference_name
                     newAlmt.rTID = al1_reference_name
                     l_orient = int(al2_is_reverse)
@@ -477,33 +488,34 @@ def formDiscordant(aln1s, aln2s, disc_thresh, disc_thresh_neg, mean_IL, chrHash,
 
             # RF alignments should be higher mapping quality and sufficiently apart to be reliable
             if (not libDup) and newAlmt.cType == "10" and \
-                (newAlmt.mapQual < MAP_THRESH_DUP or \
-                newAlmt.rBound - newAlmt.lBound < RF_RDL_FACTOR*rdl):
+                    (newAlmt.mapQual < MAP_THRESH_DUP or \
+                     newAlmt.rBound - newAlmt.lBound < RF_RDL_FACTOR * rdl):
                 continue
-            
+
             if (not libDup) and newAlmt.cType == "01" and newAlmt.lBound > newAlmt.rBound:
                 continue
 
             # check discordancy even though discordant flag set by aligner
             if newAlmt.cMapType == 1 or \
-                    (newAlmt.cMapType == 0 and ( outerIL - mean_IL > disc_thresh or \
-                    outerIL - mean_IL < disc_thresh_neg or \
-                    newAlmt.cType != "01" or newAlmt.lTID != newAlmt.rTID )):
+                    (newAlmt.cMapType == 0 and (outerIL - mean_IL > disc_thresh or \
+                                                outerIL - mean_IL < disc_thresh_neg or \
+                                                newAlmt.cType != "01" or newAlmt.lTID != newAlmt.rTID)):
 
-                    if newAlmt.lBound == -1 and newAlmt.rBound == -1:
-                        logging.warning("WARNING STORING BAD DATA ", newAlmt)
+                if newAlmt.lBound == -1 and newAlmt.rBound == -1:
+                    logging.warning("WARNING STORING BAD DATA ", newAlmt)
 
-                    if newAlmt.cMapType == 0:
-                        dList1.append(newAlmt)
-                    elif newAlmt.cMapType == 1:
-                        dList2.append(newAlmt)
+                if newAlmt.cMapType == 0:
+                    dList1.append(newAlmt)
+                elif newAlmt.cMapType == 1:
+                    dList2.append(newAlmt)
             # if even 1 alignment is concordant, don't use any mappings from read: safe
             else:
-                dList1 =[]
+                dList1 = []
                 dList2 = []
                 return dList1, dList2
 
     return dList1, dList2
+
 
 def readNextReadAlignments(bamname):
     """Generator of alignments returning 1 list of alignments with same name at a time
@@ -520,9 +532,9 @@ def readNextReadAlignments(bamname):
     for alignment in bamfile:
         # ignore QC failed, duplicate and supplementary alignments
         if alignment.is_qcfail or \
-           alignment.is_duplicate or \
-           alignment.is_supplementary: 
-           continue
+                alignment.is_duplicate or \
+                alignment.is_supplementary:
+            continue
 
         if qname == None:
             qname = alignment.qname
@@ -536,6 +548,7 @@ def readNextReadAlignments(bamname):
 
     if qname != None:
         yield qname, alignments
+
 
 def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
                              ignoreBED, ignoreChr, permutation_thresh,
@@ -563,7 +576,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
                     ignoreTIDAll.add(chrI[1:])
                     logging.debug("Chr names starting with %s will be ignored", chrI[1:])
 
-    ignoreBuffer = 1*rdl
+    ignoreBuffer = 1 * rdl
     if ignoreBED is not None:
         logging.info("Regions in %s will be ignored", ignoreBED)
         chrHash = formExcludeHash(chrHash, ignoreBuffer, ignoreBED, chromosome_lengths)
@@ -572,7 +585,7 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
     with open("%s/allDiscordants.us.txt" % workDir, "w") as almtFile:
         currentFrag = 1
         logging.info('Started reading discordant pairs')
-        for (q1, aln1s),(q2, aln2s) in izip(readNextReadAlignments(readAlmts1), readNextReadAlignments(readAlmts2)):
+        for (q1, aln1s), (q2, aln2s) in izip(readNextReadAlignments(readAlmts1), readNextReadAlignments(readAlmts2)):
 
             if (currentFrag % 100000) == 0:
                 logging.debug("%d fragments analyzed", currentFrag)
@@ -581,26 +594,26 @@ def writeDiscordantFragments(workDir, readAlmts1, readAlmts2, bamfile, debug,
             except AssertionError:
                 logging.debug("Assertion error on query name being same in writeDiscordants")
                 sys.stderr.write("Please check if reads pass vendor checks \
-                \n{0}\n{1}\nQuitting.\n" .format(q1,q2))
+                \n{0}\n{1}\nQuitting.\n".format(q1, q2))
                 exit(1)
 
             dList1, dList2 = formDiscordant(aln1s, aln2s, disc_thresh,
-                    disc_thresh_neg, mean_IL, chrHash, nMatchPct_thresh,
-                    nMatch_relative_thresh, as_relative_thresh, map_thresh,
-                    permutation_thresh, ignoreBED, ignoreTIDs, ignoreTIDAll, rdl, libDup)
+                                            disc_thresh_neg, mean_IL, chrHash, nMatchPct_thresh,
+                                            nMatch_relative_thresh, as_relative_thresh, map_thresh,
+                                            permutation_thresh, ignoreBED, ignoreTIDs, ignoreTIDAll, rdl, libDup)
             for item in dList1:
-                print >> almtFile, "%s\t%s" %(currentFrag, item)
+                print >> almtFile, "%s\t%s" % (currentFrag, item)
             for item in dList2:
-                print >> almtFile, "%s\t%s" %(currentFrag, item)
+                print >> almtFile, "%s\t%s" % (currentFrag, item)
             currentFrag += 1
         logging.info('Finished reading discordant pairs')
-    
+
     chrHash.clear()
     del chrHash
     gc.collect()
 
-if __name__ == "__main__":
 
+def main():
     # parse arguments
     PARSER = ap.ArgumentParser(description="""
     Filter, format and write all PE discordants from 2 input discordant BAM
@@ -611,26 +624,26 @@ if __name__ == "__main__":
     PARSER.add_argument('readAlmts2', help='BAM file containing second-in-pair discordant PE almts')
     PARSER.add_argument('bamfile', help='Position-sorted BAM alignment file')
     PARSER.add_argument('-d', action='store_true', dest='debug',
-        help='print debug information')
+                        help='print debug information')
     PARSER.add_argument('-i', default=None, dest='ignoreBED',
-        help='Exclude-regions file in BED format')
+                        help='Exclude-regions file in BED format')
     PARSER.add_argument('-c', default=None, dest='ignoreChr',
-        help='File listing chromosomes to exclude, one per line')
+                        help='File listing chromosomes to exclude, one per line')
     PARSER.add_argument('-p', default=20, dest='permutation_thresh', type=int,
-        help='If all alignments with same query name exceed this number, do not use any in analysis')
+                        help='If all alignments with same query name exceed this number, do not use any in analysis')
     PARSER.add_argument('-t', default=1000000, dest='calc_thresh', type=int,
-        help='Max number of concordant alignments to use in calculating BAM statistics')
+                        help='Max number of concordant alignments to use in calculating BAM statistics')
     PARSER.add_argument('-n', default=0, dest='nMatchPct_thresh', type=int,
-        help='Threshold of matching base pairs in alignment to reference')
+                        help='Threshold of matching base pairs in alignment to reference')
     PARSER.add_argument('-r', default=0, dest='nMatch_relative_thresh',
-        type=int,
-        help='Threshold of ratio of matching base pairs in \
+                        type=int,
+                        help='Threshold of ratio of matching base pairs in \
         given alignment to primary alignment of same query')
     PARSER.add_argument('-a', default=2, dest='as_relative_thresh', type=int,
-        help='Threshold of relative alignment score of given alignment to primary alignment of same name\
+                        help='Threshold of relative alignment score of given alignment to primary alignment of same name\
         --set to less than 1 (.95 recommended) if using secondary almts')
     PARSER.add_argument('-m', default=10, dest='map_thresh', type=int,
-        help='Mapping quality threshold')
+                        help='Mapping quality threshold')
     ARGS = PARSER.parse_args()
 
     LEVEL = logging.INFO
@@ -650,3 +663,7 @@ if __name__ == "__main__":
                              ARGS.map_thresh, False)
 
     logging.shutdown()
+
+
+if __name__ == "__main__":
+    main()

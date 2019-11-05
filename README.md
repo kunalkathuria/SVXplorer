@@ -19,7 +19,7 @@ SVXplorer should be run on a BAM file with a single read-group. For datasets wit
 
 SVXplorer should run on any Unix-based OS with bash, python > 2.6 and libraries as specified in the requirements file. "bedtools" and "samtools" executables should be on the user PATH. In addition, if a split read file is not available in the typical splitters format (2 entries per query name with 2 distinct, split queries) a script is provided to extract this from the alignment file using LUMPY's extractBwaMem_reads script (https://raw.githubusercontent.com/arq5x/lumpy-sv/master/scripts/extractSplitReads_BwaMem).
 
-### INSTALLATION
+### LOCAL INSTALLATION
 
 Download latest SVXplorer release from GitHub and unzip the directory. Alternatively, clone the repository. Then ensure that "samtools" and "bedtools" are on the PATH by running 
 
@@ -33,21 +33,22 @@ Then install all the python libraries and install SVXplorer using
 ```
 cd SVXplorer*
 pip install -r requirements.txt
-make
+python setup.py bdist_wheel
+pip install -e .
 ```
 
 ### USAGE
 
-SVXplorer can now be run from the "bin" sub-directory of the installation (which can be added to user path to run it from any directory).
+After installation SVXplorer and all its helper scripts are added to path and can be run as a command-line applications.
 
 ```
-./bin/SVXplorer -h
+SVXplorer -h
 ```
 
 will show all options available to the user. Then run
 
 ```
-make test
+./run_test.sh
 ```
 
 to run a simple test-case which will ensure that SVXplorer is running as expected. SVXplorer will run using the test alignment files in the SVXplorer/testCases folder and check if the resulting vcf file found in the newly created "test" folder is identical with the one contained in SVXplorer/testFiles. A message will be printed notifying whether the test was successful.
@@ -66,7 +67,7 @@ All SVXplorer command line options are accessed via ./SVXplorer -h. A file to ig
 
 A typical (and recommended) call on sequenced data might be, with appropriate path replacement:
 
-path_to_SVXplorer/bin/SVXplorer discordant.bam splitters.bam sample.bam reference.fa -i exclude.bed -c ignore_CHR.txt -m non_repeat_regions.bed -w pathToWorkingDirectory
+SVXplorer discordant.bam splitters.bam sample.bam reference.fa -i exclude.bed -c ignore_CHR.txt -m non_repeat_regions.bed -w pathToWorkingDirectory
 
 Option -m expects a file listing regions not containing frequently repeated sequences, for use in assessing coverage, and SVC provides one for b37 in the data folder in zipped form, which will need to be unzipped before use.
 

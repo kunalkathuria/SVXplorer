@@ -29,13 +29,11 @@ import warnings
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-global ARGS, AS_RELATIVE_THRESH, CALC_THRESH, DEL_CN_SUPP_THRESH, DISC_ENHANCER, DUP_CN_SUPP_THRESH, GOOD_REG_THRESH
-global MAP_THRESH, MIN_PE_BPMARGIN, MIN_SIZE_INS_SR, MIN_SRtoPE_SUPP, MIN_VS_SR, MQ_SR, NMATCH_PCT_THRESH
-global NMATCH_RELATIVE_THRESH, PE_ALMT_COMB_THRESH, PE_THRESH_MAX, PE_THRESH_MIN, PILEUP_THRESH, PRESERVE_SIZE
-global RD_FRAG_INDEX, REF_RATE_SR, SLOP_PE, SLOP_SR, SPLIT_INS, SR_THRESH_MAX, SR_THRESH_MIN, VERSION, WORKSPACE
+global ARGS, WORKSPACE
 
-# set VERSION
-VERSION = __version__
+# set global variables
+ARGS = None
+WORKSPACE = None
 
 # writeDiscordantFragments
 CALC_THRESH = 10000000
@@ -74,10 +72,8 @@ DEL_CN_SUPP_THRESH = .8
 DUP_CN_SUPP_THRESH = 1.15
 PILEUP_THRESH = 1000.0
 GOOD_REG_THRESH = .8
-SPLIT_INS = False
+SPLIT_INS = False  # setting to false as this may be risky for diploid variants like cut-paste and del in same region
 
-
-# setting to false as this may be risky for diploid variants like cut-paste and del in same region
 
 def createDirectory(name):
     try:
@@ -138,7 +134,7 @@ def printVCFHeader(f):
     samfile.close()
 
     print >> f, "##fileformat=VCF4.3"
-    print >> f, "##source=SVXplorer-" + VERSION
+    print >> f, "##source=SVXplorer-" + __version__
     print >> f, "##reference=" + ARGS.reference
     print >> f, """##INFO=<ID=END,Number=1,Type=Integer,Description=\"end point of SV\">
 ##INFO=<ID=SVTYPE,Number=1,Type=String,Description=\"SV Type\">
@@ -502,9 +498,7 @@ def processFragments():
 
 
 def main():
-    global ARGS, VERSION, WORKSPACE
-    # set the name of the directory where this script lives
-    SCRIPT_DIR = dirname(realpath(__file__))
+    global ARGS, WORKSPACE
 
     # $$$ add option to print version and exit
     PARSER = argparse.ArgumentParser(
