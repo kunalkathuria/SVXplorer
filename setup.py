@@ -22,7 +22,17 @@ setup(
     long_description=long_description(),
     package_dir={"": "src"},
     packages=find_packages("src"),
-    # install_requires=[], # TODO: move requirements to setup.py
+    install_requires=[
+        "bitarray",
+        "interlap",
+        "logging",
+        "networkx",
+        "numpy",
+        "pandas",
+        "pybedtools",
+        "pysam",
+        "scikit-learn"
+    ],
     entry_points={
         'console_scripts': [
             'SVXplorer = svxplorer.SVXplorer:main',

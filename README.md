@@ -28,11 +28,11 @@ which samtools
 which bedtools
 ``` 
 
-Then install all the python libraries and install SVXplorer using
+Then install *SVXplorer* (starting with installation of python package *wheel* required for local packaging and installation).
 
 ```
 cd SVXplorer*
-pip install -r requirements.txt
+pip install wheel
 python setup.py bdist_wheel
 pip install -e .
 ```
