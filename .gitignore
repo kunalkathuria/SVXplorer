@@ -5,3 +5,7 @@ bin*
 test
 expt*
 scripts/manuscript
+src/markLikelyConflicts.py
+src/markBadRegionsMQ.py
+scripts/vcftoBed*
+scripts/calcConflict.py

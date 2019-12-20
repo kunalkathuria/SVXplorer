@@ -10,7 +10,7 @@ import numpy as np
 import argparse
 import logging
 from bitarray import bitarray
-from shared import readChromosomeLengths
+from shared import readChromosomeLengths, readBamStats
 
 # global variables
 DEL_THRESH_GT = .125
@@ -56,19 +56,6 @@ def formChrHash(NH_REGIONS_FILE, RDL, chrLengths):
         prev_stop = stop
         prevTID = currentTID
     logging.info("Done forming PU hash table")
-
-def readBamStats(statFile):
-    rdl, sd, coverage = -1, -1, -1
-    with open(statFile, 'r') as fStat:
-        for i,line in enumerate(fStat):
-            if i == 0:
-                rdl = float(line[:-1])
-            elif i == 2:
-                sd = float(line[:-1])
-            elif i == 3:
-                coverage = float(line[:-1])
-                break
-    return rdl, sd, coverage
 
 def calculateLocCovg(NH_REGIONS_FILE,chr_n, bpFirst, bpSecond, PILEUP_THRESH, fBAM, chrHash, 
         GOOD_REG_THRESH, outerBPs, MIN_PILEUP_THRESH, MIN_PILEUP_THRESH_NH, isTD):
