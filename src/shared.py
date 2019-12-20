@@ -25,37 +25,6 @@ def findNumberMatches(cigartups):
 
     return nummatches
 
-def findTotalNMatches(al):
-    """ Calculate how many bases in alignment match reference, given cigar string
-    Inputs:
-        al: pysam alignment read from bamfile
-    Outputs:
-        Number of matches, ratio of number of matches to query length
-    """
-    MDtagPos = str(al).find("MD",10) + 6
-    # MD tag is set for perfect matches, so if not set, dubious
-    if MDtagPos == 5:
-        return 0,0
-    temp = str(al)[MDtag_pos:].find(")")
-    MDtag = str(al)[MDtag_pos:MDtag_pos +temp-1]
-    integers = "0123456789"
-    n_matches = 0
-    prev = "0"
-    n_subs = 0
-    for string in MDtag:
-        if string in integers:
-            prev += string
-        else:
-            n_matches += int(prev)
-            prev = "0"
-            n_subs += 1
-    n_matches += int(prev)
-    if n_matches > 0:
-        return n_matches, float(n_matches)/float(n_matches + n_subs)
-    else:
-        return 0,0
-
-
 def readChromosomeLengths(bamfile):
     lengths = {}
     bfile = ps.Samfile(bamfile, 'rb')

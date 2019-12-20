@@ -217,8 +217,8 @@ def findTotalNMatches(al):
         Number of matches, ratio of number of matches to query length
     """
     MDtagPos = str(al).find("MD",10) + 6
-    temp = str(al)[MDtag_pos:].find(")")
-    MDtag = str(al)[MDtag_pos:MDtag_pos +temp-1]
+    temp = str(al)[MDtagPos:].find(")")
+    MDtag = str(al)[MDtagPos:MDtagPos +temp-1]
     # MD tag is set for perfect matches, so if not set, dubious
     if MDtagPos == 5:
         return 0,0
