@@ -103,15 +103,15 @@ def formPEHash(fAV, iObjects, slop):
 def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
                   slop, refRate, min_vs, mapThresh, ignoreChr, minSizeINS,
                   minSRtoPEsupport, ignoreBED, noCCleanUp, maxClusterMargin):
-    fAV = open(workDir+"/allVariants.pe.txt","r")
-    fVM = open(workDir+"/variantMap.pe.txt","r")
+    fAV = open(allVariantFilePE,"r")
+    fVM = open(variantMapFilePE,"r")
     fAVN = open(workDir+"/allVariants.pe_sr.txt","w")
     fVMN = open(workDir+"/variantMap.pe_sr.txt","w")
     global SVHashPE
     SVHashPE = {}
     SRVarHash = {}
     # preserve list of complex hash objects
-    MAX_ARRAY_SIZE = countLines(workDir+"/allVariants.pe.txt")
+    MAX_ARRAY_SIZE = countLines(allVariantFilePE)
     immutable_objects = [None]*MAX_ARRAY_SIZE
 
     # save the PE variants
@@ -638,7 +638,7 @@ def addSplitReads(workDir, variantMapFilePE, allVariantFilePE, bamFileSR,
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(description='Add split reads to support existing PE variants and create new SR variants')
-    PARSER.add_argument('workDir', help='Work directory')
+    PARSER.add_argument('workDir', help='Output directory')
     PARSER.add_argument('variantMapFilePE', help='File containing PEvariant map, typically variantMap.pe.txt')
     PARSER.add_argument('allVariantFilePE', help='File containing list of PE variants, typically allVariants.pe.txt')
     PARSER.add_argument('bamFileSR', help='File containing all split reads, name-sorted')
@@ -646,8 +646,9 @@ if __name__ == "__main__":
                         help='print debug information')
     PARSER.add_argument('-x', action='store_true',
                                     help='no cluster cleanup used')
-    PARSER.add_argument('-s', default=8.0, dest='slop', type=float, help='SR breakpoint slop')
+    PARSER.add_argument('-s', default=8, dest='slop', type=int, help='SR breakpoint slop')
     PARSER.add_argument('-f', default=0, dest='refRate', type=int, help='Subsample every so many split reads')
+    PARSER.add_argument('-g', default=600, dest='maxClusterMargin', type=int, help='Maximum uncertainty in cluster margin detected in cluster formation stage')
     PARSER.add_argument('-m', default=3, dest='min_vs', type=int,
         help='Minimum support for SR variants')
     PARSER.add_argument('-q', default=10, dest='mapThresh', type=int, help='SR Mapping quality threshold')
@@ -672,6 +673,6 @@ if __name__ == "__main__":
     addSplitReads(ARGS.workDir, ARGS.variantMapFilePE, ARGS.allVariantFilePE,
                   ARGS.bamFileSR, ARGS.slop, ARGS.refRate, ARGS.min_vs,
                   ARGS.mapThresh, ARGS.ignoreChr, ARGS.minSizeINS,
-                  ARGS.minSRtoPEsupport, ARGS.ignoreBED, ARGS.x)
+                  ARGS.minSRtoPEsupport, ARGS.ignoreBED, ARGS.x, ARGS.maxClusterMargin)
 
     logging.shutdown()
