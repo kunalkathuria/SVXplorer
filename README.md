@@ -74,3 +74,17 @@ Option -m expects a file listing regions not containing frequently repeated sequ
 
 The final BEDPE and VCF files are written in the results folder. Intermediate BEDPE files using only PE/PE and SR mappings are stored in the "workspace" directory.
 
+### EXPERT-USER-TUNABLE PARAMETERS
+
+For the more advanced user, there are certain parameters in SVXplorer that can be manipulated and tailored to the nature of the user's input data. These are not accessible from the command line. Unless noted otherwise, they are found in the sequential global variable list in bin/SVXplorer.
+
+1.MAP_THRESH: minimum mapping quality for a PE alignment to enter the SVXplorer pipeline
+2.PE_THRESH_MIN, PE_THRESH_MAX: minimum and maximum cutoffs for the dynamic support threshold calculation via linear model (please see manuscript for details) for PE-only variant calls
+3.SR_THRESH_MIN, SR_THRESH_MAX: same as above for SR-only variant calls
+4. MQ_SR: minimum mapping quality for split alignments to be considered
+5. SLOP_SR: maximum distance between reference locations of split alignments to become part of the same variant
+6. DEL_CN_SUPP_THRESH (DUP_CN_SUPP_THRESH): variant-region coverage threshold to call a deletion (duplication) as a fraction of median chromosome coverage. Local coverage lower (higher) than this value will cause a deletion (duplication) to be called.
+7. MIN_PILEUP_THRESH in bin/covPUFilter.py: specifies the minimum number of mappable bases that should be used to calculate local coverage in a variant region for the thresholds in 6) to be effective. ("MIN_PILEUP_THRESH_NH" in the same file should be set to the same value.)
+8.pe_low, pe_high, sr_low, sr_high, covg_low, covg_high in bin/uniqueSupportFilter.py: (covg_low,pe_low) and (covg_high, pe_high) define the (x,y) points to be joined by a line and interpolated between to set the dynamic support threshold given the coverage of the data in question (please see manuscript for details on the model). Same for sr_high, sr_low. Changing these parameters alters the slope/position of the linear model.
+
+Users familiar with their data and SVXplorer scripts can alter these parameters to suit the nature of their input data. For example, if one is processing very high-quality alignment data or is processing simulated data for specific analysis, one could lower the above mapping quality thresholds (in addition to choosing a low threshold via the "-q" option in command-line) to any value greater than 0. One can also use lower read-support values corresponding to "covg_low" and "covg_high" to alter the dynamic support model calculated by SVXplorer. The fixed local coverage thresholds to call deletions and duplications can also be made more strict or relaxed depending upon the needs of the user and quality of input data. MIN_PILEUP_THRESH can be manipulated based on the scale precision of the user's mappable region file (if using one different from SVXplorer's). It can be increased to be conservative or decreased to be more liberal in filtering variants. 
