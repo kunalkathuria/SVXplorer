@@ -82,7 +82,7 @@ For the advanced user, there are certain parameters in SVXplorer that can be man
 
 2.PE_THRESH_MIN, PE_THRESH_MAX: minimum and maximum cutoffs for the dynamic support threshold calculation via linear model (please see manuscript for details) for PE-only variant calls. We require at least 3 paired-end reads to support the same variant, before it is considered. As the coverage increases, the minimum reuired coverage is dynamically selected between [PE_THRESH_MIN, PE_THRESH_MAX]. Increasing these should increase precision, though it may lead to decrease in sensitivity.
 
-3.SR_THRESH_MIN, SR_THRESH_MAX: same as above for variant calls that are only supported by split-reads. Bu default these are set to 3 and 6 respectively.
+3.SR_THRESH_MIN, SR_THRESH_MAX: same as above for variant calls that are only supported by split-reads. By default these are set to 3 and 6 respectively.
 
 4. MQ_SR: minimum mapping quality for split alignments to be considered. By default this is set to 10.
 
