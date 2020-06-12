@@ -17,7 +17,7 @@ SVXplorer should be run on a BAM file with a single read-group. For datasets wit
 
 ### REQUIREMENTS
 
-SVXplorer should run on any Unix-based OS with bash, python > 2.6 and libraries as specified in the requirements file. "bedtools" and "samtools" executables should be on the user PATH. In addition, if a split read file is not available in the typical splitters format (2 entries per query name with 2 distinct, split queries) a script is provided to extract this from the alignment file using LUMPY's extractBwaMem_reads script (https://raw.githubusercontent.com/arq5x/lumpy-sv/master/scripts/extractSplitReads_BwaMem).
+SVXplorer should run on any Unix-based OS with bash, python (version 2.6 or 2.7) and libraries as specified in the requirements file. "bedtools" and "samtools" executables should be on the user PATH. In addition, if a split read file is not available in the typical splitters format (2 entries per query name with 2 distinct, split queries) a script is provided to extract this from the alignment file using LUMPY's extractBwaMem_reads script (https://raw.githubusercontent.com/arq5x/lumpy-sv/master/scripts/extractSplitReads_BwaMem).
 
 ### INSTALLATION
 

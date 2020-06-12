@@ -1,4 +1,4 @@
-python_version > '2.6'
+python_version < '3'
 bitarray==1.0.1
 decorator==4.4.0
 interlap==0.2.6
