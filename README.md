@@ -32,7 +32,7 @@ Then install all the python libraries and install SVXplorer using
 
 ```
 cd SVXplorer*
-pip install -r requirements.txt
+pip2 install -r requirements.txt
 make
 ```
 
