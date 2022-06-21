@@ -3,7 +3,7 @@ decorator==4.4.0
 interlap==0.2.6
 logging==0.4.9.6
 networkx==2.2
-numpy==1.16.5
+numpy==1.22.0
 pandas==0.24.2
 pybedtools==0.8.0
 pysam==0.15.3
